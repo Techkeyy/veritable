@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "noUncheckedIndexedAccess": false,
+    "exactOptionalPropertyTypes": false,
+    "lib": ["ES2023"]
+  },
+  "include": ["hardhat.config.ts", "test/**/*.ts", "scripts/**/*.ts"]
+}

@@ -1,0 +1,17 @@
+node_modules/
+.next/
+*.tsbuildinfo
+.verifi/
+.pnpm-store/
+dist/
+coverage/
+artifacts/
+cache/
+typechain-types/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+Thumbs.db
+deployments/*/private-*.json

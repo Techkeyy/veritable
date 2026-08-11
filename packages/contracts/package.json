@@ -1,0 +1,25 @@
+{
+  "name": "@veritable/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:testnet": "hardhat run scripts/deploy-testnet.ts --network botTestnet",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "hardhat clean"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "4.9.6",
+    "@veritable/policy": "workspace:*",
+    "dotenv": "17.4.2"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox-viem": "5.0.7",
+    "@types/node": "26.2.0",
+    "hardhat": "3.12.0",
+    "typescript": "5.9.3",
+    "viem": "2.55.13"
+  }
+}
