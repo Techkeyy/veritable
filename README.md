@@ -43,16 +43,17 @@ The Testnet build is not demo-ready until a fresh wallet can complete all three 
 
 ## Current status
 
-Implementation is active. The pinned pnpm monorepo, deterministic `policy-v1`, trusted-signer sandbox payment evidence, six-contract protocol, issuer asset factory, ordered/idempotent event worker, redacted public reports, BOT Testnet deployment automation, and wallet-connected protocol console are implemented. Forty-four automated tests currently prove the full signed-evidence-to-holder pipeline, verified release with snapshot entitlements, blocked distribution and refund, challenged false approval with BOT slashing, locked-stake safety, policy and terms binding, all-or-nothing escrow, deadline boundaries, replay rejection, trusted-source integrity, wrong-period rejection, restart recovery, bounded dead-letter behavior, and fail-closed policy behavior. The web app also passes its production build.
+Implementation is active. The pinned pnpm monorepo, deterministic `policy-v1`, trusted-signer sandbox payment evidence, six-contract protocol, issuer asset factory, ordered/idempotent event worker, redacted public reports, BOT Testnet deployment automation, secret-safe identity bootstrap, automated live acceptance evidence, and wallet-connected protocol console are implemented. Forty-four automated tests currently prove the full signed-evidence-to-holder pipeline, verified release with snapshot entitlements, blocked distribution and refund, challenged false approval with BOT slashing, locked-stake safety, policy and terms binding, all-or-nothing escrow, deadline boundaries, replay rejection, trusted-source integrity, wrong-period rejection, restart recovery, bounded dead-letter behavior, and fail-closed policy behavior. The web app also passes its production build.
 
 Public hosting and the live BOT Testnet contract deployment remain pending. Deployment requires a funded BOT Testnet deployer and verifier; Mainnet execution remains deliberately disabled. Any future README claim must remain backed by a command, test, transaction, deployment, or visible product behavior.
 
 ## Testnet quick start
 
-1. Copy `.env.example` to `.env` and add a funded `DEPLOYER_PRIVATE_KEY`, a separately funded `VERIFIER_PRIVATE_KEY`, and the verifier's `EVIDENCE_SIGNER_ADDRESS`.
-2. Run `pnpm install --frozen-lockfile`, `pnpm test`, `pnpm typecheck`, and `pnpm run doctor -- --network bot-testnet --wallets`. The doctor derives public addresses without printing secrets, requires separate deployer/verifier wallets, checks verifier funding for the scripted 25 tBOT stake plus gas, and confirms the evidence signer address matches its private key.
+1. Run `pnpm init:testnet-env`. It creates dedicated testnet-only deployer, verifier, and evidence-signing identities in the ignored `.env`, and prints only their public addresses.
+2. Fund the deployer and verifier from the official BOT Testnet faucet, then run `pnpm install --frozen-lockfile`, `pnpm test`, `pnpm typecheck`, and `pnpm run doctor -- --network bot-testnet --wallets`. The doctor requires separate roles, at least 6 tBOT for the verifier's 5 tBOT demo stake plus gas, and a matching evidence signer address.
 3. Run `pnpm deploy:testnet`. The wrong-chain kill switch requires chain ID `968` and writes `deployments/bot-testnet/manifest.json`, `web.env`, and `agent.env`.
-4. Apply the generated public addresses to the web environment. Start the evidence API, agent, and web app with `pnpm dev:api`, `pnpm dev:agent`, and `pnpm dev:web`.
-5. Run `pnpm run doctor -- --network bot-testnet --require-deployment` to verify live bytecode, wiring, verifier authorization, and available stake.
+4. Run `pnpm acceptance:testnet`. It waits through the one-minute testnet gates and writes a secret-free `deployments/bot-testnet/acceptance.json` containing the transaction-backed release/distribution and challenge/slash/refund results.
+5. Start the evidence API, agent, and web app with `pnpm dev:api`, `pnpm dev:agent`, and `pnpm dev:web`, then repeat the workflows through the UI.
+6. Run `pnpm run doctor -- --network bot-testnet --require-deployment --wallets` to verify live bytecode, wiring, role separation, funding, verifier authorization, and available stake.
 
 Never commit `.env`, private keys, or agent state. `bot-mainnet` is not a deployment target in the contract configuration during Phase 1.

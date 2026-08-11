@@ -7,6 +7,7 @@
     "build": "hardhat compile",
     "test": "hardhat test",
     "deploy:testnet": "hardhat run scripts/deploy-testnet.ts --network botTestnet",
+    "acceptance:testnet": "hardhat run scripts/acceptance-testnet.ts --network botTestnet",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean": "hardhat clean"
   },
