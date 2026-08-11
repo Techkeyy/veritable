@@ -6,11 +6,14 @@ import { getAddress, isAddress, keccak256, parseEther, parseUnits, stringToHex, 
 import { hashCanonical } from "@veritable/policy";
 
 const EXPECTED_CHAIN_ID = 968;
-const VERIFIER_BOND = parseEther("10");
-const CHALLENGER_BOND = parseEther("1");
-const CHALLENGE_WINDOW = 15n * 60n;
-const UNSTAKE_COOLDOWN = 60n * 60n;
-const BLOCKED_REFUND_DELAY = 60n * 60n;
+// Testnet-only values are intentionally faucet-sized and fast enough for a live demo.
+// Mainnet parameters are selected separately after the testnet acceptance gate.
+const VERIFIER_BOND = parseEther("2");
+const CHALLENGER_BOND = parseEther("0.25");
+const SEEDED_VERIFIER_STAKE = parseEther("5");
+const CHALLENGE_WINDOW = 60n;
+const UNSTAKE_COOLDOWN = 5n * 60n;
+const BLOCKED_REFUND_DELAY = 60n;
 const DEMO_ASSET_ID = keccak256(stringToHex("asset:verifi-solar-001"));
 const POLICY_HASH = keccak256(stringToHex("policy-v1"));
 const TERMS_HASH = hashCanonical({
@@ -43,8 +46,8 @@ if (chainId !== EXPECTED_CHAIN_ID) {
 const admin = deployer.account.address;
 const issuer = optionalAddress("ISSUER_ADDRESS", admin);
 const holderA = optionalAddress("HOLDER_A_ADDRESS", admin);
-const holderB = optionalAddress("HOLDER_B_ADDRESS", issuer);
 const verifier = verifierWallet.account.address;
+const holderB = optionalAddress("HOLDER_B_ADDRESS", verifier);
 const treasury = optionalAddress("TREASURY_ADDRESS", admin);
 const transactions: Record<string, Hash> = {};
 
@@ -72,7 +75,7 @@ transactions.mintIssuerTestUsdt = await settlement.write.mint([issuer, parseUnit
 const verifierStaking = await viem.getContractAt("VerifierStaking", staking.address, {
   client: { wallet: verifierWallet },
 });
-transactions.seedVerifierStake = await verifierStaking.write.stake([], { value: parseEther("25") });
+transactions.seedVerifierStake = await verifierStaking.write.stake([], { value: SEEDED_VERIFIER_STAKE });
 
 for (const hash of Object.values(transactions)) {
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
@@ -92,6 +95,7 @@ const manifest = {
   parameters: {
     verifierBondWei: VERIFIER_BOND.toString(),
     challengerBondWei: CHALLENGER_BOND.toString(),
+    seededVerifierStakeWei: SEEDED_VERIFIER_STAKE.toString(),
     challengeWindowSeconds: CHALLENGE_WINDOW.toString(),
     unstakeCooldownSeconds: UNSTAKE_COOLDOWN.toString(),
     blockedRefundDelaySeconds: BLOCKED_REFUND_DELAY.toString(),

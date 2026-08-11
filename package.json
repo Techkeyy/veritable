@@ -15,12 +15,15 @@
     "dev:api": "pnpm --filter @veritable/api start",
     "dev:agent": "pnpm --filter @veritable/agent start",
     "deploy:testnet": "pnpm --filter @veritable/contracts deploy:testnet",
+    "init:testnet-env": "tsx scripts/init-testnet-env.ts",
     "clean": "pnpm -r clean"
   },
   "devDependencies": {
     "@types/node": "26.2.0",
+    "dotenv": "17.4.2",
     "tsx": "4.23.12",
     "typescript": "5.9.3",
+    "viem": "2.55.13",
     "vitest": "4.1.10"
   }
 }
