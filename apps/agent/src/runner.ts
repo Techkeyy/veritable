@@ -6,19 +6,21 @@ import {
   createPublicClient,
   getAddress,
   http,
-  parseAbiItem,
   type Address,
   type Hex,
+  zeroHash,
 } from "viem";
 import { ClaimProcessor } from "./processor.js";
-import { createChainSubmitter, yieldClaimEventAbi } from "./chain.js";
+import { attestationRegistryAbi, createChainSubmitter, yieldClaimEventAbi } from "./chain.js";
 import { FileJobStore, type ClaimEvent } from "./store.js";
 
 dotenv.config({ path: resolve(process.cwd(), "../../.env"), quiet: true });
 dotenv.config({
   path: resolve(process.cwd(), "../../deployments/bot-testnet/agent.env"),
   quiet: true,
-  override: false,
+  // This generated file contains only public, deployment-specific values and
+  // must replace blank/stale placeholders from the root secret environment.
+  override: true,
 });
 
 function required(name: string): string {
@@ -37,7 +39,7 @@ const registryAddress = getAddress(required("ATTESTATION_REGISTRY_ADDRESS"));
 const verifierPrivateKey = required("VERIFIER_PRIVATE_KEY") as Hex;
 const trustedPaymentSigner = getAddress(required("EVIDENCE_SIGNER_ADDRESS"));
 const apiBaseUrl = process.env.EVIDENCE_API_URL ?? "http://127.0.0.1:4100";
-const store = await FileJobStore.open(process.env.AGENT_STATE_PATH ?? "../../.verifi/agent-jobs.json");
+const store = await FileJobStore.open(process.env.AGENT_STATE_PATH || "../../.verifi/agent-jobs.json");
 const client = createPublicClient({ chain: chainConfig.chain, transport: http(chainConfig.httpRpcUrl) });
 const submitAttestation = createChainSubmitter({
   chain: chainConfig.chain,
@@ -72,6 +74,15 @@ const processor = new ClaimProcessor({
     const response = await fetch(new URL(`/v1/payments/${encodeURIComponent(reference)}`, apiBaseUrl));
     if (!response.ok) throw new Error(`Payment API returned ${response.status}`);
     return signedPaymentEnvelopeSchema.parse(await response.json());
+  },
+  findExistingAttestation: async (event) => {
+    const attestationId = await client.readContract({
+      address: registryAddress,
+      abi: attestationRegistryAbi,
+      functionName: "claimAttestations",
+      args: [event.claimId as Hex],
+    });
+    return attestationId === zeroHash ? undefined : attestationId;
   },
   submitAttestation,
 });
@@ -148,14 +159,7 @@ function enqueueRecovery() {
 
 await recoverThrough(await client.getBlockNumber());
 
-client.watchEvent({
-  address: vaultAddress,
-  event: parseAbiItem(
-    "event YieldClaimSubmitted(bytes32 indexed claimId, bytes32 indexed assetId, bytes32 indexed periodKey, address issuer, uint256 amount, bytes32 evidenceRoot, uint256 snapshotId)",
-  ),
-  onLogs: () => enqueueRecovery(),
-  onError: (error) => process.stderr.write(`Event watcher error: ${error.message}\n`),
-  pollingInterval: 2_000,
-});
-setInterval(enqueueRecovery, Number(process.env.AGENT_RETRY_INTERVAL_MS ?? "15000"));
+// BOT's public RPC evicts eth_newFilter state aggressively. The same ordered
+// recovery path is used for both live discovery and retries via stateless logs.
+setInterval(enqueueRecovery, Number(process.env.AGENT_RETRY_INTERVAL_MS ?? "5000"));
 process.stdout.write(`VeriFi agent watching ${vaultAddress} on chain ${chainConfig.chain.id}\n`);

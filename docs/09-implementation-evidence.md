@@ -16,31 +16,48 @@ Last validated: **2026-08-11 (WAT)**
 - Testnet-only deployment script, automatic role wiring, two distinct seeded demo holders, faucet-sized verifier stake, and generated runtime manifests.
 - Secret-safe testnet identity initializer and an automated live acceptance runner that emits explorer-linked evidence without private material.
 - Live BOT Testnet pre-deployment doctor.
+- Live BOT Testnet deployment at block `19536921` with all seven contracts wired and post-deployment doctor checks green.
+- Live adversarial acceptance at block `19537392`, recorded in `deployments/bot-testnet/acceptance.json`.
 
 ## Verification results
 
 | Evidence | Result |
 |---|---|
-| `pnpm test` | 44 passed: policy 11, config 3, agent 10, API 4, contracts/cross-layer 16 |
+| `pnpm test` | 45 passed: policy 11, config 3, agent 11, API 4, contracts/cross-layer 16 |
 | `pnpm typecheck` | All nine workspaces passed |
 | `pnpm --filter @veritable/web build` | Production build passed |
 | `pnpm audit --prod` | No known vulnerabilities |
 | Repository secret-pattern scan | 0 hits |
 | `pnpm run doctor -- --network bot-testnet` | RPC reachable, chain ID 968, live block advancing |
 | API HTTP smoke | health 200, authorized CORS preflight 204, unknown report 404 |
+| Post-deployment doctor | All bytecode, wiring, role, wallet, signer, and bonded-stake checks passed on chain 968 |
+| Live verified path | 2,000 USDT released; holder A received 1,200 and holder B received 800 |
+| Live challenged path | False approval overturned; verifier free stake slashed from 5 to 3 tBOT; 1,500 USDT escrow refunded |
+| Live app runtime | API 200, web 200, agent cursor advancing, seven workflow tabs rendered, browser console clean |
 
-The strict wallet doctor passes identity separation and key/address integrity. It remains intentionally red until the generated deployer and verifier receive faucet tBOT. No private values are printed, pasted into chat, or committed.
+## Live BOT Testnet evidence
 
-## Still requires external Testnet state
+- Deployment manifest: `deployments/bot-testnet/manifest.json`
+- Acceptance bundle: `deployments/bot-testnet/acceptance.json`
+- Asset Registry: `0xa5728e7aab1373d2af4b39d58ee1010167123560`
+- Yield Vault: `0x6786d682738d2f0e1d31c113de9aece14ac43f1a`
+- Attestation Registry: `0x5e18d2c62257bceddcc21e0a0fd2dd9d6ed79a37`
+- Verified settlement: https://scan.bohr.life/tx/0xf4ed56d585bab8f25e928451fb6ac22aed592eb235712be84e6aa26ad67cdda5
+- Holder A withdrawal: https://scan.bohr.life/tx/0x23e0cc6c1b3618131db5148827a9828ee689356841b1f0f24262bb56ab566569
+- Holder B withdrawal: https://scan.bohr.life/tx/0x1715e4b45efae82b89dd001e6533b6e366f6f014bda981122806f43008be3bfc
+- False approval challenge: https://scan.bohr.life/tx/0x275cf40d0ffba0a2ee6bfd5a1e489276516bdcb5f1c14ddc66136e14bd77d73a
+- Resolver overturn and slash: https://scan.bohr.life/tx/0x82318cab75659f149e73b575848befc7c65ff2954a3ac67f0b966d7b699afb56
+- Blocked escrow refund: https://scan.bohr.life/tx/0x32f1a7afffacd1b55ad67bfe1c67f5f57af6f170422cf5b9d4917514f33264b1
+
+The strict wallet doctor now passes both pre-deployment and phase-aware post-deployment checks. No private values are printed, pasted into chat, or committed.
+
+## Remaining release work
 
 The following are intentionally not claimed as complete until explorer-verifiable evidence exists:
 
-1. Fund the separate deployer and verifier wallets from the official faucet. The verifier needs at least 6 tBOT for the 5 tBOT demo stake plus gas; the faucet currently advertises 10 tBOT per address every 24 hours.
-2. Deploy to chain 968 and commit the generated manifest.
-3. Run `pnpm acceptance:testnet` to produce `deployments/bot-testnet/acceptance.json` with exact-payment/release/60-40-claim and false-approval/challenge/overturn/slash/refund transaction links.
-4. Repeat the judge-facing workflows through the public UI from a fresh wallet.
-5. Run the doctor with `--require-deployment --wallets` and archive its output plus transaction links.
-6. Configure the generated addresses in hosting, publish the site/API, and test from a fresh wallet.
-7. Migrate to Mainnet only after every Testnet acceptance item passes.
+1. Run the evidence API, verifier agent, and wallet UI against the generated live addresses and repeat the judge-facing workflows.
+2. Publish the site/API and test the public deployment from a fresh wallet.
+3. Assemble the final hackathon submission copy, demo path, screenshots/video, and evidence links.
+4. Migrate to Mainnet only after the public Testnet release gate passes and the user separately authorizes migration.
 
 Mainnet remains absent from the Hardhat deployment targets and locked in the agent runtime.

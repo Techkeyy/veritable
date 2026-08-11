@@ -15,6 +15,7 @@ export interface ProcessorDependencies {
   fetchEvidence(event: ClaimEvent): Promise<Omit<VerificationInput, "paymentRecords">>;
   fetchPayment(event: ClaimEvent): Promise<SignedPaymentEnvelope>;
   submitAttestation(event: ClaimEvent, report: VerificationReport, reportHash: string): Promise<string>;
+  findExistingAttestation?(event: ClaimEvent): Promise<string | undefined>;
   trustedPaymentSigner: Address;
   maxAttempts?: number;
   now?: () => Date;
@@ -34,6 +35,19 @@ export class ClaimProcessor {
     ) return existing;
 
     const now = this.dependencies.now?.() ?? new Date();
+    const existingAttestationId = await this.dependencies.findExistingAttestation?.(event);
+    if (existingAttestationId) {
+      const alreadySubmitted: ClaimJob = {
+        key,
+        event,
+        status: "SUBMITTED",
+        attempts: existing?.attempts ?? 0,
+        existingAttestationId,
+        updatedAt: now.toISOString(),
+      };
+      await this.dependencies.store.put(alreadySubmitted);
+      return alreadySubmitted;
+    }
     const processing: ClaimJob = {
       key,
       event,

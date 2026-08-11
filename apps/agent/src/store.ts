@@ -34,6 +34,7 @@ export interface ClaimJob {
   reportHash?: string;
   report?: VerificationReport;
   attestationTransactionHash?: string;
+  existingAttestationId?: string;
   lastError?: string;
   updatedAt: string;
 }

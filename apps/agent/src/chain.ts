@@ -31,6 +31,13 @@ export const yieldClaimEventAbi = [
 export const attestationRegistryAbi = [
   {
     type: "function",
+    name: "claimAttestations",
+    stateMutability: "view",
+    inputs: [{ name: "claimId", type: "bytes32" }],
+    outputs: [{ type: "bytes32" }],
+  },
+  {
+    type: "function",
     name: "nonces",
     stateMutability: "view",
     inputs: [{ name: "verifier", type: "address" }],

@@ -43,11 +43,13 @@ The Testnet build is not demo-ready until a fresh wallet can complete all three 
 
 ## Current status
 
-Implementation is active. The pinned pnpm monorepo, deterministic `policy-v1`, trusted-signer sandbox payment evidence, six-contract protocol, issuer asset factory, ordered/idempotent event worker, redacted public reports, BOT Testnet deployment automation, secret-safe identity bootstrap, automated live acceptance evidence, and wallet-connected protocol console are implemented. Forty-four automated tests currently prove the full signed-evidence-to-holder pipeline, verified release with snapshot entitlements, blocked distribution and refund, challenged false approval with BOT slashing, locked-stake safety, policy and terms binding, all-or-nothing escrow, deadline boundaries, replay rejection, trusted-source integrity, wrong-period rejection, restart recovery, bounded dead-letter behavior, and fail-closed policy behavior. The web app also passes its production build.
+Implementation is active. The pinned pnpm monorepo, deterministic `policy-v1`, trusted-signer sandbox payment evidence, six-contract protocol, issuer asset factory, ordered/idempotent event worker, redacted public reports, BOT Testnet deployment automation, secret-safe identity bootstrap, automated live acceptance evidence, and wallet-connected protocol console are implemented. Forty-five automated tests currently prove the full signed-evidence-to-holder pipeline, verified release with snapshot entitlements, blocked distribution and refund, challenged false approval with BOT slashing, locked-stake safety, policy and terms binding, all-or-nothing escrow, deadline boundaries, replay rejection, on-chain recovery idempotency, trusted-source integrity, wrong-period rejection, restart recovery, bounded dead-letter behavior, and fail-closed policy behavior. The web app also passes its production build.
 
 Every push and pull request runs the pinned install, complete regression suite, all-workspace type-check, production build, and production dependency audit in CI on the repository's pinned Node.js runtime.
 
-Public hosting and the live BOT Testnet contract deployment remain pending. Deployment requires a funded BOT Testnet deployer and verifier; Mainnet execution remains deliberately disabled. Any future README claim must remain backed by a command, test, transaction, deployment, or visible product behavior.
+The complete contract system is live on BOT Testnet at deployment block `19536921`. Automated live acceptance proved the 2,000 USDT release and 60/40 withdrawal path, then challenged and overturned a false approval, slashed the verifier from 5 to 3 tBOT free stake, and refunded the blocked 1,500 USDT escrow. Public evidence is stored in `deployments/bot-testnet/manifest.json` and `deployments/bot-testnet/acceptance.json`.
+
+Public hosting and fresh-wallet UI validation remain pending. Mainnet execution remains deliberately disabled. Any future README claim must remain backed by a command, test, transaction, deployment, or visible product behavior.
 
 ## Testnet quick start
 

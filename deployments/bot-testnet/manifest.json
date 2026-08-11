@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "network": "bot-testnet",
+  "chainId": 968,
+  "rpcUrl": "https://rpc.bohr.life",
+  "deployedAt": "2026-08-11T22:39:00.195Z",
+  "deploymentBlock": "19536921",
+  "deployer": "0x74ff8f64d441e10aeda9ef83cf2495847606622a",
+  "roles": {
+    "admin": "0x74ff8f64d441e10aeda9ef83cf2495847606622a",
+    "issuer": "0x74ff8f64d441e10aeda9ef83cf2495847606622a",
+    "verifier": "0xbf96d30cdb06888bb4b444535e196f941a603356",
+    "treasury": "0x74ff8f64d441e10aeda9ef83cf2495847606622a",
+    "holderA": "0x74ff8f64d441e10aeda9ef83cf2495847606622a",
+    "holderB": "0xbf96d30cdb06888bb4b444535e196f941a603356"
+  },
+  "parameters": {
+    "verifierBondWei": "2000000000000000000",
+    "challengerBondWei": "250000000000000000",
+    "seededVerifierStakeWei": "5000000000000000000",
+    "challengeWindowSeconds": "60",
+    "unstakeCooldownSeconds": "300",
+    "blockedRefundDelaySeconds": "60"
+  },
+  "contracts": {
+    "settlementToken": "0x38fbbd141c1e31d1058bbd15bbcb7b37233802db",
+    "assetRegistry": "0xa5728e7aab1373d2af4b39d58ee1010167123560",
+    "assetFactory": "0x5b1001a141ad718842fa965ea556f43cb3f95fd2",
+    "revenueShareToken": "0x67cd42e7017ad134c00a04dcf005fb5cedb9b988",
+    "verifierStaking": "0x17e8bcb0940e656abeef09e7610ec6c623ec8f39",
+    "yieldVault": "0x6786d682738d2f0e1d31c113de9aece14ac43f1a",
+    "attestationRegistry": "0x5e18d2c62257bceddcc21e0a0fd2dd9d6ed79a37"
+  },
+  "demo": {
+    "assetId": "0xbad31a38b101816683ad85fec41b7b5e17aeb80fe7b2dd326855e70fbe158612",
+    "policyHash": "0xb2590ce26adfc7f2814ca4b72880660e2369b23d16ffb446362696d8186d6348",
+    "termsHash": "0x0d2c127c0fd9f58502b1913bcbef524d7a6c132094cb5f3ec445c6559a11531d"
+  },
+  "transactions": {
+    "grantSnapshotRole": "0xa22e5547f64bd77d1f835dca6bc6eb26b13a47ae6822a1f8aa882a12df43c377",
+    "grantFactoryAssetManagerRole": "0x34e4787dcb4cc621c8c3afcdd47f0b45a2b24ffb51f3dbd907c6226cf51e3065",
+    "grantVaultRegistryRole": "0xdc02a6381f348d5d3e376dcaea4ff6d0e9336ebbadc2dc75649cbbc362acae5d",
+    "grantStakingRegistryRole": "0x02bb351f42d80134cc99e55aa5194336ea27c9ce2c231ce32479fc0d590da65b",
+    "grantVerifierRole": "0xcaabdef2bcb869844abd5335357f0787466fb4d36942c67fb378095dfe545e36",
+    "registerDemoAsset": "0x5b839423d0b9f21a10a41737021f96c1f33c28ca9a2148c06733217ca0b7a386",
+    "mintHolderA": "0x9645e500a7a42a6833082a4f392e31d33b4484097c22c37ac638d453f26cae89",
+    "mintHolderB": "0xd077f7b67f506aebfb4b080c4c7dcf94e31f8a5346a059818160cddc1d1be6e2",
+    "mintIssuerTestUsdt": "0x703decb2eb38d8872a8f40c8b1ec94749bf09e0194c7ded266b0b157f2893448",
+    "seedVerifierStake": "0x15aedf6595dba29f6b2db02bfda24d8d05dca2b8919ff99c924cf8be63d750be"
+  }
+}

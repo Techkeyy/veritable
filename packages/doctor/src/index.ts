@@ -68,8 +68,11 @@ try {
       const verifierBalance = await client.getBalance({ address: verifier.address });
       checks.push({ name: "wallet:separate-roles", ok: deployer.address.toLowerCase() !== verifier.address.toLowerCase(), detail: `${deployer.address} / ${verifier.address}` });
       checks.push({ name: "wallet:deployer-funded", ok: deployerBalance > 0n, detail: `${deployer.address} (${formatEther(deployerBalance)} tBOT)` });
-      const testnetVerifierMinimum = parseEther("6");
-      checks.push({ name: "wallet:verifier-funded", ok: verifierBalance >= testnetVerifierMinimum, detail: `${verifier.address} (${formatEther(verifierBalance)} tBOT; requires at least 6 for the 5 tBOT demo stake plus gas)` });
+      const verifierWalletMinimum = requireDeployment ? parseEther("0.05") : parseEther("6");
+      const verifierFundingDetail = requireDeployment
+        ? "requires at least 0.05 for post-deployment acceptance gas; bonded stake is checked on-chain"
+        : "requires at least 6 for the 5 tBOT demo stake plus gas";
+      checks.push({ name: "wallet:verifier-funded", ok: verifierBalance >= verifierWalletMinimum, detail: `${verifier.address} (${formatEther(verifierBalance)} tBOT; ${verifierFundingDetail})` });
     }
     if (validKey(evidenceKey)) {
       const derived = privateKeyToAccount(evidenceKey).address;

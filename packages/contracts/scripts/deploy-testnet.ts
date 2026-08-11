@@ -141,6 +141,7 @@ await writeFile(
     `ATTESTATION_REGISTRY_ADDRESS=${attestationRegistry.address}`,
     `YIELD_VAULT_DEPLOYMENT_BLOCK=${deploymentBlock}`,
     `AGENT_STATE_PATH=../../.verifi/agent-jobs.json`,
+    `AGENT_RETRY_INTERVAL_MS=5000`,
     "",
   ].join("\n"),
   "utf8",

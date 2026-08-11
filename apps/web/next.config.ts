@@ -6,6 +6,8 @@ dotenv.config({ path: resolve(import.meta.dirname, "../../.env"), quiet: true })
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
+  agentRules: false,
 };
 
 export default nextConfig;

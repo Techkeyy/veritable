@@ -79,6 +79,31 @@ async function payment(status: "FOUND" | "UNAVAILABLE" = "FOUND"): Promise<Signe
 }
 
 describe("claim processor", () => {
+  it("records an already-attested on-chain claim without refetching evidence or spending gas", async () => {
+    let fetches = 0;
+    let submissions = 0;
+    const processor = new ClaimProcessor({
+      store: new MemoryJobStore(),
+      trustedPaymentSigner: TRUSTED_SIGNER,
+      findExistingAttestation: async () => HASH_B,
+      fetchEvidence: async () => {
+        fetches += 1;
+        return evidence;
+      },
+      fetchPayment: async () => payment(),
+      submitAttestation: async () => {
+        submissions += 1;
+        return TX_HASH;
+      },
+      now: () => new Date("2026-08-03T00:00:00.000Z"),
+    });
+    const job = await processor.process(event);
+    expect(job.status).toBe("SUBMITTED");
+    expect(job.existingAttestationId).toBe(HASH_B);
+    expect(fetches).toBe(0);
+    expect(submissions).toBe(0);
+  });
+
   it("submits exactly once when the same log is delivered twice", async () => {
     const store = new MemoryJobStore();
     let submissions = 0;
