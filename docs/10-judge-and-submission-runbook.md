@@ -9,7 +9,8 @@
 | False approval challenge, slash, and refund | `deployments/bot-testnet/acceptance.json` | Passed |
 | Hosted verifier attestation and idempotency | `deployments/bot-testnet/public-demo.json` | Passed |
 | Native and Cloudflare-compatible production builds | build output plus CI | Passed locally |
-| Public website and source repository | deployment URL and repository URL | Pending external publication |
+| Public website | https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site | Passed |
+| Reviewable source repository | Private Sites source is pushed; judging repository URL/access still required | Partial |
 | Fresh external wallet stranger test | screen recording plus explorer transactions | Pending public URL |
 | BOT Mainnet deployment | Mainnet manifest and BOTScan links | Deliberately not started |
 
@@ -107,7 +108,7 @@ The challenge environment uses a clearly labeled signed sandbox payment rail and
 
 ### Required final links
 
-- Product: `[PUBLIC_PRODUCT_URL]`
+- Product: https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site
 - Source: `[REVIEWABLE_REPOSITORY_URL]`
 - BOT Mainnet deployment: `[MAINNET_MANIFEST_OR_BOTSCAN_LINKS]`
 - Demo video: `[VIDEO_URL]`

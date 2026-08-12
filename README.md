@@ -50,7 +50,7 @@ Every push and pull request runs the pinned install, complete regression suite, 
 
 The complete contract system is live on BOT Testnet at deployment block `19536921`. Automated live acceptance proved the 2,000 USDT release and 60/40 withdrawal path, then challenged and overturned a false approval, slashed the verifier from 5 to 3 tBOT free stake, and refunded the blocked 1,500 USDT escrow. The hosted-verifier integration also created, verified, idempotently reprocessed, and settled a canonical 2026-08 public demo claim. Public evidence is stored in `deployments/bot-testnet/manifest.json`, `deployments/bot-testnet/acceptance.json`, and `deployments/bot-testnet/public-demo.json`.
 
-Public deployment and fresh-wallet validation of the deployed URL remain pending. Mainnet execution remains deliberately disabled. Any future README claim must remain backed by a command, test, transaction, deployment, or visible product behavior.
+The public Testnet product is live at https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site. Its landing page, six-rule canonical report, issuer-only authorization boundary, and idempotent hosted-verifier retry have been validated without an owner credential. A new externally controlled wallet still needs to complete the full write path as the final stranger test. Mainnet execution remains deliberately disabled. Any future README claim must remain backed by a command, test, transaction, deployment, or visible product behavior.
 
 ## Testnet quick start
 
