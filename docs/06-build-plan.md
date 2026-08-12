@@ -1,5 +1,7 @@
 # Risk-first build plan
 
+> **Execution status (2026-08-12):** Phases 0–5 and the Testnet portions of Phases 7–8 are complete and evidenced by `deployments/bot-testnet/completion-audit.json` (36/36 live checks), 45 automated tests, both production builds, and the public Veritable site. Phase 6/Mainnet is explicitly deferred by the user. The video, public GitHub URL, and submission-form delivery are publication tasks, not missing Testnet product behavior.
+
 Target submission deadline from the supplied rules: **2026-08-22 23:59 UTC+8 = 2026-08-22 16:59 WAT**. Submit a valid draft early; improve it afterward.
 
 ## Phase 0 — Foundation and pipeline map
@@ -169,6 +171,8 @@ If behind schedule, remove in this order without damaging the thesis:
 Never cut challenge/slash, Mainnet integration, exact USDT distribution, evidence report, network guard, or the three critical scenarios.
 
 ## Definition of done
+
+The original competition definition below includes Mainnet. For the current user-authorized scope, the Testnet definition of done is: public wallet-connected product, all three critical protocol outcomes proven on chain, fresh-wallet public path, tests/typechecks/builds/audit green, secret-free artifacts, reproducible runbook, and limitations disclosed. That scoped definition is satisfied; Mainnet is excluded rather than represented as complete.
 
 - public Mainnet product and source repository;
 - wallet connects and completes core business loop;

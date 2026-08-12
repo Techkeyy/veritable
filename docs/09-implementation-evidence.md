@@ -44,6 +44,7 @@ Last validated: **2026-08-12 (WAT)**
 - Public Sites release: https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site
 - Public release checks: `deployments/bot-testnet/public-site.json`
 - Public release version 3 is built from source commit `ddc44dc62b76906fdf180f99bb52a0da688e08c3` and renders the Veritable brand.
+- Live Testnet completion audit: `deployments/bot-testnet/completion-audit.json` — 36/36 checks passed.
 - Fresh-wallet production bundle: `deployments/bot-testnet/fresh-wallet-production.json`
 - Read-only Mainnet readiness ledger: `deployments/bot-mainnet/readiness.json`
 - Asset Registry: `0xa5728e7aab1373d2af4b39d58ee1010167123560`
@@ -64,14 +65,15 @@ Last validated: **2026-08-12 (WAT)**
 
 The strict wallet doctor now passes both pre-deployment and phase-aware post-deployment checks. No private values are printed, pasted into chat, or committed.
 
-## Remaining release work
+## Optional publication and deferred production work
 
-The following are intentionally not claimed as complete until explorer-verifiable evidence exists:
+The Testnet product itself is complete. These items are intentionally outside that completion claim:
 
-1. Record the demo video and replace the submission runbook's final source/video placeholders.
+1. Record/upload the demo video and replace the submission runbook's video placeholder.
 2. Publish or grant judges access to a reviewable repository URL.
-3. Migrate to Mainnet only after the now-passed public Testnet release gate and separate user authorization.
+3. Mainnet migration, explicitly deferred by the user.
+4. Production bank/data-provider integrations, durable database/object storage, multisig operations, KYC/AML, and independent security review.
 
 The read-only Mainnet preflight currently passes chain ID 677, live block, official USDT bytecode/symbol/6 decimals, compiled protocol bytecode, and Testnet evidence checks. It remains deliberately not ready to deploy because dedicated Mainnet identities, economic parameters, static-analysis review, funding, and explicit authorization are not yet present.
 
-Mainnet remains absent from the Hardhat deployment targets and locked in the agent runtime.
+Mainnet code paths remain locked behind explicit confirmation values and are not part of the active product release.

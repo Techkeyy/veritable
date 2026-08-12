@@ -12,10 +12,10 @@
 | Public website | https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site | Passed |
 | Reviewable source repository | Private Sites source is pushed; judging repository URL/access still required | Partial |
 | Fresh external wallet stranger test | `deployments/bot-testnet/fresh-wallet-production.json` | Passed |
-| BOT Mainnet deployment | Mainnet manifest and BOTScan links | Deliberately not started |
+| BOT Mainnet deployment | Deferred by user | Out of current build scope |
 | Mainnet read-only preflight | `deployments/bot-mainnet/readiness.json` | Technical checks passed; authorization/identities/parameters pending |
 
-Testnet success is not submission eligibility. The supplied challenge rules require BOT Mainnet, a public product, wallet interaction, a complete business loop, and a reviewable source repository.
+The Veritable Testnet product is complete. Hackathon submission eligibility is a separate publication/migration concern: the supplied challenge rules require BOT Mainnet, a public product, wallet interaction, a complete business loop, and a reviewable source repository. Mainnet is explicitly deferred and must not be claimed as deployed.
 
 ## Fast judge path
 

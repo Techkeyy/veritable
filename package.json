@@ -15,6 +15,7 @@
     "typecheck": "pnpm --filter @veritable/schemas build && pnpm --filter @veritable/config build && pnpm --filter @veritable/policy build && pnpm -r typecheck",
     "doctor": "pnpm --filter @veritable/doctor start",
     "preflight:mainnet": "tsx scripts/preflight-mainnet.ts",
+    "audit:testnet": "tsx scripts/audit-testnet-completion.ts",
     "dev:web": "pnpm --filter @veritable/web dev",
     "dev:api": "pnpm --filter @veritable/api start",
     "dev:agent": "pnpm --filter @veritable/agent start",

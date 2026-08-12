@@ -134,6 +134,8 @@ No code walkthrough unless needed to prove one technical detail.
 
 ## 7. Submission checklist
 
+This checklist tracks final hackathon publication, not Testnet product completion. Mainnet is explicitly deferred by the user; unchecked external publication items do not imply missing Testnet protocol behavior.
+
 - [ ] BOT Chain Mainnet deployment
 - [ ] Public website/online demo
 - [ ] Wallet connection and complete core workflow

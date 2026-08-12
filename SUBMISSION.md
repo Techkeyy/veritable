@@ -17,11 +17,12 @@ The live Testnet registry's EIP-712 signing domain uses the legacy compatibility
 | AI capability | Evidence extraction/reconciliation feeding deterministic policy and a slashable verifier attestation | Ready |
 | Public product | https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site | Live |
 | Testnet contracts/evidence | `deployments/bot-testnet/manifest.json` and evidence bundles | Proven |
+| Testnet completion audit | `deployments/bot-testnet/completion-audit.json` | 36/36 passed |
 | Public source | `[PUBLIC_GITHUB_URL]` | Requires publication approval |
-| BOT Mainnet contracts | `[BOT_MAINNET_MANIFEST_AND_EXPLORER_LINKS]` | Requires migration authorization/funding |
+| BOT Mainnet contracts | Deferred by user | Out of current scope |
 | Demo video | `[PUBLIC_DEMO_VIDEO_URL]` | Requires recording and upload |
 
-Do not submit while a bracketed value remains.
+Do not submit while a required bracketed publication value remains. Mainnet is intentionally deferred and must not be represented as deployed.
 
 ## Judge proof path
 

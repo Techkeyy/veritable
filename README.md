@@ -40,21 +40,27 @@ The primary submission lane is **RWA Applications**, with AI as a core on-chain 
 
 ## Non-negotiable acceptance test
 
-The Testnet build is not demo-ready until a fresh wallet can complete all three cases through the public UI and produce explorer-verifiable BOT Testnet transactions:
+The Testnet build is not demo-ready until a fresh wallet completes the complete valid-claim path through the public UI and the deployed protocol produces explorer-verifiable BOT Testnet transactions for all three cases:
 
 1. A valid income claim settles and a holder claims the correct USDT share.
 2. A mismatched or unsupported claim fails closed and distributes nothing.
 3. A deliberately incorrect verifier attestation is challenged, reversed, and slashed according to the published rule.
 
+The malicious-verifier case intentionally uses the adversarial acceptance runner rather than the honest hosted verifier; otherwise the demo would require compromising the production verifier to manufacture a false result.
+
 ## Current status
 
-Implementation is active. The pinned pnpm monorepo, deterministic `policy-v1`, trusted-signer sandbox payment evidence, six-contract protocol, issuer asset factory, ordered/idempotent event worker, redacted public reports, BOT Testnet deployment automation, secret-safe identity bootstrap, automated live acceptance evidence, wallet-connected protocol console, and request-driven hosted verifier are implemented. Forty-five automated tests currently prove the full signed-evidence-to-holder pipeline, verified release with snapshot entitlements, blocked distribution and refund, challenged false approval with BOT slashing, locked-stake safety, policy and terms binding, all-or-nothing escrow, deadline boundaries, replay rejection, on-chain recovery idempotency, trusted-source integrity, wrong-period rejection, restart recovery, bounded dead-letter behavior, and fail-closed policy behavior. Both the native Next.js build and Cloudflare-compatible Sites build pass.
+The BOT Testnet product is complete. The pinned pnpm monorepo, deterministic `policy-v1`, trusted-signer sandbox payment evidence, six-contract protocol, issuer asset factory, ordered/idempotent event worker, redacted public reports, BOT Testnet deployment automation, secret-safe identity bootstrap, automated live acceptance evidence, wallet-connected protocol console, and request-driven hosted verifier are implemented. Forty-five automated tests currently prove the full signed-evidence-to-holder pipeline, verified release with snapshot entitlements, blocked distribution and refund, challenged false approval with BOT slashing, locked-stake safety, policy and terms binding, all-or-nothing escrow, deadline boundaries, replay rejection, on-chain recovery idempotency, trusted-source integrity, wrong-period rejection, restart recovery, bounded dead-letter behavior, and fail-closed policy behavior. Both the native Next.js build and Cloudflare-compatible Sites build pass.
 
 Every push and pull request runs the pinned install, complete regression suite, all-workspace type-check, production build, and production dependency audit in CI on the repository's pinned Node.js runtime.
 
 The complete contract system is live on BOT Testnet at deployment block `19536921`. Automated live acceptance proved the 2,000 USDT release and 60/40 withdrawal path, then challenged and overturned a false approval, slashed the verifier from 5 to 3 tBOT free stake, and refunded the blocked 1,500 USDT escrow. The hosted-verifier integration also created, verified, idempotently reprocessed, and settled a canonical 2026-08 public demo claim. Public evidence is stored in `deployments/bot-testnet/manifest.json`, `deployments/bot-testnet/acceptance.json`, and `deployments/bot-testnet/public-demo.json`.
 
 The public Testnet product is live at https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site. Its landing page, six-rule canonical report, issuer-only authorization boundary, and idempotent hosted-verifier retry have been validated without an owner credential. A newly generated externally controlled wallet also completed the full public write path: asset creation, 2,000 sandbox-USDT escrow, hosted verification, challenge-window settlement, and exact 2,000-USDT withdrawal. The secret-free transaction bundle is stored in `deployments/bot-testnet/fresh-wallet-production.json`. This closes the Testnet stranger gate; Mainnet execution remains deliberately disabled pending separate authorization. Any future README claim must remain backed by a command, test, transaction, deployment, or visible product behavior.
+
+`pnpm audit:testnet` independently rechecks the live chain, all deployed bytecode, every recorded acceptance transaction, verified 60/40 conservation, false-approval slash/refund, fresh-wallet payout, public report, brand, and authorization boundary. Its latest 36/36 result is stored in `deployments/bot-testnet/completion-audit.json`.
+
+Mainnet integration is explicitly deferred by the user and is not part of this completion claim. Production bank connectivity, durable multi-operator database/object storage, KYC/AML, multisig governance, and independent audit remain disclosed production roadmap work rather than hackathon-Testnet features.
 
 ## Testnet quick start
 

@@ -1,0 +1,196 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-12T04:54:23.988Z",
+  "scope": "BOT_TESTNET_PRODUCT_COMPLETION",
+  "product": "Veritable",
+  "site": "https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site",
+  "chainId": 968,
+  "latestBlock": "19566935",
+  "complete": true,
+  "checksPassed": 36,
+  "checksTotal": 36,
+  "checks": [
+    {
+      "requirement": "BOT Testnet chain ID",
+      "ok": true,
+      "evidence": "RPC=968; artifacts=968"
+    },
+    {
+      "requirement": "BOT Testnet RPC is live",
+      "ok": true,
+      "evidence": "block 19566935"
+    },
+    {
+      "requirement": "Deployed bytecode: settlementToken",
+      "ok": true,
+      "evidence": "0x38fbbD141C1e31D1058BBD15BBCB7b37233802Db"
+    },
+    {
+      "requirement": "Deployed bytecode: assetRegistry",
+      "ok": true,
+      "evidence": "0xA5728E7Aab1373D2af4b39D58eE1010167123560"
+    },
+    {
+      "requirement": "Deployed bytecode: assetFactory",
+      "ok": true,
+      "evidence": "0x5B1001A141AD718842fA965Ea556f43CB3F95fd2"
+    },
+    {
+      "requirement": "Deployed bytecode: revenueShareToken",
+      "ok": true,
+      "evidence": "0x67cd42E7017aD134C00A04dCf005fb5cEdB9b988"
+    },
+    {
+      "requirement": "Deployed bytecode: verifierStaking",
+      "ok": true,
+      "evidence": "0x17E8bCB0940E656abeEf09E7610EC6c623EC8F39"
+    },
+    {
+      "requirement": "Deployed bytecode: yieldVault",
+      "ok": true,
+      "evidence": "0x6786d682738d2F0e1d31C113de9aecE14Ac43f1a"
+    },
+    {
+      "requirement": "Deployed bytecode: attestationRegistry",
+      "ok": true,
+      "evidence": "0x5e18D2c62257bceddCC21e0a0fd2dD9d6ED79A37"
+    },
+    {
+      "requirement": "Successful transaction: acceptance:verified.approve",
+      "ok": true,
+      "evidence": "0x36d6cffe3b1ba05edf4d56ba03a312ce9b05c01f9b68c99f8946bc839c3f54f6 @ block 19537172"
+    },
+    {
+      "requirement": "Successful transaction: acceptance:verified.submitClaim",
+      "ok": true,
+      "evidence": "0xabc40e558f991065924ad0ff88ba962013fd3c60bee44da1043eea7dbaa6e2d4 @ block 19537178"
+    },
+    {
+      "requirement": "Successful transaction: acceptance:verified.submitAttestation",
+      "ok": true,
+      "evidence": "0x3d80bc408a747ed1f7aa823c2c862d59c768840deafbaa0be3064dec11ff8b40 @ block 19537184"
+    },
+    {
+      "requirement": "Successful transaction: acceptance:verified.settle",
+      "ok": true,
+      "evidence": "0xf4ed56d585bab8f25e928451fb6ac22aed592eb235712be84e6aa26ad67cdda5 @ block 19537271"
+    },
+    {
+      "requirement": "Successful transaction: acceptance:verified.claimHolderA",
+      "ok": true,
+      "evidence": "0x23e0cc6c1b3618131db5148827a9828ee689356841b1f0f24262bb56ab566569 @ block 19537277"
+    },
+    {
+      "requirement": "Successful transaction: acceptance:verified.claimHolderB",
+      "ok": true,
+      "evidence": "0x1715e4b45efae82b89dd001e6533b6e366f6f014bda981122806f43008be3bfc @ block 19537281"
+    },
+    {
+      "requirement": "Successful transaction: acceptance:challenge.approve",
+      "ok": true,
+      "evidence": "0x17f7df22d036c8a8dc865a9ea83c853302d61499ccb18e857f36f31ab8d4cfe1 @ block 19537287"
+    },
+    {
+      "requirement": "Successful transaction: acceptance:challenge.submitClaim",
+      "ok": true,
+      "evidence": "0x47185f462ed1ae0bfd24e2cfa4ffdc98ea7908ed377a404a6901a72d51a89727 @ block 19537292"
+    },
+    {
+      "requirement": "Successful transaction: acceptance:challenge.falseApproval.submitAttestation",
+      "ok": true,
+      "evidence": "0xa8f5e5d981b5efd01dd850a7d735cdcd06ee8c2c9994116f7537f280f30b73cb @ block 19537298"
+    },
+    {
+      "requirement": "Successful transaction: acceptance:challenge.challenge",
+      "ok": true,
+      "evidence": "0x275cf40d0ffba0a2ee6bfd5a1e489276516bdcb5f1c14ddc66136e14bd77d73a @ block 19537302"
+    },
+    {
+      "requirement": "Successful transaction: acceptance:challenge.resolveOverturn",
+      "ok": true,
+      "evidence": "0x82318cab75659f149e73b575848befc7c65ff2954a3ac67f0b966d7b699afb56 @ block 19537307"
+    },
+    {
+      "requirement": "Successful transaction: acceptance:challenge.refundIssuer",
+      "ok": true,
+      "evidence": "0x32f1a7afffacd1b55ad67bfe1c67f5f57af6f170422cf5b9d4917514f33264b1 @ block 19537392"
+    },
+    {
+      "requirement": "Successful transaction: fresh-wallet:fundFreshWallet",
+      "ok": true,
+      "evidence": "0x85299e3744619af75f918e765e3aa2a1b1698f1895726d69c454048f1f01402e @ block 19560767"
+    },
+    {
+      "requirement": "Successful transaction: fresh-wallet:createAsset",
+      "ok": true,
+      "evidence": "0x39900921e9acf536198b3b6d2b2c96f239786031c3b3cf6d737180e19ed1d2e9 @ block 19560769"
+    },
+    {
+      "requirement": "Successful transaction: fresh-wallet:mintSandboxUSDT",
+      "ok": true,
+      "evidence": "0x893ae2c25b05e0e5d1f6561c2ddc91486e87919da17d396ad3c937c1982d9ad0 @ block 19560772"
+    },
+    {
+      "requirement": "Successful transaction: fresh-wallet:approveEscrow",
+      "ok": true,
+      "evidence": "0x79733ab76f8c0af1b6e0278f5bddde2d0347b249ce7f6275116357600a8f7315 @ block 19560774"
+    },
+    {
+      "requirement": "Successful transaction: fresh-wallet:submitClaim",
+      "ok": true,
+      "evidence": "0x64d5c8b9d12b44f6426ad8eee24805c8006a17c451d59caa4bcc16a6917141e7 @ block 19560777"
+    },
+    {
+      "requirement": "Successful transaction: fresh-wallet:hostedAttestation",
+      "ok": true,
+      "evidence": "0xd9ec1ebd2899739082f251d28aef202e75b3cb08ac09122cbadc28025c7c5fb5 @ block 19560785"
+    },
+    {
+      "requirement": "Successful transaction: fresh-wallet:settle",
+      "ok": true,
+      "evidence": "0xfd5983e0e1b554f81b199307ee3bb2e13ac05a3187230d29ba8666266f067b69 @ block 19560868"
+    },
+    {
+      "requirement": "Successful transaction: fresh-wallet:claimProceeds",
+      "ok": true,
+      "evidence": "0xb0d346cf4f54b1d7706c0ace465216d6256f3f3432dd3ab1ca8b0a84907d22e5 @ block 19560871"
+    },
+    {
+      "requirement": "Verified distribution conserves escrow",
+      "ok": true,
+      "evidence": "1200 + 800 = 2000 USDT"
+    },
+    {
+      "requirement": "False approval is challenged, slashed, blocked, and refunded",
+      "ok": true,
+      "evidence": "5000000000000000000 -> 3000000000000000000"
+    },
+    {
+      "requirement": "Fresh public wallet completes exact payout",
+      "ok": true,
+      "evidence": "2000000000/2000000000 minor units"
+    },
+    {
+      "requirement": "Evidence artifacts contain no private key",
+      "ok": true,
+      "evidence": "secret flags are false"
+    },
+    {
+      "requirement": "Public Veritable product is reachable",
+      "ok": true,
+      "evidence": "https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site -> 200"
+    },
+    {
+      "requirement": "Public deterministic report is auditable",
+      "ok": true,
+      "evidence": "status=200; outcome=VERIFIED; rules=6"
+    },
+    {
+      "requirement": "Hosted verifier rejects missing issuer authorization",
+      "ok": true,
+      "evidence": "HTTP 400"
+    }
+  ],
+  "mainnetIncluded": false,
+  "privateValuesIncluded": false
+}
