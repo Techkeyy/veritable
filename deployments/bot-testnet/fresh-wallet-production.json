@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "network": "bot-testnet",
+  "chainId": 968,
+  "site": "https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site",
+  "wallet": "0x83Ff68c125e39565797E951fEAe0f9C34e9EA61e",
+  "privateKeyIncluded": false,
+  "assetLabel": "asset:issuer-83ff68c1",
+  "assetId": "0xc0689191942cf8d1f7f17dd7c479010c52727afbb6be7d1d286431133d1b1c2a",
+  "period": "2026-08",
+  "claimId": "0xb75f7de6c73dce06026225dc2526986817ce857b1e2c5042fbe537d525ecc66d",
+  "attestationId": "0xe6945be61b37ea12e8dd24385aa8096f96278272a3fd8afe244ec68431432e09",
+  "outcome": "SETTLED_AND_FULLY_CLAIMED",
+  "amountMinor": "2000000000",
+  "receivedMinor": "2000000000",
+  "transactions": {
+    "fundFreshWallet": {
+      "hash": "0x85299e3744619af75f918e765e3aa2a1b1698f1895726d69c454048f1f01402e",
+      "explorerUrl": "https://scan.bohr.life/tx/0x85299e3744619af75f918e765e3aa2a1b1698f1895726d69c454048f1f01402e"
+    },
+    "createAsset": {
+      "hash": "0x39900921e9acf536198b3b6d2b2c96f239786031c3b3cf6d737180e19ed1d2e9",
+      "explorerUrl": "https://scan.bohr.life/tx/0x39900921e9acf536198b3b6d2b2c96f239786031c3b3cf6d737180e19ed1d2e9"
+    },
+    "mintSandboxUSDT": {
+      "hash": "0x893ae2c25b05e0e5d1f6561c2ddc91486e87919da17d396ad3c937c1982d9ad0",
+      "explorerUrl": "https://scan.bohr.life/tx/0x893ae2c25b05e0e5d1f6561c2ddc91486e87919da17d396ad3c937c1982d9ad0"
+    },
+    "approveEscrow": {
+      "hash": "0x79733ab76f8c0af1b6e0278f5bddde2d0347b249ce7f6275116357600a8f7315",
+      "explorerUrl": "https://scan.bohr.life/tx/0x79733ab76f8c0af1b6e0278f5bddde2d0347b249ce7f6275116357600a8f7315"
+    },
+    "submitClaim": {
+      "hash": "0x64d5c8b9d12b44f6426ad8eee24805c8006a17c451d59caa4bcc16a6917141e7",
+      "explorerUrl": "https://scan.bohr.life/tx/0x64d5c8b9d12b44f6426ad8eee24805c8006a17c451d59caa4bcc16a6917141e7"
+    },
+    "hostedAttestation": {
+      "hash": "0xd9ec1ebd2899739082f251d28aef202e75b3cb08ac09122cbadc28025c7c5fb5",
+      "explorerUrl": "https://scan.bohr.life/tx/0xd9ec1ebd2899739082f251d28aef202e75b3cb08ac09122cbadc28025c7c5fb5"
+    },
+    "settle": {
+      "hash": "0xfd5983e0e1b554f81b199307ee3bb2e13ac05a3187230d29ba8666266f067b69",
+      "explorerUrl": "https://scan.bohr.life/tx/0xfd5983e0e1b554f81b199307ee3bb2e13ac05a3187230d29ba8666266f067b69"
+    },
+    "claimProceeds": {
+      "hash": "0xb0d346cf4f54b1d7706c0ace465216d6256f3f3432dd3ab1ca8b0a84907d22e5",
+      "explorerUrl": "https://scan.bohr.life/tx/0xb0d346cf4f54b1d7706c0ace465216d6256f3f3432dd3ab1ca8b0a84907d22e5"
+    }
+  }
+}

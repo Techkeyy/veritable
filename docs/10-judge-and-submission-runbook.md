@@ -11,7 +11,7 @@
 | Native and Cloudflare-compatible production builds | build output plus CI | Passed locally |
 | Public website | https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site | Passed |
 | Reviewable source repository | Private Sites source is pushed; judging repository URL/access still required | Partial |
-| Fresh external wallet stranger test | screen recording plus explorer transactions | Pending public URL |
+| Fresh external wallet stranger test | `deployments/bot-testnet/fresh-wallet-production.json` | Passed |
 | BOT Mainnet deployment | Mainnet manifest and BOTScan links | Deliberately not started |
 
 Testnet success is not submission eligibility. The supplied challenge rules require BOT Mainnet, a public product, wallet interaction, a complete business loop, and a reviewable source repository.
@@ -112,7 +112,7 @@ The challenge environment uses a clearly labeled signed sandbox payment rail and
 - Source: `[REVIEWABLE_REPOSITORY_URL]`
 - BOT Mainnet deployment: `[MAINNET_MANIFEST_OR_BOTSCAN_LINKS]`
 - Demo video: `[VIDEO_URL]`
-- Testnet evidence: `deployments/bot-testnet/acceptance.json` and `deployments/bot-testnet/public-demo.json`
+- Testnet evidence: `deployments/bot-testnet/acceptance.json`, `deployments/bot-testnet/public-demo.json`, and `deployments/bot-testnet/fresh-wallet-production.json`
 
 Do not submit while any bracketed field remains unresolved.
 

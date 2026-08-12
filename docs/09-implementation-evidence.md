@@ -1,6 +1,6 @@
 # Implementation evidence
 
-Last validated: **2026-08-11 (WAT)**
+Last validated: **2026-08-12 (WAT)**
 
 ## Completed locally
 
@@ -34,6 +34,7 @@ Last validated: **2026-08-11 (WAT)**
 | Live verified path | 2,000 USDT released; holder A received 1,200 and holder B received 800 |
 | Live challenged path | False approval overturned; verifier free stake slashed from 5 to 3 tBOT; 1,500 USDT escrow refunded |
 | Live app runtime | API 200, web 200, agent cursor advancing, seven workflow tabs rendered, browser console clean |
+| Fresh public wallet path | New wallet created asset, escrowed 2,000 sandbox USDT, obtained hosted attestation, settled, and withdrew exactly 2,000 |
 
 ## Live BOT Testnet evidence
 
@@ -42,6 +43,7 @@ Last validated: **2026-08-11 (WAT)**
 - Hosted-verifier demo bundle: `deployments/bot-testnet/public-demo.json`
 - Public Sites release: https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site
 - Public release checks: `deployments/bot-testnet/public-site.json`
+- Fresh-wallet production bundle: `deployments/bot-testnet/fresh-wallet-production.json`
 - Asset Registry: `0xa5728e7aab1373d2af4b39d58ee1010167123560`
 - Yield Vault: `0x6786d682738d2f0e1d31c113de9aece14ac43f1a`
 - Attestation Registry: `0x5e18d2c62257bceddcc21e0a0fd2dd9d6ed79a37`
@@ -53,6 +55,10 @@ Last validated: **2026-08-11 (WAT)**
 - Blocked escrow refund: https://scan.bohr.life/tx/0x32f1a7afffacd1b55ad67bfe1c67f5f57af6f170422cf5b9d4917514f33264b1
 - Hosted-verifier attestation: https://scan.bohr.life/tx/0x1cfacabc40c22afabeb1b5aa424b53e41341bfd23e8a203a105e5d31a1338e68
 - Hosted-verifier settlement: https://scan.bohr.life/tx/0x2366cefe6fa245f7d6d998bf9e37c3b3eaeb9c368e58858990a976624d631430
+- Fresh-wallet claim submission: https://scan.bohr.life/tx/0x64d5c8b9d12b44f6426ad8eee24805c8006a17c451d59caa4bcc16a6917141e7
+- Fresh-wallet hosted attestation: https://scan.bohr.life/tx/0xd9ec1ebd2899739082f251d28aef202e75b3cb08ac09122cbadc28025c7c5fb5
+- Fresh-wallet settlement: https://scan.bohr.life/tx/0xfd5983e0e1b554f81b199307ee3bb2e13ac05a3187230d29ba8666266f067b69
+- Fresh-wallet full withdrawal: https://scan.bohr.life/tx/0xb0d346cf4f54b1d7706c0ace465216d6256f3f3432dd3ab1ca8b0a84907d22e5
 
 The strict wallet doctor now passes both pre-deployment and phase-aware post-deployment checks. No private values are printed, pasted into chat, or committed.
 
@@ -60,8 +66,8 @@ The strict wallet doctor now passes both pre-deployment and phase-aware post-dep
 
 The following are intentionally not claimed as complete until explorer-verifiable evidence exists:
 
-1. Complete the full public write path from a new externally controlled wallet and retain its explorer links.
-2. Record the demo video and replace the submission runbook's final source/video placeholders.
-3. Migrate to Mainnet only after the public Testnet release gate passes and the user separately authorizes migration.
+1. Record the demo video and replace the submission runbook's final source/video placeholders.
+2. Publish or grant judges access to a reviewable repository URL.
+3. Migrate to Mainnet only after the now-passed public Testnet release gate and separate user authorization.
 
 Mainnet remains absent from the Hardhat deployment targets and locked in the agent runtime.

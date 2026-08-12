@@ -15,7 +15,10 @@
     "missingAuthorizationStatus": 400,
     "nonIssuerAuthorizationStatus": 403,
     "issuerRetryStatus": "ALREADY_SUBMITTED",
-    "issuerRetryCreatedTransaction": false
+    "issuerRetryCreatedTransaction": false,
+    "freshWalletWritePath": "SETTLED_AND_FULLY_CLAIMED",
+    "freshWalletEvidence": "deployments/bot-testnet/fresh-wallet-production.json",
+    "freshWalletReceivedMinor": "2000000000"
   },
   "runtimeSecretsCommitted": false
 }
