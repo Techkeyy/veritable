@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "pnpm --filter @veritable/schemas build && pnpm --filter @veritable/policy build",
     "build": "next build",
     "build:sites": "vinext build",
     "test:hosted-auth": "node scripts/test-hosted-auth.mjs",
