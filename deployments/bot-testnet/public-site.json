@@ -4,9 +4,10 @@
   "chainId": 968,
   "url": "https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site",
   "access": "public",
-  "versionNumber": 1,
-  "sourceCommit": "1786f55a5b977cfccf308a6850dcf0479da1654f",
-  "validatedAt": "2026-08-12T02:00:00.000Z",
+  "versionNumber": 3,
+  "sourceCommit": "ddc44dc62b76906fdf180f99bb52a0da688e08c3",
+  "validatedAt": "2026-08-12T04:42:00.000Z",
+  "productName": "Veritable",
   "checks": {
     "landingPageStatus": 200,
     "headlineRendered": true,
@@ -16,6 +17,7 @@
     "nonIssuerAuthorizationStatus": 403,
     "issuerRetryStatus": "ALREADY_SUBMITTED",
     "issuerRetryCreatedTransaction": false,
+    "brandRendered": "Veritable",
     "freshWalletWritePath": "SETTLED_AND_FULLY_CLAIMED",
     "freshWalletEvidence": "deployments/bot-testnet/fresh-wallet-production.json",
     "freshWalletReceivedMinor": "2000000000"

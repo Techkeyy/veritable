@@ -43,6 +43,7 @@ Last validated: **2026-08-12 (WAT)**
 - Hosted-verifier demo bundle: `deployments/bot-testnet/public-demo.json`
 - Public Sites release: https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site
 - Public release checks: `deployments/bot-testnet/public-site.json`
+- Public release version 3 is built from source commit `ddc44dc62b76906fdf180f99bb52a0da688e08c3` and renders the Veritable brand.
 - Fresh-wallet production bundle: `deployments/bot-testnet/fresh-wallet-production.json`
 - Read-only Mainnet readiness ledger: `deployments/bot-mainnet/readiness.json`
 - Asset Registry: `0xa5728e7aab1373d2af4b39d58ee1010167123560`
