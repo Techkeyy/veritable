@@ -1,14 +1,16 @@
 # Veritable
 
 Repository name: **veritable**  
-Product name: **VeriFi**  
+Product name: **Veritable**
 Tagline: **Proof of income before distribution.**
 
-VeriFi is an economically accountable verification layer for real-world-asset income. An issuer escrows a yield claim, an evidence-constrained AI agent extracts and reconciles the supporting records, deterministic policy produces a verdict, and a bonded on-chain attestation gates release to token holders. Incorrect attestations can be challenged and slashed.
+The accepted Testnet deployment retains the legacy EIP-712 domain string `VeriFi Attestation Registry`. That value is a cryptographic compatibility identifier, not the current product name; changing it would invalidate signatures for the deployed registry.
+
+Veritable is an economically accountable verification layer for real-world-asset income. An issuer escrows a yield claim, an evidence-constrained AI agent extracts and reconciles the supporting records, deterministic policy produces a verdict, and a bonded on-chain attestation gates release to token holders. Incorrect attestations can be challenged and slashed.
 
 ## Product thesis
 
-RWA tokenization can prove that a token exists, while still asking investors to trust the issuer's account of what the underlying asset earned. VeriFi inserts a programmable yield firewall between an issuer's claim and investor distribution.
+RWA tokenization can prove that a token exists, while still asking investors to trust the issuer's account of what the underlying asset earned. Veritable inserts a programmable yield firewall between an issuer's claim and investor distribution.
 
 The product does **not** claim that an LLM creates truth. It creates an auditable decision from evidence, deterministic policy, explicit trust assumptions, and financial accountability.
 
@@ -33,6 +35,8 @@ The primary submission lane is **RWA Applications**, with AI as a core on-chain 
 - [Decision log and open questions](docs/08-decisions.md)
 - [Current implementation evidence](docs/09-implementation-evidence.md)
 - [Judge runbook and submission draft](docs/10-judge-and-submission-runbook.md)
+- [Demo production sheet](docs/11-demo-production-sheet.md)
+- [Submission dossier](SUBMISSION.md)
 
 ## Non-negotiable acceptance test
 

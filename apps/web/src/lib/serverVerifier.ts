@@ -12,7 +12,7 @@ import {
   type Hex,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { botTestnet, contracts } from "./chain";
+import { activeChain, contracts, networkLabel } from "./chain";
 
 const FIXTURE_NOW = new Date("2026-08-03T00:00:00.000Z");
 const PAYER_REFERENCE = `0x${"33".repeat(32)}` as Hex;
@@ -142,22 +142,27 @@ function unsignedPayment(scenario: (typeof evidenceScenarios)[keyof typeof evide
 export async function buildPublicVerification(claimId: Hex) {
   const vault = requiredAddress(contracts.vault, "YieldVault");
   const registry = requiredAddress(contracts.attestation, "AttestationRegistry");
-  const rpcUrl = process.env.BOT_TESTNET_RPC_URL || process.env.NEXT_PUBLIC_BOT_TESTNET_RPC_URL || "https://rpc.bohr.life";
-  const publicClient = createPublicClient({ chain: botTestnet, transport: http(rpcUrl) });
+  const rpcUrl = activeChain.id === 677
+    ? process.env.BOT_MAINNET_RPC_URL || process.env.NEXT_PUBLIC_BOT_MAINNET_RPC_URL || "https://rpc.botchain.ai"
+    : process.env.BOT_TESTNET_RPC_URL || process.env.NEXT_PUBLIC_BOT_TESTNET_RPC_URL || "https://rpc.bohr.life";
+  const publicClient = createPublicClient({ chain: activeChain, transport: http(rpcUrl) });
   const [claim, fullClaim, existingAttestationId] = await Promise.all([
     publicClient.readContract({ address: vault, abi: vaultServerAbi, functionName: "claimForAttestation", args: [claimId] }),
     publicClient.readContract({ address: vault, abi: vaultServerAbi, functionName: "getClaim", args: [claimId] }),
     publicClient.readContract({ address: registry, abi: attestationServerAbi, functionName: "claimAttestations", args: [claimId] }),
   ]);
   const [assetId, periodKeyHash, amount, evidenceRoot, status] = claim;
-  if (status === 0) throw new Error("Claim does not exist on BOT Testnet");
+  if (status === 0) throw new Error(`Claim does not exist on ${networkLabel}`);
   if (periodKeyHash.toLowerCase() !== keccak256(stringToHex(PERIOD_KEY)).toLowerCase()) {
-    throw new Error("This testnet verifier supports the published 2026-08 sandbox period");
+    throw new Error("This verifier release supports the published 2026-08 sandbox period");
   }
   const scenario = evidenceScenarios[evidenceRoot.toLowerCase() as keyof typeof evidenceScenarios];
   if (!scenario) throw new Error("Evidence root is not a published sandbox fixture");
 
-  const evidenceKey = requiredPrivateKey(process.env.EVIDENCE_SIGNER_PRIVATE_KEY, "Evidence signer");
+  const evidenceKey = requiredPrivateKey(
+    activeChain.id === 677 ? process.env.MAINNET_EVIDENCE_SIGNER_PRIVATE_KEY : process.env.EVIDENCE_SIGNER_PRIVATE_KEY,
+    "Evidence signer",
+  );
   const evidenceAccount = privateKeyToAccount(evidenceKey);
   const unsigned = unsignedPayment(scenario);
   const signature = await evidenceAccount.signMessage({ message: { raw: unsigned.payloadHash as Hex } });
@@ -196,6 +201,9 @@ export async function buildPublicVerification(claimId: Hex) {
 }
 
 export async function processPublicClaim(claimId: Hex, requester: Address) {
+  if (activeChain.id === 677 && process.env.ALLOW_MAINNET !== "true") {
+    throw new Error("Mainnet hosted verifier is locked until ALLOW_MAINNET=true after explicit migration authorization");
+  }
   const verification = await buildPublicVerification(claimId);
   if (verification.claim.issuer.toLowerCase() !== requester.toLowerCase()) {
     throw new Error("Only the onchain claim issuer may request its attestation");
@@ -206,9 +214,15 @@ export async function processPublicClaim(claimId: Hex, requester: Address) {
   if (verification.existingAttestationId !== zeroHash) {
     return { ...verification, transactionHash: undefined };
   }
-  const verifierKey = requiredPrivateKey(process.env.VERIFIER_PRIVATE_KEY, "Verifier");
+  const verifierKey = requiredPrivateKey(
+    activeChain.id === 677 ? process.env.MAINNET_VERIFIER_PRIVATE_KEY : process.env.VERIFIER_PRIVATE_KEY,
+    "Verifier",
+  );
   const account = privateKeyToAccount(verifierKey);
-  const walletClient = createWalletClient({ chain: botTestnet, transport: http(process.env.BOT_TESTNET_RPC_URL || "https://rpc.bohr.life"), account });
+  const rpcUrl = activeChain.id === 677
+    ? process.env.BOT_MAINNET_RPC_URL || "https://rpc.botchain.ai"
+    : process.env.BOT_TESTNET_RPC_URL || "https://rpc.bohr.life";
+  const walletClient = createWalletClient({ chain: activeChain, transport: http(rpcUrl), account });
   const [nonce, block] = await Promise.all([
     verification.publicClient.readContract({ address: verification.registry, abi: attestationServerAbi, functionName: "nonces", args: [account.address] }),
     verification.publicClient.getBlock(),
@@ -230,7 +244,7 @@ export async function processPublicClaim(claimId: Hex, requester: Address) {
   } as const;
   const signature = await walletClient.signTypedData({
     account,
-    domain: { name: "VeriFi Attestation Registry", version: "1", chainId: botTestnet.id, verifyingContract: verification.registry },
+    domain: { name: "VeriFi Attestation Registry", version: "1", chainId: activeChain.id, verifyingContract: verification.registry },
     types: {
       Attestation: [
         { name: "claimId", type: "bytes32" }, { name: "assetId", type: "bytes32" },

@@ -10,7 +10,7 @@ const baseUrl = process.env.HOSTED_TEST_BASE_URL ?? "http://127.0.0.1:3100";
 const artifact = JSON.parse(await readFile(resolve(process.cwd(), "../../deployments/bot-testnet/public-demo.json"), "utf8"));
 const claimId = artifact.claimId;
 const message = [
-  "VeriFi BOT Testnet attestation request",
+  "Veritable BOT Testnet attestation request",
   `Claim: ${claimId}`,
   "Chain: 968",
   "Purpose: authorize the bonded verifier to inspect this claim's committed sandbox evidence.",

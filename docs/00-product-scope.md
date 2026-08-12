@@ -4,7 +4,7 @@
 
 An RWA issuer can tokenize an income-bearing asset and report rent or revenue each period, but the blockchain cannot natively determine whether that income was actually earned under the asset agreement. Sending funds to a vault proves liquidity, not economic provenance.
 
-VeriFi verifies the relationship between:
+Veritable verifies the relationship between:
 
 - registered asset terms;
 - the issuer's period claim;
@@ -14,11 +14,11 @@ VeriFi verifies the relationship between:
 
 ## 2. Product promise
 
-Before a claim is distributable, VeriFi produces a structured verification report and a bonded attestation. The protocol then either releases the verified escrow after a challenge period or holds it without representing it as earned yield.
+Before a claim is distributable, Veritable produces a structured verification report and a bonded attestation. The protocol then either releases the verified escrow after a challenge period or holds it without representing it as earned yield.
 
 The safe marketing claim is:
 
-> VeriFi prevents unverified capital from being represented and distributed as earned RWA income.
+> Veritable prevents unverified capital from being represented and distributed as earned RWA income.
 
 Avoid claims such as “AI proves reality,” “fully trustless bank verification,” or “guaranteed fraud prevention.”
 

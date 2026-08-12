@@ -14,10 +14,12 @@
     "test:contracts": "pnpm --filter @veritable/contracts test",
     "typecheck": "pnpm --filter @veritable/schemas build && pnpm --filter @veritable/config build && pnpm --filter @veritable/policy build && pnpm -r typecheck",
     "doctor": "pnpm --filter @veritable/doctor start",
+    "preflight:mainnet": "tsx scripts/preflight-mainnet.ts",
     "dev:web": "pnpm --filter @veritable/web dev",
     "dev:api": "pnpm --filter @veritable/api start",
     "dev:agent": "pnpm --filter @veritable/agent start",
     "deploy:testnet": "pnpm --filter @veritable/contracts deploy:testnet",
+    "deploy:mainnet": "pnpm --filter @veritable/contracts deploy:mainnet",
     "acceptance:testnet": "pnpm --filter @veritable/contracts acceptance:testnet",
     "init:testnet-env": "tsx scripts/init-testnet-env.ts",
     "clean": "pnpm -r clean"

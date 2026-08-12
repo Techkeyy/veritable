@@ -15,8 +15,9 @@ import { attestationRegistryAbi, createChainSubmitter, yieldClaimEventAbi } from
 import { FileJobStore, type ClaimEvent } from "./store.js";
 
 dotenv.config({ path: resolve(process.cwd(), "../../.env"), quiet: true });
+const configuredEnvironment = environmentSchema.parse(process.env.CHAIN_ENV ?? "bot-testnet");
 dotenv.config({
-  path: resolve(process.cwd(), "../../deployments/bot-testnet/agent.env"),
+  path: resolve(process.cwd(), `../../deployments/${configuredEnvironment}/agent.env`),
   quiet: true,
   // This generated file contains only public, deployment-specific values and
   // must replace blank/stale placeholders from the root secret environment.
@@ -29,15 +30,15 @@ function required(name: string): string {
   return value;
 }
 
-const environment = environmentSchema.parse(process.env.CHAIN_ENV ?? "bot-testnet");
+const environment = environmentSchema.parse(process.env.CHAIN_ENV ?? configuredEnvironment);
 if (environment === "bot-mainnet" && process.env.ALLOW_MAINNET !== "true") {
   throw new Error("Mainnet agent startup is locked until ALLOW_MAINNET=true after the Testnet gate");
 }
 const chainConfig = runtimeChainConfig(environment);
 const vaultAddress = getAddress(required("YIELD_VAULT_ADDRESS"));
 const registryAddress = getAddress(required("ATTESTATION_REGISTRY_ADDRESS"));
-const verifierPrivateKey = required("VERIFIER_PRIVATE_KEY") as Hex;
-const trustedPaymentSigner = getAddress(required("EVIDENCE_SIGNER_ADDRESS"));
+const verifierPrivateKey = required(environment === "bot-mainnet" ? "MAINNET_VERIFIER_PRIVATE_KEY" : "VERIFIER_PRIVATE_KEY") as Hex;
+const trustedPaymentSigner = getAddress(required(environment === "bot-mainnet" ? "MAINNET_EVIDENCE_SIGNER_ADDRESS" : "EVIDENCE_SIGNER_ADDRESS"));
 const apiBaseUrl = process.env.EVIDENCE_API_URL ?? "http://127.0.0.1:4100";
 const store = await FileJobStore.open(process.env.AGENT_STATE_PATH || "../../.verifi/agent-jobs.json");
 const client = createPublicClient({ chain: chainConfig.chain, transport: http(chainConfig.httpRpcUrl) });
@@ -162,4 +163,4 @@ await recoverThrough(await client.getBlockNumber());
 // BOT's public RPC evicts eth_newFilter state aggressively. The same ordered
 // recovery path is used for both live discovery and retries via stateless logs.
 setInterval(enqueueRecovery, Number(process.env.AGENT_RETRY_INTERVAL_MS ?? "5000"));
-process.stdout.write(`VeriFi agent watching ${vaultAddress} on chain ${chainConfig.chain.id}\n`);
+process.stdout.write(`Veritable agent watching ${vaultAddress} on chain ${chainConfig.chain.id}\n`);

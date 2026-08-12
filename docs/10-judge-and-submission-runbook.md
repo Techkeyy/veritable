@@ -13,6 +13,7 @@
 | Reviewable source repository | Private Sites source is pushed; judging repository URL/access still required | Partial |
 | Fresh external wallet stranger test | `deployments/bot-testnet/fresh-wallet-production.json` | Passed |
 | BOT Mainnet deployment | Mainnet manifest and BOTScan links | Deliberately not started |
+| Mainnet read-only preflight | `deployments/bot-mainnet/readiness.json` | Technical checks passed; authorization/identities/parameters pending |
 
 Testnet success is not submission eligibility. The supplied challenge rules require BOT Mainnet, a public product, wallet interaction, a complete business loop, and a reviewable source repository.
 
@@ -75,11 +76,11 @@ Show the public site, source repository, BOTScan contracts, limitations disclosu
 
 ### Name
 
-VeriFi — Verifiable revenue rails for tokenized real-world assets
+Veritable — Verifiable revenue rails for tokenized real-world assets
 
 ### One-line pitch
 
-VeriFi prevents unverified RWA income from reaching investors by placing signed evidence, deterministic policy, and a slashable AI verifier between an issuer's yield claim and on-chain distribution.
+Veritable prevents unverified RWA income from reaching investors by placing signed evidence, deterministic policy, and a slashable AI verifier between an issuer's yield claim and on-chain distribution.
 
 ### Problem
 
@@ -91,7 +92,7 @@ An issuer registers committed asset terms and escrows a period claim in USDT. A 
 
 ### Why BOT Chain
 
-BOT Chain's EVM execution, native BOT collateral, RWA focus, and AI Agent Economy make it possible to turn an off-chain agent's claim into an economically accountable on-chain action. BOT is not decorative gas in VeriFi: it is the verifier and challenger collateral that makes accuracy consequential.
+BOT Chain's EVM execution, native BOT collateral, RWA focus, and AI Agent Economy make it possible to turn an off-chain agent's claim into an economically accountable on-chain action. BOT is not decorative gas in Veritable: it is the verifier and challenger collateral that makes accuracy consequential.
 
 ### What is technically distinctive
 
@@ -137,3 +138,5 @@ Mainnet is chain `677` and is intentionally absent from the active deployment ta
 5. Deploy, verify bytecode/source where supported, run the full post-deployment doctor, and record a versioned Mainnet manifest.
 6. Exercise verified, blocked, and challenged paths with low values; confirm no role, address, or chain-ID drift.
 7. Rebuild the public application with Mainnet addresses, re-run the stranger test, and only then update submission claims.
+
+The production deployer additionally requires the exact `ALLOW_MAINNET_DEPLOYMENT=DEPLOY_VERITABLE_TO_BOT_MAINNET_677` confirmation, a dedicated deployer key, five explicit operational role addresses, explicit bond/timing parameters, official-USDT metadata, and at least four distinct operational identities. It deploys no mock token or seeded demo asset and removes the temporary deployer's operational/admin roles after wiring.

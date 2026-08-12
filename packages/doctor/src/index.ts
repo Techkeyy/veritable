@@ -24,7 +24,13 @@ const protocolAbi = [
 
 interface DeploymentManifest {
   chainId: number;
-  roles: { verifier: Address };
+  deployer?: Address;
+  roles: {
+    verifier: Address;
+    admin?: Address;
+    guardian?: Address;
+    resolver?: Address;
+  };
   contracts: Record<string, Address> & {
     settlementToken: Address;
     assetRegistry: Address;
@@ -127,6 +133,39 @@ try {
     const verifierBond = await client.readContract({ address: manifest.contracts.attestationRegistry, abi: protocolAbi, functionName: "verifierBond" });
     checks.push({ name: "role:verifier", ok: verifierAuthorized, detail: manifest.roles.verifier });
     checks.push({ name: "stake:available-bond", ok: freeStake >= verifierBond, detail: `${freeStake}/${verifierBond}` });
+    if (environment === "bot-mainnet") {
+      if (!manifest.roles.admin || !manifest.roles.guardian || !manifest.roles.resolver || !manifest.deployer) {
+        checks.push({ name: "role:mainnet-manifest", ok: false, detail: "admin, guardian, resolver, and deployer are required" });
+      } else {
+        const roleAbi = [
+          { type: "function", name: "DEFAULT_ADMIN_ROLE", stateMutability: "view", inputs: [], outputs: [{ type: "bytes32" }] },
+          { type: "function", name: "GUARDIAN_ROLE", stateMutability: "view", inputs: [], outputs: [{ type: "bytes32" }] },
+          { type: "function", name: "RESOLVER_ROLE", stateMutability: "view", inputs: [], outputs: [{ type: "bytes32" }] },
+          { type: "function", name: "ASSET_MANAGER_ROLE", stateMutability: "view", inputs: [], outputs: [{ type: "bytes32" }] },
+          { type: "function", name: "hasRole", stateMutability: "view", inputs: [{ type: "bytes32" }, { type: "address" }], outputs: [{ type: "bool" }] },
+        ] as const;
+        const defaultAdminRole = await client.readContract({ address: manifest.contracts.assetRegistry, abi: roleAbi, functionName: "DEFAULT_ADMIN_ROLE" });
+        const assetManagerRole = await client.readContract({ address: manifest.contracts.assetRegistry, abi: roleAbi, functionName: "ASSET_MANAGER_ROLE" });
+        const vaultGuardianRole = await client.readContract({ address: manifest.contracts.yieldVault, abi: roleAbi, functionName: "GUARDIAN_ROLE" });
+        const registryGuardianRole = await client.readContract({ address: manifest.contracts.attestationRegistry, abi: roleAbi, functionName: "GUARDIAN_ROLE" });
+        const resolverRole = await client.readContract({ address: manifest.contracts.attestationRegistry, abi: roleAbi, functionName: "RESOLVER_ROLE" });
+        const managedContracts = [manifest.contracts.assetRegistry, manifest.contracts.verifierStaking, manifest.contracts.yieldVault, manifest.contracts.attestationRegistry];
+        for (const [index, address] of managedContracts.entries()) {
+          const adminAuthorized = await client.readContract({ address, abi: roleAbi, functionName: "hasRole", args: [defaultAdminRole, manifest.roles.admin] });
+          const deployerStillAdmin = await client.readContract({ address, abi: roleAbi, functionName: "hasRole", args: [defaultAdminRole, manifest.deployer] });
+          checks.push({ name: `role:admin:${index}`, ok: adminAuthorized, detail: `${address} -> ${manifest.roles.admin}` });
+          checks.push({ name: `role:deployer-admin-revoked:${index}`, ok: !deployerStillAdmin, detail: `${address} -> ${manifest.deployer}` });
+        }
+        const vaultGuardian = await client.readContract({ address: manifest.contracts.yieldVault, abi: roleAbi, functionName: "hasRole", args: [vaultGuardianRole, manifest.roles.guardian] });
+        const registryGuardian = await client.readContract({ address: manifest.contracts.attestationRegistry, abi: roleAbi, functionName: "hasRole", args: [registryGuardianRole, manifest.roles.guardian] });
+        const resolverAuthorized = await client.readContract({ address: manifest.contracts.attestationRegistry, abi: roleAbi, functionName: "hasRole", args: [resolverRole, manifest.roles.resolver] });
+        const deployerAssetManager = await client.readContract({ address: manifest.contracts.assetRegistry, abi: roleAbi, functionName: "hasRole", args: [assetManagerRole, manifest.deployer] });
+        checks.push({ name: "role:vault-guardian", ok: vaultGuardian, detail: manifest.roles.guardian });
+        checks.push({ name: "role:registry-guardian", ok: registryGuardian, detail: manifest.roles.guardian });
+        checks.push({ name: "role:resolver", ok: resolverAuthorized, detail: manifest.roles.resolver });
+        checks.push({ name: "role:deployer-asset-manager-revoked", ok: !deployerAssetManager, detail: manifest.deployer });
+      }
+    }
   }
 } catch (error) {
   checks.push({ name: "rpc", ok: false, detail: error instanceof Error ? error.message : "Unknown error" });

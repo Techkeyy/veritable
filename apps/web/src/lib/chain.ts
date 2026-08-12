@@ -15,12 +15,36 @@ export const botTestnet = defineChain({
   testnet: true,
 });
 
-export const wagmiConfig = createConfig({
-  chains: [botTestnet],
-  connectors: [injected()],
-  transports: { [botTestnet.id]: http() },
-  ssr: true,
+export const botMainnet = defineChain({
+  id: 677,
+  name: "BOT Chain",
+  nativeCurrency: { name: "BOT", symbol: "BOT", decimals: 18 },
+  rpcUrls: { default: { http: [process.env.NEXT_PUBLIC_BOT_MAINNET_RPC_URL ?? "https://rpc.botchain.ai"] } },
+  blockExplorers: { default: { name: "BOTScan", url: "https://scan.botchain.ai" } },
+  testnet: false,
 });
+
+export const isMainnet = process.env.NEXT_PUBLIC_CHAIN_ENV === "bot-mainnet";
+export const writesEnabled = !isMainnet || process.env.NEXT_PUBLIC_ALLOW_MAINNET_WRITES === "ENABLE_VERITABLE_MAINNET_WRITES_677";
+export const activeChain = isMainnet ? botMainnet : botTestnet;
+export const networkLabel = isMainnet ? "BOT Mainnet" : "BOT Testnet";
+export const nativeTokenLabel = isMainnet ? "BOT" : "tBOT";
+export const challengeBondBot = process.env.NEXT_PUBLIC_CHALLENGER_BOND_BOT ?? (isMainnet ? undefined : "0.25");
+export const challengeWindowSeconds = Number(process.env.NEXT_PUBLIC_CHALLENGE_WINDOW_SECONDS ?? (isMainnet ? "0" : "60"));
+
+export const wagmiConfig = isMainnet
+  ? createConfig({
+      chains: [botMainnet],
+      connectors: [injected()],
+      transports: { [botMainnet.id]: http() },
+      ssr: true,
+    })
+  : createConfig({
+      chains: [botTestnet],
+      connectors: [injected()],
+      transports: { [botTestnet.id]: http() },
+      ssr: true,
+    });
 
 export const contracts = {
   assetFactory: process.env.NEXT_PUBLIC_ASSET_FACTORY_ADDRESS as `0x${string}` | undefined,

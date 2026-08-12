@@ -52,7 +52,7 @@ Use the official Mainnet USDT contract through `IERC20` and `SafeERC20`. Never h
 
 Local and testnet environments use `MockUSDT` with the same 6-decimal behavior. The mock contract must never be referenced by a Mainnet deployment manifest.
 
-The official bridge describes USDT movement using a lock-and-release liquidity model. Bridging is a user funding path, not part of VeriFi's core protocol.
+The official bridge describes USDT movement using a lock-and-release liquidity model. Bridging is a user funding path, not part of Veritable's core protocol.
 
 ## 5. Deployment and verification
 

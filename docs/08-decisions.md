@@ -4,7 +4,7 @@
 
 | Decision | Choice | Reason |
 |---|---|---|
-| Repository/product naming | `veritable` repo; VeriFi product | User-requested folder plus established concept name |
+| Repository/product naming | `veritable` repo; Veritable product | User-requested folder plus established concept name |
 | Submission lane | RWA primary, AI-native core | Highest challenge alignment without splitting the story |
 | Differentiating mechanism | Proof of Income | Narrower and more defensible than generic “AI oracle” novelty |
 | Settlement | Official BOT Chain USDT on Mainnet | Real asset distribution; live address/6 decimals verified |

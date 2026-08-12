@@ -208,7 +208,7 @@ async function passChallengeWindow() {
   await testClient.mine({ blocks: 1 });
 }
 
-describe("VeriFi core protocol", () => {
+describe("Veritable core protocol", () => {
   it("lets an issuer create a registered asset with bounded initial allocations", async () => {
     const fixture = await deployedFixture();
     const factory = await viem.deployContract(

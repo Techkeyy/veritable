@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAddress, isHex, verifyMessage, type Address, type Hex } from "viem";
 import { processPublicClaim } from "../../../../lib/serverVerifier";
 import { attestationRequestMessage } from "../../../../lib/attestationRequest";
+import { activeChain, networkLabel } from "../../../../lib/chain";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,7 +24,7 @@ export async function POST(request: Request, context: { params: Promise<{ claimI
     }
     const signatureValid = await verifyMessage({
       address: body.requester as Address,
-      message: attestationRequestMessage(claimId),
+      message: attestationRequestMessage(claimId, activeChain.id, networkLabel),
       signature: body.signature as Hex,
     });
     if (!signatureValid) return NextResponse.json({ error: "Issuer authorization signature is invalid" }, { status: 401 });

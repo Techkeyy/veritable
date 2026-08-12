@@ -44,6 +44,7 @@ Last validated: **2026-08-12 (WAT)**
 - Public Sites release: https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site
 - Public release checks: `deployments/bot-testnet/public-site.json`
 - Fresh-wallet production bundle: `deployments/bot-testnet/fresh-wallet-production.json`
+- Read-only Mainnet readiness ledger: `deployments/bot-mainnet/readiness.json`
 - Asset Registry: `0xa5728e7aab1373d2af4b39d58ee1010167123560`
 - Yield Vault: `0x6786d682738d2f0e1d31c113de9aece14ac43f1a`
 - Attestation Registry: `0x5e18d2c62257bceddcc21e0a0fd2dd9d6ed79a37`
@@ -69,5 +70,7 @@ The following are intentionally not claimed as complete until explorer-verifiabl
 1. Record the demo video and replace the submission runbook's final source/video placeholders.
 2. Publish or grant judges access to a reviewable repository URL.
 3. Migrate to Mainnet only after the now-passed public Testnet release gate and separate user authorization.
+
+The read-only Mainnet preflight currently passes chain ID 677, live block, official USDT bytecode/symbol/6 decimals, compiled protocol bytecode, and Testnet evidence checks. It remains deliberately not ready to deploy because dedicated Mainnet identities, economic parameters, static-analysis review, funding, and explicit authorization are not yet present.
 
 Mainnet remains absent from the Hardhat deployment targets and locked in the agent runtime.

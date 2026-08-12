@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-12T03:51:41.441Z",
+  "mode": "READ_ONLY_NO_BROADCAST",
+  "network": "bot-mainnet",
+  "chainId": 677,
+  "rpc": "https://rpc.botchain.ai",
+  "explorer": "https://scan.botchain.ai",
+  "officialSettlementToken": "0xaBabc7Ddc03e501d190C676BF3d92ef0e6e87a3C",
+  "latestBlock": "19363984",
+  "bytecodeHashes": {
+    "AssetRegistry": "0x685d716ae6a6dad54e1f9289e2009213c7557ea14c92d27b35ff90fa011cb82b",
+    "AssetFactory": "0x7980834a4dfc459f23379998f0f2057310d08a52af142a1dada04bd08052132d",
+    "VerifierStaking": "0xa03a5133f453f9650138b7be4ebc90f0c9b24eb014ca9089c1365d3104a4b2e2",
+    "YieldVault": "0xe103798bf952179cc8263bf8a29fdc99db1cb667e2bb509f43abebcbf255c3b4",
+    "AttestationRegistry": "0x552a00ddf6444ce3aa95bfd471cf3fceb3e9497e3e466cb47ae280a347a798e9"
+  },
+  "readyToDeploy": false,
+  "checks": [
+    {
+      "name": "network:chain-id",
+      "ok": true,
+      "blocking": true,
+      "detail": "677"
+    },
+    {
+      "name": "network:latest-block",
+      "ok": true,
+      "blocking": true,
+      "detail": "19363984"
+    },
+    {
+      "name": "token:configured-address",
+      "ok": true,
+      "blocking": true,
+      "detail": "0xaBabc7Ddc03e501d190C676BF3d92ef0e6e87a3C"
+    },
+    {
+      "name": "token:deployed-code",
+      "ok": true,
+      "blocking": true,
+      "detail": "0xaBabc7Ddc03e501d190C676BF3d92ef0e6e87a3C"
+    },
+    {
+      "name": "token:symbol",
+      "ok": true,
+      "blocking": true,
+      "detail": "USDT"
+    },
+    {
+      "name": "token:decimals",
+      "ok": true,
+      "blocking": true,
+      "detail": "6"
+    },
+    {
+      "name": "artifact:AssetRegistry",
+      "ok": true,
+      "blocking": true,
+      "detail": "compiled"
+    },
+    {
+      "name": "artifact:AssetFactory",
+      "ok": true,
+      "blocking": true,
+      "detail": "compiled"
+    },
+    {
+      "name": "artifact:VerifierStaking",
+      "ok": true,
+      "blocking": true,
+      "detail": "compiled"
+    },
+    {
+      "name": "artifact:YieldVault",
+      "ok": true,
+      "blocking": true,
+      "detail": "compiled"
+    },
+    {
+      "name": "artifact:AttestationRegistry",
+      "ok": true,
+      "blocking": true,
+      "detail": "compiled"
+    },
+    {
+      "name": "testnet:manifest.json",
+      "ok": true,
+      "blocking": true,
+      "detail": "deployments/bot-testnet/manifest.json"
+    },
+    {
+      "name": "testnet:acceptance.json",
+      "ok": true,
+      "blocking": true,
+      "detail": "deployments/bot-testnet/acceptance.json"
+    },
+    {
+      "name": "testnet:fresh-wallet-production.json",
+      "ok": true,
+      "blocking": true,
+      "detail": "deployments/bot-testnet/fresh-wallet-production.json"
+    },
+    {
+      "name": "identity:MAINNET_ADMIN_ADDRESS",
+      "ok": false,
+      "blocking": true,
+      "detail": "not configured"
+    },
+    {
+      "name": "identity:MAINNET_GUARDIAN_ADDRESS",
+      "ok": false,
+      "blocking": true,
+      "detail": "not configured"
+    },
+    {
+      "name": "identity:MAINNET_RESOLVER_ADDRESS",
+      "ok": false,
+      "blocking": true,
+      "detail": "not configured"
+    },
+    {
+      "name": "identity:MAINNET_VERIFIER_ADDRESS",
+      "ok": false,
+      "blocking": true,
+      "detail": "not configured"
+    },
+    {
+      "name": "identity:MAINNET_TREASURY_ADDRESS",
+      "ok": false,
+      "blocking": true,
+      "detail": "not configured"
+    },
+    {
+      "name": "identity:role-separation",
+      "ok": false,
+      "blocking": true,
+      "detail": "0/5 distinct"
+    },
+    {
+      "name": "parameter:MAINNET_VERIFIER_BOND_BOT",
+      "ok": false,
+      "blocking": true,
+      "detail": "not configured"
+    },
+    {
+      "name": "parameter:MAINNET_CHALLENGER_BOND_BOT",
+      "ok": false,
+      "blocking": true,
+      "detail": "not configured"
+    },
+    {
+      "name": "parameter:MAINNET_CHALLENGE_WINDOW_SECONDS",
+      "ok": false,
+      "blocking": true,
+      "detail": "not configured"
+    },
+    {
+      "name": "parameter:MAINNET_UNSTAKE_COOLDOWN_SECONDS",
+      "ok": false,
+      "blocking": true,
+      "detail": "not configured"
+    },
+    {
+      "name": "parameter:MAINNET_BLOCKED_REFUND_DELAY_SECONDS",
+      "ok": false,
+      "blocking": true,
+      "detail": "not configured"
+    },
+    {
+      "name": "authorization:explicit-mainnet",
+      "ok": false,
+      "blocking": true,
+      "detail": "not granted"
+    },
+    {
+      "name": "identity:dedicated-deployer-key",
+      "ok": false,
+      "blocking": true,
+      "detail": "not configured"
+    }
+  ],
+  "privateValuesIncluded": false
+}

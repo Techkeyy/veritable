@@ -96,5 +96,5 @@ const server = createServer(async (request, response) => {
 });
 
 server.listen(port, "127.0.0.1", () => {
-  process.stdout.write(`VeriFi sandbox payment oracle listening on http://127.0.0.1:${port}\n`);
+  process.stdout.write(`Veritable sandbox payment oracle listening on http://127.0.0.1:${port}\n`);
 });

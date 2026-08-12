@@ -9,6 +9,7 @@
     "test:hosted-auth": "node scripts/test-hosted-auth.mjs",
     "acceptance:fresh-production": "node scripts/fresh-wallet-production.mjs",
     "start": "next start",
+    "pretypecheck": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\"",
     "typecheck": "tsc --noEmit",
     "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\""
   },

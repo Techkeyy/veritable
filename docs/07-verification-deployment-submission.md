@@ -112,7 +112,7 @@ The README and submission must source counts/links from this ledger rather than 
 
 ### 0:00–0:25 — Problem
 
-“A token can exist on-chain while its reported income remains an issuer promise. VeriFi requires proof of income before distribution.”
+“A token can exist on-chain while its reported income remains an issuer promise. Veritable requires proof of income before distribution.”
 
 ### 0:25–1:10 — Valid income
 

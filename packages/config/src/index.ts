@@ -62,7 +62,7 @@ export function runtimeChainConfig(
     environment,
     chain: defineChain({
       id: 31_337,
-      name: "VeriFi Local",
+      name: "Veritable Local",
       nativeCurrency: { name: "Local BOT", symbol: "BOT", decimals: 18 },
       rpcUrls: { default: { http: [env.LOCAL_RPC_URL ?? "http://127.0.0.1:8545"] } },
     }),

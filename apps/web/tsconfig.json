@@ -29,7 +29,9 @@
     "src/**/*.tsx",
     "worker/**/*.ts",
     "build/**/*.ts",
-    "vite.config.ts"
+    "vite.config.ts",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

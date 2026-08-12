@@ -14,7 +14,7 @@
 
 ```mermaid
 flowchart LR
-    Issuer["Issuer wallet"] --> Web["VeriFi web app"]
+    Issuer["Issuer wallet"] --> Web["Veritable web app"]
     Investor["Investor wallet"] --> Web
     Challenger["Challenger wallet"] --> Web
     Web --> API["Application API"]

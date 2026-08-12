@@ -1,8 +1,8 @@
-export function attestationRequestMessage(claimId: string) {
+export function attestationRequestMessage(claimId: string, chainId = 968, networkName = "BOT Testnet") {
   return [
-    "VeriFi BOT Testnet attestation request",
+    `Veritable ${networkName} attestation request`,
     `Claim: ${claimId}`,
-    "Chain: 968",
+    `Chain: ${chainId}`,
     "Purpose: authorize the bonded verifier to inspect this claim's committed sandbox evidence.",
   ].join("\n");
 }
