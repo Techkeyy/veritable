@@ -284,10 +284,9 @@ export default function Home() {
   return (
     <main>
       <nav className="nav shell">
-        <a className="brand" href="#top" aria-label="Veritable home"><span className="brand-mark"><Fingerprint size={19} /></span>Veritable</a>
+        <a className="brand" href="#console" aria-label="Veritable home"><span className="brand-mark"><Fingerprint size={19} /></span>Veritable</a>
         <div className="nav-right">
           <a className="docs-link" href="https://docs.botchain.ai" target="_blank" rel="noreferrer">BOT docs <ArrowUpRight size={14} /></a>
-          <span className="network-pill"><span /> {networkLabel} · {activeChain.id}</span>
           {isConnected ? (
             <button className="wallet-button connected" onClick={() => disconnect()}><Wallet size={16} /> {walletLabel}</button>
           ) : (
@@ -297,21 +296,6 @@ export default function Home() {
           )}
         </div>
       </nav>
-
-      <section className="hero shell" id="top">
-        <div className="eyebrow"><ShieldCheck size={15} /> Built for the AI × RWA challenge</div>
-        <h1>Make real-world yield<br /><span>prove itself.</span></h1>
-        <p className="hero-copy">Veritable turns messy payment evidence into deterministic, challengeable onchain settlement—without letting an AI decide who gets paid.</p>
-        <div className="hero-actions">
-          <a className="primary-link" href="#console">Open {isMainnet ? "Mainnet" : "Testnet"} console <ArrowUpRight size={17} /></a>
-          <a className="secondary-link" href="#how">See the trust model</a>
-        </div>
-        <div className="proof-strip">
-          <div><strong>AI extracts</strong><span>Documents become structured facts</span></div>
-          <div><strong>Policy decides</strong><span>Versioned rules reproduce outcomes</span></div>
-          <div><strong>BOT settles</strong><span>Bonds and disputes create accountability</span></div>
-        </div>
-      </section>
 
       <section className="console shell" id="console">
         <div className="section-heading">
@@ -392,7 +376,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="shell"><a className="brand" href="#top"><span className="brand-mark"><Fingerprint size={18} /></span>Veritable</a><p>Verifiable revenue rails for tokenized real-world assets.</p><span>Testnet prototype · not financial advice</span></footer>
+      <footer className="shell"><a className="brand" href="#console"><span className="brand-mark"><Fingerprint size={18} /></span>Veritable</a><p>Verifiable revenue rails for tokenized real-world assets.</p><span>Testnet prototype · not financial advice</span></footer>
     </main>
   );
 }
