@@ -136,6 +136,8 @@ The public report redacts identities and sensitive financial data. `reportHash` 
 
 The public API exposes `GET /v1/reports/:claimId`. It returns only the redacted rule results, limitations, policy/terms commitments, and transaction references; raw documents, payer identities, keys, retry counters, and worker cursors remain private.
 
+The hosted demo additionally exposes `POST /v1/process/:claimId`. It requires an EIP-191 issuer authorization message bound to the claim ID and BOT Testnet chain ID. The service verifies the signature and the claim's on-chain issuer before it can use the dedicated bonded verifier. Repeated authorized requests discover the existing attestation and spend no additional gas.
+
 ## 8. API boundaries
 
 All inbound/outbound payloads use shared Zod/JSON schemas. The API never trusts model JSON, browser-provided amounts, MIME extensions, or database enums without validation.

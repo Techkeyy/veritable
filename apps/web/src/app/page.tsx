@@ -24,20 +24,24 @@ import {
   useConnect,
   useDisconnect,
   usePublicClient,
+  useSignMessage,
   useSwitchChain,
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
 import { assetFactoryAbi, attestationAbi, erc20Abi, stakingAbi, vaultAbi } from "../lib/abis";
 import { botTestnet, contracts, isConfigured } from "../lib/chain";
+import { attestationRequestMessage } from "../lib/attestationRequest";
 import { hashCanonical } from "@veritable/policy";
 
 type Action = "asset" | "claim" | "inspect" | "collect" | "stake" | "challenge" | "resolve";
 
 interface PublicReport {
   reportHash: string;
+  attestationId?: string;
   attestationTransactionHash?: string;
   report: {
+    claimId: string;
     outcome: "VERIFIED" | "BLOCKED" | "INCONCLUSIVE";
     periodKey: string;
     verifiedAmountMinor: string;
@@ -65,6 +69,8 @@ const evidenceLabels: Record<string, string> = {
   unavailable: "evidence:unavailable",
 };
 
+const PUBLIC_DEMO_CLAIM_ID = "0xd4cf42cb6f65510f1500ffdad7e41a23fac339c509f0e0527bc49f47eaff00e3";
+
 const demoTerms = {
   expectedAmountMinor: "2000000000",
   dueDate: "2026-08-01",
@@ -88,11 +94,13 @@ export default function Home() {
   const { disconnect } = useDisconnect();
   const { switchChain, isPending: isSwitching } = useSwitchChain();
   const { writeContractAsync, data: transactionHash, isPending } = useWriteContract();
+  const { signMessageAsync } = useSignMessage();
   const publicClient = usePublicClient({ chainId: botTestnet.id });
   const receipt = useWaitForTransactionReceipt({ hash: transactionHash });
   const [active, setActive] = useState<Action>("asset");
   const [status, setStatus] = useState("Ready for a testnet action.");
   const [publicReport, setPublicReport] = useState<PublicReport>();
+  const [lastClaimId, setLastClaimId] = useState<string>(PUBLIC_DEMO_CLAIM_ID);
 
   const networkReady = chainId === botTestnet.id;
   const canWrite = isConnected && networkReady && isConfigured;
@@ -165,8 +173,14 @@ export default function Home() {
       functionName: "periodClaims",
       args: [assetId, periodKey],
     });
-    setStatus(`Claim ${short(claimId)} escrowed. Asking the bonded verifier to attest...`);
-    const response = await fetch(`/v1/process/${claimId}`, { method: "POST" });
+    setLastClaimId(claimId);
+    setStatus(`Claim ${short(claimId)} escrowed. Sign once to authorize its bonded verification.`);
+    const signature = await signMessageAsync({ message: attestationRequestMessage(claimId) });
+    const response = await fetch(`/v1/process/${claimId}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ requester: address, signature }),
+    });
     if (!response.ok) throw new Error(`Verifier service returned ${response.status}`);
     const result = await response.json() as ProcessResult;
     const reportResponse = await fetch(`/v1/reports/${claimId}`);
@@ -209,6 +223,7 @@ export default function Home() {
       setPublicReport(undefined);
       setStatus("Loading the redacted deterministic report…");
       const claimId = bytes32(String(form.get("reportClaimId")));
+      setLastClaimId(claimId);
       const apiBase = process.env.NEXT_PUBLIC_API_URL || window.location.origin;
       const response = await fetch(new URL(`/v1/reports/${claimId}`, apiBase));
       if (!response.ok) {
@@ -325,17 +340,25 @@ export default function Home() {
                   <div className="field-grid"><label>Holder B<input name="holderB" value={address ?? ""} placeholder="Connect wallet" readOnly required /></label><label>Holder B shares<input name="holderBShares" type="number" defaultValue="40" min="0.000001" step="0.000001" required /></label></div>
                   <p className="bond-note"><ShieldCheck size={15} /> Uses the registered deterministic policy-v1 and a maximum of 20 initial holders.</p>
                 </>}
-                {active === "inspect" && <label>Claim ID<input name="reportClaimId" placeholder="0x…" required /></label>}
-                {active === "collect" && <label>Claim ID<input name="claimId" placeholder="0x…" required /></label>}
+                {active === "inspect" && <label>Claim ID<input name="reportClaimId" defaultValue={lastClaimId} placeholder="0x…" required /></label>}
+                {active === "collect" && <label>Claim ID<input name="claimId" defaultValue={publicReport?.report.claimId ?? lastClaimId} placeholder="0x…" required /></label>}
                 {active === "stake" && <label>Stake amount <span>testnet BOT</span><div className="amount-input"><input name="stakeAmount" type="number" min="0.001" step="0.001" defaultValue="10" required /><b>BOT</b></div></label>}
-                {active === "challenge" && <><label>Attestation ID<input name="attestationId" placeholder="0x…" required /></label><label>Counter-evidence reference<input name="counterEvidence" placeholder="IPFS CID, document hash, or reference" required /></label><p className="bond-note"><LockKeyhole size={15} /> Requires a 0.25 tBOT challenge bond.</p></>}
-                {active === "resolve" && <><label>Attestation ID<input name="resolutionAttestationId" placeholder="0x…" required /></label><label>Action<select name="resolutionMode" defaultValue="settle"><option value="settle">Settle unchallenged attestation</option><option value="overturn">Overturn false approval (resolver only)</option></select></label><p className="bond-note"><Scale size={15} /> Settlement is permissionless after the window; reversal requires the disclosed resolver role.</p></>}
+                {active === "challenge" && <><label>Attestation ID<input name="attestationId" defaultValue={publicReport?.attestationId} placeholder="0x…" required /></label><label>Counter-evidence reference<input name="counterEvidence" placeholder="IPFS CID, document hash, or reference" required /></label><p className="bond-note"><LockKeyhole size={15} /> Requires a 0.25 tBOT challenge bond.</p></>}
+                {active === "resolve" && <><label>Attestation ID<input name="resolutionAttestationId" defaultValue={publicReport?.attestationId} placeholder="0x…" required /></label><label>Action<select name="resolutionMode" defaultValue="settle"><option value="settle">Settle unchallenged attestation</option><option value="overturn">Overturn false approval (resolver only)</option></select></label><p className="bond-note"><Scale size={15} /> Settlement is permissionless after the window; reversal requires the disclosed resolver role.</p></>}
                 <button className="submit" disabled={(active !== "inspect" && !canWrite) || isPending}>{isPending ? <LoaderCircle className="spin" /> : active === "asset" ? <Building2 /> : active === "inspect" ? <SearchCheck /> : active === "resolve" ? <Scale /> : active === "challenge" ? <Gavel /> : active === "stake" ? <LockKeyhole /> : <CircleDollarSign />}{active === "asset" ? "Create testnet asset" : active === "inspect" ? "Load verification report" : active === "collect" ? "Claim distribution" : active === "stake" ? "Stake testnet BOT" : active === "resolve" ? "Finalize attestation" : "Open challenge"}</button>
                 {active === "inspect" && publicReport && <div className={`report-card ${publicReport.report.outcome.toLowerCase()}`}>
                   <div className="report-title"><span>{publicReport.report.outcome}</span><small>{publicReport.report.policyVersion} · {publicReport.report.periodKey}</small></div>
                   <div className="rule-list">{publicReport.report.ruleResults.map((rule) => <div key={rule.ruleId}><b className={rule.status.toLowerCase()}>{rule.status}</b><span><strong>{rule.ruleId.replaceAll("_", " ")}</strong><small>{rule.message}</small></span></div>)}</div>
                   <p>{publicReport.report.limitations[0]}</p>
-                  <code>{short(publicReport.reportHash)}</code>
+                  <div className="report-identifiers">
+                    <div><span>Claim ID</span><code>{publicReport.report.claimId}</code><button type="button" onClick={() => void navigator.clipboard.writeText(publicReport.report.claimId)}>Copy</button></div>
+                    {publicReport.attestationId && <div><span>Attestation ID</span><code>{publicReport.attestationId}</code><button type="button" onClick={() => void navigator.clipboard.writeText(publicReport.attestationId!)}>Copy</button></div>}
+                    <div><span>Report hash</span><code>{publicReport.reportHash}</code><button type="button" onClick={() => void navigator.clipboard.writeText(publicReport.reportHash)}>Copy</button></div>
+                  </div>
+                  <div className="report-actions">
+                    {publicReport.attestationId && <><button type="button" onClick={() => setActive("challenge")}>Challenge</button><button type="button" onClick={() => setActive("resolve")}>Finalize after 60s</button></>}
+                    <button type="button" onClick={() => setActive("collect")}>Claim proceeds</button>
+                  </div>
                 </div>}
               </form>
             )}

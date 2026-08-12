@@ -32,6 +32,7 @@ The primary submission lane is **RWA Applications**, with AI as a core on-chain 
 - [Testing, deployment, and submission](docs/07-verification-deployment-submission.md)
 - [Decision log and open questions](docs/08-decisions.md)
 - [Current implementation evidence](docs/09-implementation-evidence.md)
+- [Judge runbook and submission draft](docs/10-judge-and-submission-runbook.md)
 
 ## Non-negotiable acceptance test
 

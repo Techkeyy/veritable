@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "build:sites": "vinext build",
+    "test:hosted-auth": "node scripts/test-hosted-auth.mjs",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\""

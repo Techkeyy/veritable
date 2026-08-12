@@ -45,6 +45,29 @@ const vaultServerAbi = [
       { name: "status", type: "uint8" },
     ],
   },
+  {
+    type: "function",
+    name: "getClaim",
+    stateMutability: "view",
+    inputs: [{ name: "claimId", type: "bytes32" }],
+    outputs: [{
+      name: "claim",
+      type: "tuple",
+      components: [
+        { name: "assetId", type: "bytes32" },
+        { name: "periodKey", type: "bytes32" },
+        { name: "evidenceRoot", type: "bytes32" },
+        { name: "issuer", type: "address" },
+        { name: "shareToken", type: "address" },
+        { name: "escrowedAmount", type: "uint256" },
+        { name: "verifiedAmount", type: "uint256" },
+        { name: "snapshotId", type: "uint256" },
+        { name: "totalShares", type: "uint256" },
+        { name: "resolvedAt", type: "uint64" },
+        { name: "status", type: "uint8" },
+      ],
+    }],
+  },
 ] as const;
 
 const attestationServerAbi = [
@@ -121,8 +144,9 @@ export async function buildPublicVerification(claimId: Hex) {
   const registry = requiredAddress(contracts.attestation, "AttestationRegistry");
   const rpcUrl = process.env.BOT_TESTNET_RPC_URL || process.env.NEXT_PUBLIC_BOT_TESTNET_RPC_URL || "https://rpc.bohr.life";
   const publicClient = createPublicClient({ chain: botTestnet, transport: http(rpcUrl) });
-  const [claim, existingAttestationId] = await Promise.all([
+  const [claim, fullClaim, existingAttestationId] = await Promise.all([
     publicClient.readContract({ address: vault, abi: vaultServerAbi, functionName: "claimForAttestation", args: [claimId] }),
+    publicClient.readContract({ address: vault, abi: vaultServerAbi, functionName: "getClaim", args: [claimId] }),
     publicClient.readContract({ address: registry, abi: attestationServerAbi, functionName: "claimAttestations", args: [claimId] }),
   ]);
   const [assetId, periodKeyHash, amount, evidenceRoot, status] = claim;
@@ -164,15 +188,18 @@ export async function buildPublicVerification(claimId: Hex) {
   return {
     publicClient,
     registry,
-    claim: { claimId, assetId, periodKeyHash, amount, evidenceRoot, status },
+    claim: { claimId, assetId, periodKeyHash, amount, evidenceRoot, status, issuer: fullClaim.issuer },
     existingAttestationId,
     report,
     reportHash: hashCanonical(report) as Hex,
   };
 }
 
-export async function processPublicClaim(claimId: Hex) {
+export async function processPublicClaim(claimId: Hex, requester: Address) {
   const verification = await buildPublicVerification(claimId);
+  if (verification.claim.issuer.toLowerCase() !== requester.toLowerCase()) {
+    throw new Error("Only the onchain claim issuer may request its attestation");
+  }
   if (verification.report.outcome === "INCONCLUSIVE") {
     return { ...verification, transactionHash: undefined };
   }
