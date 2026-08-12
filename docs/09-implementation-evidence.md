@@ -39,6 +39,7 @@ Last validated: **2026-08-11 (WAT)**
 
 - Deployment manifest: `deployments/bot-testnet/manifest.json`
 - Acceptance bundle: `deployments/bot-testnet/acceptance.json`
+- Hosted-verifier demo bundle: `deployments/bot-testnet/public-demo.json`
 - Asset Registry: `0xa5728e7aab1373d2af4b39d58ee1010167123560`
 - Yield Vault: `0x6786d682738d2f0e1d31c113de9aece14ac43f1a`
 - Attestation Registry: `0x5e18d2c62257bceddcc21e0a0fd2dd9d6ed79a37`
@@ -48,6 +49,8 @@ Last validated: **2026-08-11 (WAT)**
 - False approval challenge: https://scan.bohr.life/tx/0x275cf40d0ffba0a2ee6bfd5a1e489276516bdcb5f1c14ddc66136e14bd77d73a
 - Resolver overturn and slash: https://scan.bohr.life/tx/0x82318cab75659f149e73b575848befc7c65ff2954a3ac67f0b966d7b699afb56
 - Blocked escrow refund: https://scan.bohr.life/tx/0x32f1a7afffacd1b55ad67bfe1c67f5f57af6f170422cf5b9d4917514f33264b1
+- Hosted-verifier attestation: https://scan.bohr.life/tx/0x1cfacabc40c22afabeb1b5aa424b53e41341bfd23e8a203a105e5d31a1338e68
+- Hosted-verifier settlement: https://scan.bohr.life/tx/0x2366cefe6fa245f7d6d998bf9e37c3b3eaeb9c368e58858990a976624d631430
 
 The strict wallet doctor now passes both pre-deployment and phase-aware post-deployment checks. No private values are printed, pasted into chat, or committed.
 
@@ -55,9 +58,8 @@ The strict wallet doctor now passes both pre-deployment and phase-aware post-dep
 
 The following are intentionally not claimed as complete until explorer-verifiable evidence exists:
 
-1. Run the evidence API, verifier agent, and wallet UI against the generated live addresses and repeat the judge-facing workflows.
-2. Publish the site/API and test the public deployment from a fresh wallet.
-3. Assemble the final hackathon submission copy, demo path, screenshots/video, and evidence links.
-4. Migrate to Mainnet only after the public Testnet release gate passes and the user separately authorizes migration.
+1. Publish the site/API and test the public deployment from a fresh wallet.
+2. Assemble the final hackathon submission copy, demo path, screenshots/video, and evidence links.
+3. Migrate to Mainnet only after the public Testnet release gate passes and the user separately authorizes migration.
 
 Mainnet remains absent from the Hardhat deployment targets and locked in the agent runtime.

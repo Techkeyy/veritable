@@ -1,6 +1,23 @@
 export const erc20Abi = [
   {
     type: "function",
+    name: "balanceOf",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "mint",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
     name: "approve",
     stateMutability: "nonpayable",
     inputs: [
@@ -30,6 +47,16 @@ export const assetFactoryAbi = [
 ] as const;
 
 export const vaultAbi = [
+  {
+    type: "function",
+    name: "periodClaims",
+    stateMutability: "view",
+    inputs: [
+      { name: "assetId", type: "bytes32" },
+      { name: "periodKey", type: "bytes32" },
+    ],
+    outputs: [{ name: "claimId", type: "bytes32" }],
+  },
   {
     type: "function",
     name: "submitClaim",

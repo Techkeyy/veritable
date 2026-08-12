@@ -8,6 +8,8 @@
     "test": "hardhat test",
     "deploy:testnet": "hardhat run scripts/deploy-testnet.ts --network botTestnet",
     "acceptance:testnet": "hardhat run scripts/acceptance-testnet.ts --network botTestnet",
+    "seed:public-demo": "hardhat run scripts/seed-public-demo.ts --network botTestnet",
+    "finalize:public-demo": "hardhat run scripts/finalize-public-demo.ts --network botTestnet",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "clean": "hardhat clean"
   },

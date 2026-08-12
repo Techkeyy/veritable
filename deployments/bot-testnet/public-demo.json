@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "network": "bot-testnet",
+  "chainId": 968,
+  "period": "2026-08",
+  "amountMinor": "2000000000",
+  "assetId": "0xbad31a38b101816683ad85fec41b7b5e17aeb80fe7b2dd326855e70fbe158612",
+  "claimId": "0xd4cf42cb6f65510f1500ffdad7e41a23fac339c509f0e0527bc49f47eaff00e3",
+  "evidenceRoot": "0x5f27dd2563a2b7226c879bae71092b3364db8894dc2cfabcc462755ad1f32d77",
+  "verification": {
+    "outcome": "VERIFIED",
+    "reportHash": "0x0549d9e4798ac81a51e8d36a908381b47947dc5c03a910ab7f8cf653ace174e4",
+    "attestationId": "0x6b2c1df61bfced031767ed59730febdb8d34f325dad96d3754607eebf55298b5",
+    "idempotencyConfirmed": true,
+    "onchainStatus": "SETTLED_AND_RELEASED"
+  },
+  "transactions": {
+    "approve": {
+      "hash": "0xec21d4e6b9e2c902a71d2c3568fa7900504e904df17ebd5767f6af1e496597ff",
+      "explorerUrl": "https://scan.bohr.life/tx/0xec21d4e6b9e2c902a71d2c3568fa7900504e904df17ebd5767f6af1e496597ff"
+    },
+    "submitClaim": {
+      "hash": "0xbbf707959b39416c4fa63cc59fd4f830e9381047a7aa5005907dc80f4fbe6cb7",
+      "explorerUrl": "https://scan.bohr.life/tx/0xbbf707959b39416c4fa63cc59fd4f830e9381047a7aa5005907dc80f4fbe6cb7"
+    },
+    "submitAttestation": {
+      "hash": "0x1cfacabc40c22afabeb1b5aa424b53e41341bfd23e8a203a105e5d31a1338e68",
+      "explorerUrl": "https://scan.bohr.life/tx/0x1cfacabc40c22afabeb1b5aa424b53e41341bfd23e8a203a105e5d31a1338e68"
+    },
+    "settle": {
+      "hash": "0x2366cefe6fa245f7d6d998bf9e37c3b3eaeb9c368e58858990a976624d631430",
+      "explorerUrl": "https://scan.bohr.life/tx/0x2366cefe6fa245f7d6d998bf9e37c3b3eaeb9c368e58858990a976624d631430"
+    }
+  },
+  "secretsIncluded": false
+}

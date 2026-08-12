@@ -1,5 +1,6 @@
 node_modules/
 .next/
+.wrangler/
 *.tsbuildinfo
 .verifi/
 .pnpm-store/
