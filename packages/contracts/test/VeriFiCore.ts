@@ -172,7 +172,7 @@ async function submitAttestation(
   const signature = await verifier.signTypedData({
     account: verifier.account,
     domain: {
-      name: "VeriFi Attestation Registry",
+      name: "Veritable Attestation Registry",
       version: "1",
       chainId,
       verifyingContract: fixture.contracts.registry.address,
@@ -406,7 +406,7 @@ describe("Veritable core protocol", () => {
     } as const;
     const signature = await verifier.signTypedData({
       account: verifier.account!,
-      domain: { name: "VeriFi Attestation Registry", version: "1", chainId: await publicClient.getChainId(), verifyingContract: fixture.contracts.registry.address },
+      domain: { name: "Veritable Attestation Registry", version: "1", chainId: await publicClient.getChainId(), verifyingContract: fixture.contracts.registry.address },
       types: {
         Attestation: [
           { name: "claimId", type: "bytes32" }, { name: "assetId", type: "bytes32" },
@@ -462,7 +462,7 @@ describe("Veritable core protocol", () => {
     } as const;
     const signature = await verifier.signTypedData({
       account: verifier.account!,
-      domain: { name: "VeriFi Attestation Registry", version: "1", chainId: await publicClient.getChainId(), verifyingContract: fixture.contracts.registry.address },
+      domain: { name: "Veritable Attestation Registry", version: "1", chainId: await publicClient.getChainId(), verifyingContract: fixture.contracts.registry.address },
       types: {
         Attestation: [
           { name: "claimId", type: "bytes32" }, { name: "assetId", type: "bytes32" },

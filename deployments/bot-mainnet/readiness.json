@@ -1,19 +1,19 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-12T03:51:41.441Z",
+  "generatedAt": "2026-08-12T04:37:37.671Z",
   "mode": "READ_ONLY_NO_BROADCAST",
   "network": "bot-mainnet",
   "chainId": 677,
   "rpc": "https://rpc.botchain.ai",
   "explorer": "https://scan.botchain.ai",
   "officialSettlementToken": "0xaBabc7Ddc03e501d190C676BF3d92ef0e6e87a3C",
-  "latestBlock": "19363984",
+  "latestBlock": "19367659",
   "bytecodeHashes": {
     "AssetRegistry": "0x685d716ae6a6dad54e1f9289e2009213c7557ea14c92d27b35ff90fa011cb82b",
     "AssetFactory": "0x7980834a4dfc459f23379998f0f2057310d08a52af142a1dada04bd08052132d",
     "VerifierStaking": "0xa03a5133f453f9650138b7be4ebc90f0c9b24eb014ca9089c1365d3104a4b2e2",
     "YieldVault": "0xe103798bf952179cc8263bf8a29fdc99db1cb667e2bb509f43abebcbf255c3b4",
-    "AttestationRegistry": "0x552a00ddf6444ce3aa95bfd471cf3fceb3e9497e3e466cb47ae280a347a798e9"
+    "AttestationRegistry": "0x2bdbaf725e186f2fe057778aed32d033fbf032fc124c2cc6aa4b0b765cfb34ae"
   },
   "readyToDeploy": false,
   "checks": [
@@ -27,7 +27,7 @@
       "name": "network:latest-block",
       "ok": true,
       "blocking": true,
-      "detail": "19363984"
+      "detail": "19367659"
     },
     {
       "name": "token:configured-address",

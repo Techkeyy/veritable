@@ -117,7 +117,7 @@ contract AttestationRegistry is AccessControl, EIP712, Pausable, ReentrancyGuard
         uint256 verifierBond_,
         uint256 challengerBond_,
         uint64 challengeWindow_
-    ) EIP712("VeriFi Attestation Registry", "1") {
+    ) EIP712(block.chainid == 968 ? "VeriFi Attestation Registry" : "Veritable Attestation Registry", "1") {
         if (
             admin == address(0) || address(yieldVault_) == address(0)
                 || address(assetRegistry_) == address(0)

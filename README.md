@@ -4,7 +4,7 @@ Repository name: **veritable**
 Product name: **Veritable**
 Tagline: **Proof of income before distribution.**
 
-The accepted Testnet deployment retains the legacy EIP-712 domain string `VeriFi Attestation Registry`. That value is a cryptographic compatibility identifier, not the current product name; changing it would invalidate signatures for the deployed registry.
+The accepted Testnet deployment retains the legacy EIP-712 domain string `VeriFi Attestation Registry`. That value is a cryptographic compatibility identifier, not the current product name; changing it would invalidate signatures for the deployed registry. New Mainnet deployments use `Veritable Attestation Registry`.
 
 Veritable is an economically accountable verification layer for real-world-asset income. An issuer escrows a yield claim, an evidence-constrained AI agent extracts and reconciles the supporting records, deterministic policy produces a verdict, and a bonded on-chain attestation gates release to token holders. Incorrect attestations can be challenged and slashed.
 

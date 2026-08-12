@@ -111,7 +111,7 @@ export function createChainSubmitter(config: ChainSubmitterConfig) {
     const signature = await walletClient.signTypedData({
       account,
       domain: {
-        name: "VeriFi Attestation Registry",
+        name: config.chain.id === 968 ? "VeriFi Attestation Registry" : "Veritable Attestation Registry",
         version: "1",
         chainId: config.chain.id,
         verifyingContract: config.registryAddress,

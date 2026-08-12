@@ -244,7 +244,7 @@ export async function processPublicClaim(claimId: Hex, requester: Address) {
   } as const;
   const signature = await walletClient.signTypedData({
     account,
-    domain: { name: "VeriFi Attestation Registry", version: "1", chainId: activeChain.id, verifyingContract: verification.registry },
+    domain: { name: activeChain.id === 968 ? "VeriFi Attestation Registry" : "Veritable Attestation Registry", version: "1", chainId: activeChain.id, verifyingContract: verification.registry },
     types: {
       Attestation: [
         { name: "claimId", type: "bytes32" }, { name: "assetId", type: "bytes32" },
