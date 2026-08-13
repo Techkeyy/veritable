@@ -13,7 +13,7 @@ export async function POST(request: Request, context: { params: Promise<{ claimI
     if (!isHex(claimId, { strict: true }) || claimId.length !== 66) {
       return NextResponse.json({ error: "A bytes32 claim ID is required" }, { status: 400 });
     }
-    let body: { requester?: string; signature?: string };
+    let body: { requester?: string; signature?: string; evidenceBundle?: unknown };
     try {
       body = await request.json() as typeof body;
     } catch {
@@ -28,11 +28,13 @@ export async function POST(request: Request, context: { params: Promise<{ claimI
       signature: body.signature as Hex,
     });
     if (!signatureValid) return NextResponse.json({ error: "Issuer authorization signature is invalid" }, { status: 401 });
-    const result = await processPublicClaim(claimId as Hex, body.requester as Address);
+    if (!body.evidenceBundle) return NextResponse.json({ error: "The committed evidence bundle is required" }, { status: 400 });
+    const result = await processPublicClaim(claimId as Hex, body.requester as Address, body.evidenceBundle);
     return NextResponse.json({
       status: result.report.outcome === "INCONCLUSIVE" ? "INCONCLUSIVE" : result.transactionHash ? "SUBMITTED" : "ALREADY_SUBMITTED",
       outcome: result.report.outcome,
       reportHash: result.reportHash,
+      report: result.report,
       attestationId: result.existingAttestationId,
       transactionHash: result.transactionHash,
     }, { status: result.report.outcome === "INCONCLUSIVE" ? 202 : 200 });

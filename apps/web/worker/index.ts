@@ -12,7 +12,8 @@ interface Env {
   };
   BOT_TESTNET_RPC_URL?: string;
   VERIFIER_PRIVATE_KEY?: string;
-  EVIDENCE_SIGNER_PRIVATE_KEY?: string;
+  EVIDENCE_SIGNER_ADDRESS?: string;
+  MAINNET_EVIDENCE_SIGNER_ADDRESS?: string;
 }
 
 interface ExecutionContext {
@@ -24,7 +25,8 @@ const worker = {
   async fetch(request: Request, env: Env = {} as Env, ctx: ExecutionContext): Promise<Response> {
     if (env.BOT_TESTNET_RPC_URL) process.env.BOT_TESTNET_RPC_URL = env.BOT_TESTNET_RPC_URL;
     if (env.VERIFIER_PRIVATE_KEY) process.env.VERIFIER_PRIVATE_KEY = env.VERIFIER_PRIVATE_KEY;
-    if (env.EVIDENCE_SIGNER_PRIVATE_KEY) process.env.EVIDENCE_SIGNER_PRIVATE_KEY = env.EVIDENCE_SIGNER_PRIVATE_KEY;
+    if (env.EVIDENCE_SIGNER_ADDRESS) process.env.EVIDENCE_SIGNER_ADDRESS = env.EVIDENCE_SIGNER_ADDRESS;
+    if (env.MAINNET_EVIDENCE_SIGNER_ADDRESS) process.env.MAINNET_EVIDENCE_SIGNER_ADDRESS = env.MAINNET_EVIDENCE_SIGNER_ADDRESS;
     const url = new URL(request.url);
     if (url.pathname === "/_vinext/image") {
       const widths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];

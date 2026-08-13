@@ -1,7 +1,8 @@
 import { runtimeChainConfig, environmentSchema } from "@veritable/config";
 import { resolve } from "node:path";
 import dotenv from "dotenv";
-import { verificationInputSchema, signedPaymentEnvelopeSchema } from "@veritable/schemas";
+import { evidenceBundleSchema, verificationInputSchema, signedPaymentEnvelopeSchema } from "@veritable/schemas";
+import { hashCanonical } from "@veritable/policy";
 import {
   createPublicClient,
   getAddress,
@@ -47,9 +48,10 @@ const submitAttestation = createChainSubmitter({
   rpcUrl: chainConfig.httpRpcUrl,
   registryAddress,
   verifierPrivateKey,
+  modelRunHash: required("MODEL_RUN_HASH") as Hex,
 });
 
-const bundleCache = new Map<string, Promise<{ evidence: unknown; paymentReference: string }>>();
+const bundleCache = new Map<string, Promise<{ evidenceBundle: unknown }>>();
 function bundle(event: ClaimEvent) {
   const key = `${event.claimId}:${event.evidenceRoot}`;
   const existing = bundleCache.get(key);
@@ -60,7 +62,7 @@ function bundle(event: ClaimEvent) {
   url.searchParams.set("amountMinor", event.amountMinor);
   const request = fetch(url).then(async (response) => {
     if (!response.ok) throw new Error(`Evidence API returned ${response.status}`);
-    return response.json() as Promise<{ evidence: unknown; paymentReference: string }>;
+    return response.json() as Promise<{ evidenceBundle: unknown }>;
   });
   bundleCache.set(key, request);
   return request;
@@ -69,12 +71,23 @@ function bundle(event: ClaimEvent) {
 const processor = new ClaimProcessor({
   store,
   trustedPaymentSigner,
-  fetchEvidence: async (event) => verificationInputSchema.omit({ paymentRecords: true }).parse((await bundle(event)).evidence),
+  fetchEvidence: async (event) => {
+    const evidence = evidenceBundleSchema.parse((await bundle(event)).evidenceBundle);
+    if (hashCanonical(evidence).toLowerCase() !== event.evidenceRoot.toLowerCase()) throw new Error("Stored evidence bundle does not match the onchain evidence root");
+    return verificationInputSchema.omit({ paymentRecords: true }).parse({
+      claimId: event.claimId,
+      assetId: event.assetId,
+      periodKey: evidence.periodKey,
+      claimedAmountMinor: event.amountMinor,
+      currency: "USDT",
+      assetTerms: evidence.assetTerms,
+      documents: evidence.documents,
+      evidenceRoot: event.evidenceRoot,
+    });
+  },
   fetchPayment: async (event) => {
-    const reference = (await bundle(event)).paymentReference;
-    const response = await fetch(new URL(`/v1/payments/${encodeURIComponent(reference)}`, apiBaseUrl));
-    if (!response.ok) throw new Error(`Payment API returned ${response.status}`);
-    return signedPaymentEnvelopeSchema.parse(await response.json());
+    const evidence = evidenceBundleSchema.parse((await bundle(event)).evidenceBundle);
+    return signedPaymentEnvelopeSchema.parse(evidence.paymentEnvelope);
   },
   findExistingAttestation: async (event) => {
     const attestationId = await client.readContract({

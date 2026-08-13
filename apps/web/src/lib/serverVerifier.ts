@@ -1,8 +1,14 @@
 import { evaluateClaim, hashCanonical } from "@veritable/policy";
-import type { PaymentRecord, VerificationInput } from "@veritable/schemas";
+import {
+  evidenceBundleSchema,
+  type EvidenceBundle,
+  type PaymentRecord,
+  type VerificationInput,
+} from "@veritable/schemas";
 import {
   createPublicClient,
   createWalletClient,
+  getAddress,
   http,
   keccak256,
   stringToHex,
@@ -14,110 +20,41 @@ import {
 import { privateKeyToAccount } from "viem/accounts";
 import { activeChain, contracts, networkLabel } from "./chain";
 
-const FIXTURE_NOW = new Date("2026-08-03T00:00:00.000Z");
-const PAYER_REFERENCE = `0x${"33".repeat(32)}` as Hex;
-const PERIOD_KEY = "2026-08";
-const assetTerms = {
-  expectedAmountMinor: "2000000000",
-  dueDate: "2026-08-01",
-  windowDays: 5,
-  amountToleranceMinor: "0",
-  payerReferenceHash: PAYER_REFERENCE,
-} as const;
-
-const evidenceScenarios = {
-  [keccak256(stringToHex("evidence:exact-payment"))]: "rent-paid-exact",
-  [keccak256(stringToHex("evidence:underpaid"))]: "rent-underpaid",
-  [keccak256(stringToHex("evidence:unavailable"))]: "unavailable",
-} as const;
-
 const vaultServerAbi = [
-  {
-    type: "function",
-    name: "claimForAttestation",
-    stateMutability: "view",
-    inputs: [{ name: "claimId", type: "bytes32" }],
-    outputs: [
-      { name: "assetId", type: "bytes32" },
-      { name: "periodKey", type: "bytes32" },
-      { name: "escrowedAmount", type: "uint256" },
-      { name: "evidenceRoot", type: "bytes32" },
-      { name: "status", type: "uint8" },
-    ],
-  },
-  {
-    type: "function",
-    name: "getClaim",
-    stateMutability: "view",
-    inputs: [{ name: "claimId", type: "bytes32" }],
-    outputs: [{
-      name: "claim",
-      type: "tuple",
-      components: [
-        { name: "assetId", type: "bytes32" },
-        { name: "periodKey", type: "bytes32" },
-        { name: "evidenceRoot", type: "bytes32" },
-        { name: "issuer", type: "address" },
-        { name: "shareToken", type: "address" },
-        { name: "escrowedAmount", type: "uint256" },
-        { name: "verifiedAmount", type: "uint256" },
-        { name: "snapshotId", type: "uint256" },
-        { name: "totalShares", type: "uint256" },
-        { name: "resolvedAt", type: "uint64" },
-        { name: "status", type: "uint8" },
-      ],
-    }],
-  },
+  { type: "function", name: "claimForAttestation", stateMutability: "view", inputs: [{ name: "claimId", type: "bytes32" }], outputs: [
+    { name: "assetId", type: "bytes32" }, { name: "periodKey", type: "bytes32" },
+    { name: "escrowedAmount", type: "uint256" }, { name: "evidenceRoot", type: "bytes32" }, { name: "status", type: "uint8" },
+  ] },
+  { type: "function", name: "getClaim", stateMutability: "view", inputs: [{ name: "claimId", type: "bytes32" }], outputs: [{ name: "claim", type: "tuple", components: [
+    { name: "assetId", type: "bytes32" }, { name: "periodKey", type: "bytes32" }, { name: "evidenceRoot", type: "bytes32" },
+    { name: "issuer", type: "address" }, { name: "shareToken", type: "address" }, { name: "escrowedAmount", type: "uint256" },
+    { name: "verifiedAmount", type: "uint256" }, { name: "snapshotId", type: "uint256" }, { name: "totalShares", type: "uint256" },
+    { name: "resolvedAt", type: "uint64" }, { name: "status", type: "uint8" },
+  ] }] },
+] as const;
+
+const assetRegistryServerAbi = [
+  { type: "function", name: "termsHashOf", stateMutability: "view", inputs: [{ name: "assetId", type: "bytes32" }], outputs: [{ type: "bytes32" }] },
+  { type: "function", name: "policyHashOf", stateMutability: "view", inputs: [{ name: "assetId", type: "bytes32" }], outputs: [{ type: "bytes32" }] },
 ] as const;
 
 const attestationServerAbi = [
-  {
-    type: "function",
-    name: "claimAttestations",
-    stateMutability: "view",
-    inputs: [{ name: "claimId", type: "bytes32" }],
-    outputs: [{ type: "bytes32" }],
-  },
-  {
-    type: "function",
-    name: "nonces",
-    stateMutability: "view",
-    inputs: [{ name: "verifier", type: "address" }],
-    outputs: [{ type: "uint256" }],
-  },
-  {
-    type: "function",
-    name: "submitAttestation",
-    stateMutability: "nonpayable",
-    inputs: [
-      {
-        name: "data",
-        type: "tuple",
-        components: [
-          { name: "claimId", type: "bytes32" },
-          { name: "assetId", type: "bytes32" },
-          { name: "periodKey", type: "bytes32" },
-          { name: "claimedAmount", type: "uint256" },
-          { name: "verifiedAmount", type: "uint256" },
-          { name: "outcome", type: "uint8" },
-          { name: "evidenceRoot", type: "bytes32" },
-          { name: "reportHash", type: "bytes32" },
-          { name: "policyHash", type: "bytes32" },
-          { name: "termsHash", type: "bytes32" },
-          { name: "modelRunHash", type: "bytes32" },
-          { name: "nonce", type: "uint256" },
-          { name: "deadline", type: "uint256" },
-        ],
-      },
-      { name: "signature", type: "bytes" },
-    ],
-    outputs: [{ name: "attestationId", type: "bytes32" }],
-  },
+  { type: "function", name: "claimAttestations", stateMutability: "view", inputs: [{ name: "claimId", type: "bytes32" }], outputs: [{ type: "bytes32" }] },
+  { type: "function", name: "nonces", stateMutability: "view", inputs: [{ name: "verifier", type: "address" }], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "submitAttestation", stateMutability: "nonpayable", inputs: [
+    { name: "data", type: "tuple", components: [
+      { name: "claimId", type: "bytes32" }, { name: "assetId", type: "bytes32" }, { name: "periodKey", type: "bytes32" },
+      { name: "claimedAmount", type: "uint256" }, { name: "verifiedAmount", type: "uint256" }, { name: "outcome", type: "uint8" },
+      { name: "evidenceRoot", type: "bytes32" }, { name: "reportHash", type: "bytes32" }, { name: "policyHash", type: "bytes32" },
+      { name: "termsHash", type: "bytes32" }, { name: "modelRunHash", type: "bytes32" }, { name: "nonce", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+    ] }, { name: "signature", type: "bytes" },
+  ], outputs: [{ name: "attestationId", type: "bytes32" }] },
 ] as const;
 
 function requiredAddress(value: string | undefined, label: string): Address {
   if (!value) throw new Error(`${label} is not configured`);
-  return value as Address;
+  return getAddress(value);
 }
 
 function requiredPrivateKey(value: string | undefined, label: string): Hex {
@@ -125,23 +62,30 @@ function requiredPrivateKey(value: string | undefined, label: string): Hex {
   return value as Hex;
 }
 
-function unsignedPayment(scenario: (typeof evidenceScenarios)[keyof typeof evidenceScenarios]) {
-  const common = {
-    source: "verifi-sandbox-rail",
-    issuedAt: FIXTURE_NOW.toISOString(),
-    expiresAt: new Date(FIXTURE_NOW.getTime() + 30 * 86_400_000).toISOString(),
-  };
-  const raw = scenario === "rent-paid-exact"
-    ? { ...common, status: "FOUND" as const, amountMinor: "2000000000", paidAt: "2026-08-02", payerReferenceHash: PAYER_REFERENCE }
-    : scenario === "rent-underpaid"
-      ? { ...common, status: "FOUND" as const, amountMinor: "1200000000", paidAt: "2026-08-02", payerReferenceHash: PAYER_REFERENCE }
-      : { ...common, status: "UNAVAILABLE" as const };
-  return { ...raw, payloadHash: hashCanonical(raw) };
+async function validatePayment(bundle: EvidenceBundle): Promise<PaymentRecord> {
+  const expectedSigner = requiredAddress(
+    activeChain.id === 677 ? process.env.MAINNET_EVIDENCE_SIGNER_ADDRESS : process.env.EVIDENCE_SIGNER_ADDRESS,
+    "Evidence signer address",
+  );
+  const envelope = bundle.paymentEnvelope;
+  const unsigned = { ...envelope.record } as Record<string, unknown>;
+  delete unsigned.payloadHash;
+  const hashMatches = hashCanonical(unsigned).toLowerCase() === envelope.record.payloadHash.toLowerCase();
+  const signatureValid = hashMatches
+    && envelope.signer.toLowerCase() === expectedSigner.toLowerCase()
+    && await verifyMessage({
+      address: envelope.signer as Address,
+      message: { raw: envelope.record.payloadHash as Hex },
+      signature: envelope.signature as Hex,
+    });
+  return { ...envelope.record, signatureValid };
 }
 
-export async function buildPublicVerification(claimId: Hex) {
+export async function buildPublicVerification(claimId: Hex, rawBundle: unknown) {
+  const bundle = evidenceBundleSchema.parse(rawBundle);
   const vault = requiredAddress(contracts.vault, "YieldVault");
   const registry = requiredAddress(contracts.attestation, "AttestationRegistry");
+  const assetRegistry = requiredAddress(contracts.assetRegistry, "AssetRegistry");
   const rpcUrl = activeChain.id === 677
     ? process.env.BOT_MAINNET_RPC_URL || process.env.NEXT_PUBLIC_BOT_MAINNET_RPC_URL || "https://rpc.botchain.ai"
     : process.env.BOT_TESTNET_RPC_URL || process.env.NEXT_PUBLIC_BOT_TESTNET_RPC_URL || "https://rpc.bohr.life";
@@ -153,121 +97,77 @@ export async function buildPublicVerification(claimId: Hex) {
   ]);
   const [assetId, periodKeyHash, amount, evidenceRoot, status] = claim;
   if (status === 0) throw new Error(`Claim does not exist on ${networkLabel}`);
-  if (periodKeyHash.toLowerCase() !== keccak256(stringToHex(PERIOD_KEY)).toLowerCase()) {
-    throw new Error("This verifier release supports the published 2026-08 sandbox period");
-  }
-  const scenario = evidenceScenarios[evidenceRoot.toLowerCase() as keyof typeof evidenceScenarios];
-  if (!scenario) throw new Error("Evidence root is not a published sandbox fixture");
-
-  const evidenceKey = requiredPrivateKey(
-    activeChain.id === 677 ? process.env.MAINNET_EVIDENCE_SIGNER_PRIVATE_KEY : process.env.EVIDENCE_SIGNER_PRIVATE_KEY,
-    "Evidence signer",
-  );
-  const evidenceAccount = privateKeyToAccount(evidenceKey);
-  const unsigned = unsignedPayment(scenario);
-  const signature = await evidenceAccount.signMessage({ message: { raw: unsigned.payloadHash as Hex } });
-  const signatureValid = await verifyMessage({
-    address: evidenceAccount.address,
-    message: { raw: unsigned.payloadHash as Hex },
-    signature,
-  });
-  const paymentRecord: PaymentRecord = { ...unsigned, signatureValid };
+  const [registeredTermsHash, registeredPolicyHash] = await Promise.all([
+    publicClient.readContract({ address: assetRegistry, abi: assetRegistryServerAbi, functionName: "termsHashOf", args: [assetId] }),
+    publicClient.readContract({ address: assetRegistry, abi: assetRegistryServerAbi, functionName: "policyHashOf", args: [assetId] }),
+  ]);
+  if (keccak256(stringToHex(bundle.periodKey)).toLowerCase() !== periodKeyHash.toLowerCase()) throw new Error("Evidence period does not match the onchain claim");
+  if (hashCanonical(bundle).toLowerCase() !== evidenceRoot.toLowerCase()) throw new Error("Evidence bundle does not match the onchain evidence commitment");
+  if (hashCanonical(bundle.assetTerms).toLowerCase() !== registeredTermsHash.toLowerCase()) throw new Error("Evidence terms do not match the asset's onchain terms commitment");
+  const policyHash = keccak256(stringToHex("policy-v1"));
+  if (registeredPolicyHash.toLowerCase() !== policyHash.toLowerCase()) throw new Error("Asset is not registered for policy-v1");
+  const paymentRecord = await validatePayment(bundle);
   const input: VerificationInput = {
     claimId,
     assetId,
-    periodKey: PERIOD_KEY,
+    periodKey: bundle.periodKey,
     claimedAmountMinor: amount.toString(),
     currency: "USDT",
-    assetTerms,
-    documents: [{
-      id: "lease-2026-demo",
-      contentHash: keccak256(stringToHex("redacted-demo-lease-v1")),
-      mediaType: "application/pdf",
-      kind: "LEASE",
-      extractedText: "Redacted sandbox lease: monthly rent 2,000 USDT; due on day 1.",
-    }],
+    assetTerms: bundle.assetTerms,
+    documents: bundle.documents,
     paymentRecords: [paymentRecord],
     evidenceRoot,
   };
-  const report = evaluateClaim(input, FIXTURE_NOW);
+  const report = evaluateClaim(input, new Date());
   return {
-    publicClient,
-    registry,
+    bundle, publicClient, registry,
     claim: { claimId, assetId, periodKeyHash, amount, evidenceRoot, status, issuer: fullClaim.issuer },
     existingAttestationId,
     report,
     reportHash: hashCanonical(report) as Hex,
+    policyHash,
   };
 }
 
-export async function processPublicClaim(claimId: Hex, requester: Address) {
-  if (activeChain.id === 677 && process.env.ALLOW_MAINNET !== "true") {
-    throw new Error("Mainnet hosted verifier is locked until ALLOW_MAINNET=true after explicit migration authorization");
-  }
-  const verification = await buildPublicVerification(claimId);
-  if (verification.claim.issuer.toLowerCase() !== requester.toLowerCase()) {
-    throw new Error("Only the onchain claim issuer may request its attestation");
-  }
-  if (verification.report.outcome === "INCONCLUSIVE") {
-    return { ...verification, transactionHash: undefined };
-  }
-  if (verification.existingAttestationId !== zeroHash) {
-    return { ...verification, transactionHash: undefined };
-  }
-  const verifierKey = requiredPrivateKey(
-    activeChain.id === 677 ? process.env.MAINNET_VERIFIER_PRIVATE_KEY : process.env.VERIFIER_PRIVATE_KEY,
-    "Verifier",
-  );
+export async function processPublicClaim(claimId: Hex, requester: Address, rawBundle: unknown) {
+  if (activeChain.id === 677 && process.env.ALLOW_MAINNET !== "true") throw new Error("Mainnet hosted verifier is locked until ALLOW_MAINNET=true after explicit migration authorization");
+  const verification = await buildPublicVerification(claimId, rawBundle);
+  if (verification.claim.issuer.toLowerCase() !== requester.toLowerCase()) throw new Error("Only the onchain claim issuer may request its attestation");
+  if (verification.report.outcome === "INCONCLUSIVE") return { ...verification, transactionHash: undefined };
+  if (verification.existingAttestationId !== zeroHash) return { ...verification, transactionHash: undefined };
+  const verifierKey = requiredPrivateKey(activeChain.id === 677 ? process.env.MAINNET_VERIFIER_PRIVATE_KEY : process.env.VERIFIER_PRIVATE_KEY, "Verifier");
   const account = privateKeyToAccount(verifierKey);
-  const rpcUrl = activeChain.id === 677
-    ? process.env.BOT_MAINNET_RPC_URL || "https://rpc.botchain.ai"
-    : process.env.BOT_TESTNET_RPC_URL || "https://rpc.bohr.life";
+  const rpcUrl = activeChain.id === 677 ? process.env.BOT_MAINNET_RPC_URL || "https://rpc.botchain.ai" : process.env.BOT_TESTNET_RPC_URL || "https://rpc.bohr.life";
   const walletClient = createWalletClient({ chain: activeChain, transport: http(rpcUrl), account });
   const [nonce, block] = await Promise.all([
     verification.publicClient.readContract({ address: verification.registry, abi: attestationServerAbi, functionName: "nonces", args: [account.address] }),
     verification.publicClient.getBlock(),
   ]);
   const data = {
-    claimId,
-    assetId: verification.claim.assetId,
-    periodKey: verification.claim.periodKeyHash,
-    claimedAmount: verification.claim.amount,
-    verifiedAmount: BigInt(verification.report.verifiedAmountMinor),
+    claimId, assetId: verification.claim.assetId, periodKey: verification.claim.periodKeyHash,
+    claimedAmount: verification.claim.amount, verifiedAmount: BigInt(verification.report.verifiedAmountMinor),
     outcome: verification.report.outcome === "VERIFIED" ? 1 : 2,
-    evidenceRoot: verification.claim.evidenceRoot,
-    reportHash: verification.reportHash,
-    policyHash: keccak256(stringToHex("policy-v1")),
-    termsHash: hashCanonical(assetTerms) as Hex,
-    modelRunHash: keccak256(stringToHex("deterministic-extractor-v1")),
-    nonce,
-    deadline: block.timestamp + 900n,
+    evidenceRoot: verification.claim.evidenceRoot, reportHash: verification.reportHash,
+    policyHash: verification.policyHash, termsHash: verification.report.termsHash as Hex,
+    modelRunHash: verification.bundle.modelRunHash as Hex, nonce, deadline: block.timestamp + 900n,
   } as const;
   const signature = await walletClient.signTypedData({
     account,
     domain: { name: activeChain.id === 968 ? "VeriFi Attestation Registry" : "Veritable Attestation Registry", version: "1", chainId: activeChain.id, verifyingContract: verification.registry },
-    types: {
-      Attestation: [
-        { name: "claimId", type: "bytes32" }, { name: "assetId", type: "bytes32" },
-        { name: "periodKey", type: "bytes32" }, { name: "claimedAmount", type: "uint256" },
-        { name: "verifiedAmount", type: "uint256" }, { name: "outcome", type: "uint8" },
-        { name: "evidenceRoot", type: "bytes32" }, { name: "reportHash", type: "bytes32" },
-        { name: "policyHash", type: "bytes32" }, { name: "termsHash", type: "bytes32" },
-        { name: "modelRunHash", type: "bytes32" }, { name: "nonce", type: "uint256" },
-        { name: "deadline", type: "uint256" },
-      ],
-    },
+    types: { Attestation: [
+      { name: "claimId", type: "bytes32" }, { name: "assetId", type: "bytes32" }, { name: "periodKey", type: "bytes32" },
+      { name: "claimedAmount", type: "uint256" }, { name: "verifiedAmount", type: "uint256" }, { name: "outcome", type: "uint8" },
+      { name: "evidenceRoot", type: "bytes32" }, { name: "reportHash", type: "bytes32" }, { name: "policyHash", type: "bytes32" },
+      { name: "termsHash", type: "bytes32" }, { name: "modelRunHash", type: "bytes32" }, { name: "nonce", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+    ] },
     primaryType: "Attestation",
     message: data,
   });
-  const { request } = await verification.publicClient.simulateContract({
-    account,
-    address: verification.registry,
-    abi: attestationServerAbi,
-    functionName: "submitAttestation",
-    args: [data, signature],
-  });
+  const { request } = await verification.publicClient.simulateContract({ account, address: verification.registry, abi: attestationServerAbi, functionName: "submitAttestation", args: [data, signature] });
   const transactionHash = await walletClient.writeContract(request);
   const receipt = await verification.publicClient.waitForTransactionReceipt({ hash: transactionHash });
   if (receipt.status !== "success") throw new Error("Attestation transaction reverted");
-  return { ...verification, transactionHash };
+  const existingAttestationId = await verification.publicClient.readContract({ address: verification.registry, abi: attestationServerAbi, functionName: "claimAttestations", args: [claimId] });
+  return { ...verification, existingAttestationId, transactionHash };
 }

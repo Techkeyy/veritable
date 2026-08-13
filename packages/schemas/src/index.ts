@@ -39,6 +39,15 @@ export const signedPaymentEnvelopeSchema = z.object({
   signature: z.string().regex(/^0x[0-9a-fA-F]+$/),
 });
 
+export const evidenceBundleSchema = z.object({
+  schemaVersion: z.literal("1.0"),
+  periodKey: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
+  assetTerms: assetTermsSchema,
+  documents: z.array(evidenceDocumentSchema).min(1).max(20),
+  paymentEnvelope: signedPaymentEnvelopeSchema,
+  modelRunHash: bytes32Schema,
+});
+
 export const verificationInputSchema = z.object({
   claimId: bytes32Schema,
   assetId: bytes32Schema,
@@ -77,6 +86,7 @@ export type AssetTerms = z.infer<typeof assetTermsSchema>;
 export type EvidenceDocument = z.infer<typeof evidenceDocumentSchema>;
 export type PaymentRecord = z.infer<typeof paymentRecordSchema>;
 export type SignedPaymentEnvelope = z.infer<typeof signedPaymentEnvelopeSchema>;
+export type EvidenceBundle = z.infer<typeof evidenceBundleSchema>;
 export type VerificationInput = z.infer<typeof verificationInputSchema>;
 export type RuleResult = z.infer<typeof ruleResultSchema>;
 export type VerificationReport = z.infer<typeof verificationReportSchema>;

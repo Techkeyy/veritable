@@ -126,7 +126,7 @@ export function evaluateClaim(
     verifiedAmountMinor,
     ruleResults: results,
     limitations: [
-      "The sandbox payment source demonstrates the verification mechanism; it is not a production bank feed.",
+      "The verdict relies on the configured evidence signer and the integrity of its upstream payment source.",
       "Asset ownership and legal investor eligibility are outside this automated verdict.",
     ],
     policyVersion: "policy-v1",

@@ -78,6 +78,7 @@ export interface ChainSubmitterConfig {
   rpcUrl: string;
   registryAddress: Address;
   verifierPrivateKey: Hex;
+  modelRunHash: Hex;
 }
 
 export function createChainSubmitter(config: ChainSubmitterConfig) {
@@ -104,7 +105,7 @@ export function createChainSubmitter(config: ChainSubmitterConfig) {
       reportHash: reportHash as Hex,
       policyHash: keccak256(stringToHex(report.policyVersion)),
       termsHash: report.termsHash as Hex,
-      modelRunHash: keccak256(stringToHex("deterministic-extractor-v1")),
+      modelRunHash: config.modelRunHash,
       nonce,
       deadline: latestBlock.timestamp + 900n,
     } as const;

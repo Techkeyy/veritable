@@ -47,6 +47,7 @@ export const wagmiConfig = isMainnet
     });
 
 export const contracts = {
+  assetRegistry: process.env.NEXT_PUBLIC_ASSET_REGISTRY_ADDRESS as `0x${string}` | undefined,
   assetFactory: process.env.NEXT_PUBLIC_ASSET_FACTORY_ADDRESS as `0x${string}` | undefined,
   vault: process.env.NEXT_PUBLIC_YIELD_VAULT_ADDRESS as `0x${string}` | undefined,
   attestation: process.env.NEXT_PUBLIC_ATTESTATION_REGISTRY_ADDRESS as `0x${string}` | undefined,
