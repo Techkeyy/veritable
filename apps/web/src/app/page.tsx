@@ -1,90 +1,73 @@
-import {
-  ArrowUpRight,
-  Bot,
-  CircleDollarSign,
-  FileCheck2,
-  Fingerprint,
-  ShieldCheck,
-} from "lucide-react";
+import { ArrowDown, ArrowUpRight, Bot, CircleDollarSign, Fingerprint, Gavel, ShieldCheck } from "lucide-react";
+import { ScrollReveal } from "../components/scroll-reveal";
 import { ThemeToggle } from "../components/theme-toggle";
 
 export default function LandingPage() {
   return (
-    <main className="landing-page">
-      <nav className="nav shell">
-        <a className="brand" href="/" aria-label="Veritable home">
-          <span className="brand-mark"><Fingerprint size={19} /></span>
-          Veritable
-        </a>
-        <div className="nav-right">
-          <ThemeToggle />
-          <a className="docs-link" href="https://docs.botchain.ai" target="_blank" rel="noreferrer">
-            BOT docs <ArrowUpRight size={14} />
+    <main className="landing-page ballroom-landing">
+      <section className="cinematic-hero" id="top">
+        <img className="cinematic-hero-image" src="/veritable-hero.jpg" alt="" aria-hidden="true" />
+        <div className="cinematic-hero-shade" />
+        <nav className="nav shell cinematic-nav">
+          <a className="brand cinematic-brand" href="/" aria-label="Veritable home">
+            <span className="brand-mark"><Fingerprint size={19} /></span>
+            Veritable
           </a>
-          <a className="wallet-button launch-button" href="/app">
-            Launch app <ArrowUpRight size={16} />
-          </a>
-        </div>
-      </nav>
-
-      <section className="hero shell" id="top">
-        <div className="eyebrow"><ShieldCheck size={15} /> Built for the AI × RWA challenge</div>
-        <h1>Make real-world yield<br /><span>prove itself.</span></h1>
-        <p className="hero-copy">
-          Veritable turns messy payment evidence into deterministic, challengeable
-          onchain settlement—without letting an AI decide who gets paid.
-        </p>
-        <div className="hero-actions">
-          <a className="primary-link" href="/marketplace">Explore properties <ArrowUpRight size={17} /></a>
-          <a className="secondary-link" href="/app">Open protocol console</a>
-        </div>
-        <div className="proof-strip">
-          <div><strong>AI extracts</strong><span>Documents become structured facts</span></div>
-          <div><strong>Policy decides</strong><span>Versioned rules reproduce outcomes</span></div>
-          <div><strong>BOT settles</strong><span>Bonds and disputes create accountability</span></div>
-        </div>
-      </section>
-
-      <section className="trust shell" id="how">
-        <div className="section-heading">
-          <div>
-            <span className="kicker">The trust boundary</span>
-            <h2>Intelligence without authority</h2>
+          <div className="nav-right">
+            <ThemeToggle />
+            <a className="cinematic-nav-link" href="https://docs.botchain.ai" target="_blank" rel="noreferrer">BOT docs <ArrowUpRight size={13} /></a>
+            <a className="cinematic-launch" href="/app">Launch app <ArrowUpRight size={15} /></a>
           </div>
-          <p>AI does the ambiguous work. Transparent code makes the consequential decision.</p>
+        </nav>
+
+        <div className="cinematic-hero-content shell">
+          <p className="cinematic-kicker"><ShieldCheck size={13} /> BOT Chain · AI × RWA</p>
+          <h1 className="cinematic-title" aria-label="Veritable"><span>VERI</span><span>TABLE</span></h1>
+          <p className="cinematic-lede">Make real-world yield prove itself. Turn payment evidence into deterministic, challengeable settlement—not another promise investors must trust.</p>
+          <div className="cinematic-actions">
+            <a className="cinematic-primary" href="/marketplace">Explore properties <ArrowUpRight size={15} /></a>
+            <a className="cinematic-secondary" href="#enter">Enter the protocol <ArrowDown size={15} /></a>
+          </div>
         </div>
-        <div className="trust-grid">
-          <article>
-            <span className="step">01</span><Bot />
-            <h3>Extract</h3>
-            <p>DeepSeek turns authorized source documents into typed, cited facts. Inputs and outputs are hash-committed.</p>
-            <small>Source-bound · auditable</small>
-          </article>
-          <article>
-            <span className="step">02</span><FileCheck2 />
-            <h3>Evaluate</h3>
-            <p>A deterministic policy checks signatures, payer identity, dates, and amounts. The same facts always produce the same result.</p>
-            <small>Reproducible · versioned</small>
-          </article>
-          <article>
-            <span className="step">03</span><ShieldCheck />
-            <h3>Attest</h3>
-            <p>A bonded verifier signs the report. Anyone can challenge it before settlement; false approvals put stake at risk.</p>
-            <small>Accountable · challengeable</small>
-          </article>
-          <article>
-            <span className="step">04</span><CircleDollarSign />
-            <h3>Settle</h3>
-            <p>Verified escrow becomes claimable by the exact token-holder snapshot, without retroactive entitlement changes.</p>
-            <small>Onchain · pull-based</small>
-          </article>
+
+        <div className="cinematic-dots" aria-label="Page sections"><a href="#top" aria-label="Hero" /><a href="#enter" aria-label="Enter the protocol" /><a href="#how" aria-label="How it works" /></div>
+      </section>
+
+      <section className="cinematic-entry" id="enter">
+        <div className="cinematic-section-grid shell">
+          <div className="cinematic-section-copy">
+            <p className="cinematic-kicker">Enter the protocol</p>
+            <ScrollReveal as="h2" className="cinematic-editorial-heading">One wallet. Every role. One verifiable rail.</ScrollReveal>
+            <p className="cinematic-body">Issue revenue-backed assets, inspect the proof behind every payout, or acquire shares from the public marketplace. The interface changes by role; the trust rules do not.</p>
+          </div>
+
+          <div className="cinematic-entry-card">
+            <p className="cinematic-card-label">Choose your side</p>
+            <p className="cinematic-card-intro">Move directly to the surface built for what you came to do.</p>
+            <div className="cinematic-role-links">
+              <a href="/marketplace"><span>Investor</span><strong>Browse public offerings</strong><ArrowUpRight /></a>
+              <a href="/app"><span>Issuer</span><strong>Create assets and prove revenue</strong><ArrowUpRight /></a>
+              <a href="/app#console"><span>Public</span><strong>Inspect, challenge, and settle</strong><ArrowUpRight /></a>
+            </div>
+            <p className="cinematic-card-note">One wallet identity · no custodial account · Testnet today</p>
+          </div>
         </div>
       </section>
 
-      <footer className="shell">
-        <a className="brand" href="/"><span className="brand-mark"><Fingerprint size={18} /></span>Veritable</a>
-        <p>Verifiable revenue rails for tokenized real-world assets.</p>
-        <span>Testnet prototype · not financial advice</span>
+      <section className="cinematic-how" id="how">
+        <div className="shell">
+          <p className="cinematic-kicker">How Veritable works</p>
+          <ScrollReveal as="h2" className="cinematic-editorial-heading cinematic-how-heading">Three moves. One accountable outcome.</ScrollReveal>
+          <div className="cinematic-steps">
+            <article><span>01</span><Bot /><h3>Bring the proof</h3><p>DeepSeek extracts cited facts from authorized records while a BOT payment or payer signature independently proves the money moved.</p></article>
+            <article><span>02</span><Gavel /><h3>Make truth contestable</h3><p>Deterministic rules reproduce the verdict. A bonded verifier attests it, and anyone can challenge a false approval.</p></article>
+            <article><span>03</span><CircleDollarSign /><h3>Release verified yield</h3><p>Only settled escrow becomes claimable by the exact share-holder snapshot. Every payout leaves an onchain receipt.</p></article>
+          </div>
+        </div>
+      </section>
+
+      <footer className="cinematic-footer">
+        <div className="shell"><strong>Veritable</strong><span>Verifiable revenue · public proof · BOT Chain</span><div><a href="/marketplace">Marketplace</a><a href="/app">Protocol</a><a href="https://github.com/Techkeyy/veritable" target="_blank" rel="noreferrer">GitHub</a></div></div>
       </footer>
     </main>
   );
