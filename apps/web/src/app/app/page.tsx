@@ -439,7 +439,7 @@ export default function Home() {
       <section className="hero shell" id="top">
         <div className="eyebrow"><ShieldCheck size={15} /> Built for the AI × RWA challenge</div>
         <h1>Make real-world yield<br /><span>prove itself.</span></h1>
-        <p className="hero-copy">Veritable turns messy payment evidence into deterministic, challengeable onchain settlement—without letting an AI decide who gets paid.</p>
+        <p className="hero-copy">Veritable turns messy payment evidence into deterministic, challengeable onchain settlement without letting an AI decide who gets paid.</p>
         <div className="hero-actions">
           <a className="primary-link" href="#console">Open {isMainnet ? "Mainnet" : "Testnet"} console <ArrowUpRight size={17} /></a>
           <a className="secondary-link" href="#how">See the trust model</a>

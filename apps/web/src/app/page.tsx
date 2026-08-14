@@ -19,7 +19,7 @@ export default function LandingPage() {
 
         <div className="cinematic-hero-content shell">
           <h1 className="cinematic-title">VERITABLE</h1>
-          <p className="cinematic-lede">Make real-world yield prove itself. Turn payment evidence into deterministic, challengeable settlement—not another promise investors must trust.</p>
+          <p className="cinematic-lede">Make real-world yield prove itself. Turn payment evidence into deterministic, challengeable settlement, not another promise investors must trust.</p>
           <div className="cinematic-actions">
             <a className="cinematic-primary" href="/marketplace">Explore properties <ArrowUpRight size={15} /></a>
             <a className="cinematic-secondary" href="#enter">Enter the protocol <ArrowDown size={15} /></a>
