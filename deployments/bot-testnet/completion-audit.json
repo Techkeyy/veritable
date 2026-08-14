@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-14T03:47:30.591Z",
+  "generatedAt": "2026-08-14T04:00:33.227Z",
   "scope": "BOT_TESTNET_PRODUCT_COMPLETION",
   "product": "Veritable",
   "site": "https://veritable-web-sigma.vercel.app",
   "chainId": 968,
-  "latestBlock": "19791974",
+  "latestBlock": "19793011",
   "complete": true,
-  "checksPassed": 45,
-  "checksTotal": 45,
+  "checksPassed": 46,
+  "checksTotal": 46,
   "checks": [
     {
       "requirement": "BOT Testnet chain ID",
@@ -18,7 +18,7 @@
     {
       "requirement": "BOT Testnet RPC is live",
       "ok": true,
-      "evidence": "block 19791974"
+      "evidence": "block 19793011"
     },
     {
       "requirement": "Deployed bytecode: settlementToken",
@@ -224,6 +224,11 @@
       "requirement": "Public Veritable product is reachable",
       "ok": true,
       "evidence": "https://veritable-web-sigma.vercel.app -> 200"
+    },
+    {
+      "requirement": "Public marketplace UI is reachable",
+      "ok": true,
+      "evidence": "https://veritable-web-sigma.vercel.app/marketplace -> 200"
     },
     {
       "requirement": "Public deterministic report is auditable",

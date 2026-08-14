@@ -142,6 +142,13 @@ check("Seed share supply is permanently locked", !demoMinter && !demoAdmin, `min
 const landing = await fetch(site);
 const landingHtml = await landing.text();
 check("Public Veritable product is reachable", landing.status === 200 && landingHtml.includes("Veritable"), `${site} -> ${landing.status}`);
+const marketplacePage = await fetch(`${site}/marketplace`);
+const marketplaceHtml = await marketplacePage.text();
+check(
+  "Public marketplace UI is reachable",
+  marketplacePage.status === 200 && marketplaceHtml.includes("Property offerings") && marketplaceHtml.includes("Your investor portfolio"),
+  `${site}/marketplace -> ${marketplacePage.status}`,
+);
 let reportResponse = await fetch(`${reportSite}/v1/reports/${canonicalClaim}`, {
   method: "POST",
   headers: { "content-type": "application/json" },

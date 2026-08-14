@@ -59,7 +59,7 @@ The complete contract system is live on BOT Testnet at deployment block `1953692
 
 The public Testnet product is live at https://veritable-web-sigma.vercel.app. Historical acceptance transactions used labeled fixture evidence and the deployed Testnet settlement token; those records remain useful protocol proofs but are not presented as bank-connected production data. New claims use the real-evidence path documented in `docs/12-real-evidence-runbook.md`. Mainnet execution remains deliberately disabled pending separate authorization. Any future README claim must remain backed by a command, test, transaction, deployment, or visible product behavior.
 
-`pnpm audit:testnet` independently rechecks the live chain, all deployed bytecode, every recorded acceptance transaction, verified 60/40 conservation, false-approval slash/refund, fresh-wallet payout, public report, brand, and authorization boundary. Its latest 36/36 result is stored in `deployments/bot-testnet/completion-audit.json`.
+`pnpm audit:testnet` independently rechecks the live chain, all deployed bytecode, every recorded acceptance transaction, marketplace inventory and purchase conservation, fixed-supply authorization, verified 60/40 distribution, false-approval slash/refund, fresh-wallet payout, public UI, report, and authorization boundary. Its latest 46/46 result is stored in `deployments/bot-testnet/completion-audit.json`.
 
 Mainnet integration is explicitly deferred by the user and is not part of this completion claim. Production bank connectivity, durable multi-operator database/object storage, KYC/AML, multisig governance, and independent audit remain disclosed production roadmap work rather than hackathon-Testnet features.
 
