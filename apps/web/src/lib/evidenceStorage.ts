@@ -1,11 +1,40 @@
 import { get, put } from "@vercel/blob";
-import { type EvidenceBundle } from "@veritable/schemas";
+import { type EvidenceBundle, type SignedPaymentEnvelope } from "@veritable/schemas";
 import { type Address, type Hex } from "viem";
 
 function storageToken() {
   const token = process.env.BLOB_READ_WRITE_TOKEN;
   if (!token) throw new Error("Private evidence storage is not configured");
   return token;
+}
+
+export interface PaymentRequestRecord {
+  requestId: string;
+  issuer: Address;
+  payer: Address;
+  periodKey: string;
+  documentHash: Hex;
+  record: SignedPaymentEnvelope["record"];
+  envelope?: SignedPaymentEnvelope;
+}
+
+export async function storePaymentRequest(request: PaymentRequestRecord) {
+  return put(`payment-requests/${request.requestId}.json`, JSON.stringify(request), {
+    access: "private",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+    contentType: "application/json",
+    token: storageToken(),
+  });
+}
+
+export async function loadPaymentRequest(requestId: string): Promise<PaymentRequestRecord | undefined> {
+  const result = await get(`payment-requests/${requestId}.json`, {
+    access: "private",
+    token: storageToken(),
+  });
+  if (!result || result.statusCode !== 200) return undefined;
+  return new Response(result.stream).json() as Promise<PaymentRequestRecord>;
 }
 
 export async function storePreparedEvidence(input: {

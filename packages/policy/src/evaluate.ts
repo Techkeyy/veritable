@@ -64,11 +64,11 @@ export function evaluateClaim(
 
   results.push(
     rule(
-      "SOURCE_SIGNATURE_VALID",
+      "SOURCE_PROOF_VALID",
       record.signatureValid ? "PASS" : "UNKNOWN",
       record.signatureValid
-        ? "The primary payment record has a valid source signature."
-        : "The primary payment record signature is absent or invalid.",
+        ? "The primary payment proof was independently validated."
+        : "The primary payment proof is absent or invalid.",
       [record.payloadHash],
     ),
   );

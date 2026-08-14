@@ -110,11 +110,11 @@ export async function extractDocumentWithDeepSeek(file: File): Promise<{
 export async function prepareLiveEvidence(input: {
   file: File;
   periodKey: string;
-  rawAssetTerms: unknown;
-  rawPaymentEnvelope: unknown;
+  assetTerms: unknown;
+  paymentEnvelope: unknown;
 }) {
-  const assetTerms = assetTermsSchema.parse(input.rawAssetTerms);
-  const paymentEnvelope = signedPaymentEnvelopeSchema.parse(input.rawPaymentEnvelope);
+  const assetTerms = assetTermsSchema.parse(input.assetTerms);
+  const paymentEnvelope = signedPaymentEnvelopeSchema.parse(input.paymentEnvelope);
   const extraction = await extractDocumentWithDeepSeek(input.file);
   const bundle = evidenceBundleSchema.parse({
     schemaVersion: "1.0",

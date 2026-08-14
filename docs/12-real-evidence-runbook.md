@@ -1,34 +1,43 @@
 # Real evidence workflow
 
-## Preferred hosted workflow: DeepSeek + signed source + private storage
+## Preferred hosted workflow: DeepSeek + user-facing payment proof + private storage
 
 The public product now prepares provider-backed evidence directly:
 
 1. The issuer connects a wallet and uploads a text-based PDF or plain-text source document.
 2. The server extracts bounded text locally and sends it to DeepSeek's JSON-output API. DeepSeek returns a redacted summary, citations, expected amount, and due date. Scanned or empty PDFs fail closed until a separate OCR provider is configured.
-3. A separate evidence-source operator supplies a signed payment record. The verifier checks its payload hash, signer identity, signature, freshness, payer reference, amount, and payment date. The AI cannot manufacture or override this record.
+3. The issuer chooses one payment proof. For a BOT payment, they paste the real Testnet USDT transaction hash and Veritable checks the token, sender, recipient, amount, timestamp, and receipt onchain. For an offchain payment, the issuer enters the payer wallet and payment date, creates a one-time link, and sends it to the payer. The payer reviews the facts and signs with the registered wallet; no private key, token approval, bank login, or JSON envelope is requested.
 4. The original document and canonical evidence bundle are written to private Vercel Blob storage. The browser receives the canonical bundle but is not the authoritative store.
 5. The issuer registers the exact DeepSeek-extracted terms and hashed payer reference, then escrows Testnet USDT and commits the bundle hash on BOT Chain.
-6. Before attesting, deterministic policy checks the DeepSeek-extracted amount/date against registered terms and the signed source record against the claim.
+6. Before attesting, the verifier independently rechecks the BOT transaction or payer signature. Deterministic policy then checks the extracted amount/date against registered terms and the verified payment proof against the claim.
 
 USD amounts are represented as six-decimal nominal settlement units: one USD is `1_000_000` units. On Testnet, the issuer escrows the same nominal amount of Testnet USDT. This does not assert an FX guarantee and must become an explicit treasury/conversion policy before Mainnet.
 
 Required hosted secrets are `DEEPSEEK_API_KEY` and `BLOB_READ_WRITE_TOKEN`. `DEEPSEEK_MODEL` defaults to `deepseek-v4-pro`. Never expose these values with a `NEXT_PUBLIC_` prefix.
 
-The legacy externally signed bundle workflow below remains supported for recovery and protocol compatibility, but it is no longer the primary user path.
+The legacy externally signed bundle workflow below remains supported for recovery and protocol compatibility, but it is hidden from the primary user path.
 
 Veritable's live verifier accepts no scenario labels, seeded payment outcomes, fixed periods, fixed terms, or server-generated evidence. Every claim commits the canonical hash of an issuer-supplied evidence bundle. The verifier reconstructs the report only from that exact bundle and live BOT Chain state.
 
 ## Trust boundary
 
 - The asset issuer chooses and commits the asset terms when the asset is created.
-- An evidence-source operator—not the Veritable web server—signs the payment record with a dedicated key.
+- A BOT transaction is read directly from chain, or the registered payer signs the exact payment confirmation. The Veritable server does not impersonate the source.
 - The web app hashes the signed evidence bundle and commits that root in `YieldVault.submitClaim`.
-- The verifier checks the bundle hash, period, claim amount, registered terms hash, registered policy hash, source signer, source signature, freshness, payer reference, payment date, and payment amount.
+- The verifier checks the bundle hash, period, claim amount, registered terms hash, registered policy hash, source identity, proof validity, freshness, payer reference, payment date, and payment amount.
 - Missing, expired, malformed, mismatched, or incorrectly signed input fails closed.
 - Testnet still uses a test settlement token. The web app never auto-mints it during claim submission.
 
-## Prepare an unsigned evidence file
+## Public-app workflow
+
+1. Connect the issuer wallet on BOT Testnet and open **Prepare evidence**.
+2. Upload a text PDF or text file, then enter the period, expected amount, due date, window, and tolerance.
+3. Choose **BOT payment** and paste a Testnet USDT transfer hash to the connected issuer wallet; or choose **Payer confirmation**, enter the payer wallet and payment date, and create the payer link.
+4. For payer confirmation, send the link to the payer. They connect the registered wallet, review the bound amount, date, period, issuer, and document commitment, then select **Confirm payment**. Back in the issuer console, select **Check status**.
+5. Select **Verify proof & prepare evidence**. DeepSeek extracts the document only after the wallet authorization, while the payment proof remains authoritative.
+6. Create the asset with the automatically populated terms, submit the claim, inspect the report, wait through the challenge window, finalize, and let holders claim proceeds.
+
+## Legacy: prepare an unsigned evidence file
 
 Create an ignored local JSON file with real values:
 

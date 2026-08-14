@@ -5,6 +5,7 @@ import {
   Building2,
   Bot,
   CircleDollarSign,
+  Copy,
   FileCheck2,
   SearchCheck,
   Scale,
@@ -12,12 +13,13 @@ import {
   Gavel,
   LoaderCircle,
   LockKeyhole,
+  Link2,
   ShieldCheck,
   Unplug,
   Wallet,
 } from "lucide-react";
 import { FormEvent, useMemo, useState } from "react";
-import { formatUnits, getAddress, isAddress, isHex, keccak256, parseEther, parseUnits, stringToHex } from "viem";
+import { formatUnits, getAddress, isAddress, isHex, keccak256, parseEther, parseUnits, stringToHex, zeroHash } from "viem";
 import {
   useAccount,
   useConnect,
@@ -41,11 +43,12 @@ import {
   writesEnabled,
 } from "../../lib/chain";
 import { attestationRequestMessage } from "../../lib/attestationRequest";
-import { evidencePreparationMessage } from "../../lib/evidenceAuthorization";
+import { evidencePreparationMessage, evidenceRequestMessage } from "../../lib/evidenceAuthorization";
 import { hashCanonical } from "@veritable/policy";
 import { evidenceBundleSchema, type AssetTerms } from "@veritable/schemas";
 
 type Action = "evidence" | "asset" | "claim" | "inspect" | "collect" | "stake" | "challenge" | "resolve";
+type ProofMethod = "BOT_TRANSACTION" | "COUNTERPARTY_SIGNATURE";
 
 interface PublicReport {
   reportHash: string;
@@ -111,6 +114,10 @@ export default function Home() {
   const [lastAssetId, setLastAssetId] = useState("");
   const [lastEvidenceBundle, setLastEvidenceBundle] = useState("");
   const [preparedTerms, setPreparedTerms] = useState<AssetTerms>();
+  const [proofMethod, setProofMethod] = useState<ProofMethod>("BOT_TRANSACTION");
+  const [paymentRequestId, setPaymentRequestId] = useState("");
+  const [confirmationUrl, setConfirmationUrl] = useState("");
+  const [confirmationStatus, setConfirmationStatus] = useState<"IDLE" | "PENDING" | "CONFIRMED">("IDLE");
 
   const networkReady = chainId === activeChain.id;
   const canWrite = isConnected && networkReady && isConfigured && writesEnabled;
@@ -136,34 +143,98 @@ export default function Home() {
     const file = form.get("evidenceDocument");
     if (!(file instanceof File) || file.size === 0) throw new Error("Choose a text-based PDF or plain-text evidence document");
     const periodKey = String(form.get("evidencePeriodKey"));
-    const payerReferenceHash = strictBytes32(String(form.get("evidencePayerReferenceHash")), "Payer reference hash");
-    const paymentEnvelope = JSON.parse(String(form.get("evidencePaymentEnvelope") || "{}"));
     const documentHash = keccak256(new Uint8Array(await file.arrayBuffer()));
     const assetTerms: AssetTerms = {
       expectedAmountMinor: parseUnits(String(form.get("evidenceExpectedAmount")), 6).toString(),
       dueDate: String(form.get("evidenceDueDate")),
       windowDays: Number(form.get("evidenceWindowDays")),
       amountToleranceMinor: parseUnits(String(form.get("evidenceTolerance")), 6).toString(),
-      payerReferenceHash,
+      payerReferenceHash: zeroHash,
     };
+    const transactionHash = String(form.get("evidenceTxHash") || "");
+    const paymentProof = proofMethod === "BOT_TRANSACTION"
+      ? { kind: "BOT_TRANSACTION" as const, txHash: transactionHash }
+      : { kind: "COUNTERPARTY_SIGNATURE" as const, requestId: paymentRequestId };
+    if (proofMethod === "COUNTERPARTY_SIGNATURE" && confirmationStatus !== "CONFIRMED") {
+      throw new Error("The registered payer must confirm the payment before evidence can be prepared");
+    }
+    const proofReference = proofMethod === "BOT_TRANSACTION"
+      ? `BOT_TRANSACTION:${transactionHash.toLowerCase()}`
+      : `COUNTERPARTY_SIGNATURE:${paymentRequestId}`;
     setStatus("Authorizing live evidence extraction…");
-    const signature = await signMessageAsync({ message: evidencePreparationMessage({ requester: address, periodKey, payerReferenceHash, documentHash, chainId: activeChain.id }) });
+    const signature = await signMessageAsync({ message: evidencePreparationMessage({ requester: address, periodKey, proofReference, documentHash, chainId: activeChain.id }) });
     const payload = new FormData();
     payload.set("document", file);
     payload.set("requester", address);
     payload.set("signature", signature);
     payload.set("periodKey", periodKey);
-    payload.set("paymentEnvelope", JSON.stringify(paymentEnvelope));
+    payload.set("paymentProof", JSON.stringify(paymentProof));
     payload.set("assetTerms", JSON.stringify(assetTerms));
-    setStatus("DeepSeek is extracting the document and binding it to the signed payment record…");
+    setStatus("DeepSeek is extracting the document and binding it to the verified payment proof…");
     const response = await fetch("/v1/evidence/prepare", { method: "POST", body: payload });
     const result = await response.json() as { evidenceBundle?: unknown; providerRunId?: string; error?: string };
     if (!response.ok || !result.evidenceBundle) throw new Error(result.error || `Evidence service returned ${response.status}`);
-    const serialized = JSON.stringify(evidenceBundleSchema.parse(result.evidenceBundle), null, 2);
+    const parsedBundle = evidenceBundleSchema.parse(result.evidenceBundle);
+    const serialized = JSON.stringify(parsedBundle, null, 2);
     setLastEvidenceBundle(serialized);
-    setPreparedTerms(assetTerms);
+    setPreparedTerms(parsedBundle.assetTerms);
     setStatus(`Live evidence prepared and privately stored. DeepSeek run ${short(result.providerRunId)} is committed. Create the asset with the populated terms, or continue to Submit yield if it already exists.`);
     setActive("asset");
+  }
+
+  async function createPayerRequest() {
+    try {
+      if (!address) throw new Error("Connect the issuer wallet first");
+      const formElement = document.getElementById("evidence-form");
+      if (!(formElement instanceof HTMLFormElement)) throw new Error("Evidence form is unavailable");
+      const form = new FormData(formElement);
+      const file = form.get("evidenceDocument");
+      const payer = String(form.get("evidencePayerWallet") || "");
+      const periodKey = String(form.get("evidencePeriodKey") || "");
+      const paidAt = String(form.get("evidencePaidAt") || "");
+      if (!(file instanceof File) || file.size === 0) throw new Error("Choose the evidence document first");
+      if (!isAddress(payer)) throw new Error("Enter the payer's wallet address");
+      const documentHash = keccak256(new Uint8Array(await file.arrayBuffer()));
+      const amountMinor = parseUnits(String(form.get("evidenceExpectedAmount")), 6).toString();
+      setStatus("Authorizing the payer confirmation request…");
+      const signature = await signMessageAsync({
+        message: evidenceRequestMessage({
+          issuer: address,
+          payer,
+          periodKey,
+          amountMinor,
+          paidAt,
+          documentHash,
+          chainId: activeChain.id,
+        }),
+      });
+      const response = await fetch("/v1/evidence/requests", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ issuer: address, payer, periodKey, amountMinor, paidAt, documentHash, signature }),
+      });
+      const result = await response.json() as { requestId?: string; confirmationUrl?: string; error?: string };
+      if (!response.ok || !result.requestId || !result.confirmationUrl) throw new Error(result.error || "Could not create payer request");
+      setPaymentRequestId(result.requestId);
+      setConfirmationUrl(result.confirmationUrl);
+      setConfirmationStatus("PENDING");
+      setStatus("Payer link created. Share it with the registered payer, then check confirmation.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Could not create payer request");
+    }
+  }
+
+  async function checkPayerRequest() {
+    try {
+      if (!paymentRequestId) throw new Error("Create a payer request first");
+      const response = await fetch(`/v1/evidence/requests/${paymentRequestId}`, { cache: "no-store" });
+      const result = await response.json() as { status?: "PENDING" | "CONFIRMED"; error?: string };
+      if (!response.ok || !result.status) throw new Error(result.error || "Could not check payer confirmation");
+      setConfirmationStatus(result.status);
+      setStatus(result.status === "CONFIRMED" ? "Payer confirmation received. Evidence is ready to prepare." : "Still waiting for the payer signature.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Could not check payer confirmation");
+    }
   }
 
   async function submitClaim(event: FormEvent<HTMLFormElement>) {
@@ -369,17 +440,12 @@ export default function Home() {
             {active !== "inspect" && isConnected && networkReady && isConfigured && !writesEnabled && <div className="guard warning"><ShieldCheck size={19} /><span><strong>Mainnet writes locked</strong>This build is configured for read-only inspection until the migration gate is explicitly enabled.</span></div>}
 
             {active === "evidence" ? (
-              <form onSubmit={(event) => void safelyRun(prepareEvidence, event)}>
-                <div className="form-head"><div><span>01 / Evidence</span><h3>Extract and bind revenue evidence</h3></div><span className="demo-badge">Live DeepSeek</span></div>
+              <form id="evidence-form" onSubmit={(event) => void safelyRun(prepareEvidence, event)}>
+                <div className="form-head"><div><span>01 / Evidence</span><h3>Extract and prove revenue</h3></div><span className="demo-badge">No manual JSON</span></div>
                 <div className="field-grid">
                   <label>Period<input name="evidencePeriodKey" placeholder="YYYY-MM" pattern="\d{4}-(0[1-9]|1[0-2])" required /></label>
                   <label>Evidence document<input name="evidenceDocument" type="file" accept="application/pdf,text/plain" required /></label>
                 </div>
-                <div className="field-grid">
-                  <label>Payer reference hash<input name="evidencePayerReferenceHash" placeholder="0x… 32-byte redacted payer hash" required /></label>
-                  <label>Evidence source<span> Independent signed record</span><input value="Configured evidence signer" readOnly /></label>
-                </div>
-                <label>Signed payment envelope <span>JSON</span><textarea name="evidencePaymentEnvelope" rows={8} placeholder='{"record":{"status":"FOUND","amountMinor":"…","paidAt":"YYYY-MM-DD","payerReferenceHash":"0x…","source":"…","issuedAt":"…","expiresAt":"…","payloadHash":"0x…"},"signer":"0x…","signature":"0x…"}' required /></label>
                 <div className="field-grid">
                   <label>Expected amount <span>USD / nominal USDT</span><input name="evidenceExpectedAmount" type="number" min="0" step="0.000001" required /></label>
                   <label>Due date<input name="evidenceDueDate" type="date" required /></label>
@@ -388,17 +454,46 @@ export default function Home() {
                   <label>Allowed window <span>days</span><input name="evidenceWindowDays" type="number" min="0" max="60" step="1" required /></label>
                   <label>Amount tolerance <span>USD</span><input name="evidenceTolerance" type="number" min="0" step="0.000001" required /></label>
                 </div>
+                <fieldset className="proof-methods">
+                  <legend>How will payment be proven?</legend>
+                  <button type="button" aria-pressed={proofMethod === "BOT_TRANSACTION"} className={proofMethod === "BOT_TRANSACTION" ? "active" : ""} onClick={() => setProofMethod("BOT_TRANSACTION")}>
+                    <Fingerprint /><span><strong>BOT payment</strong><small>Verify a real Testnet USDT transfer</small></span>
+                  </button>
+                  <button type="button" aria-pressed={proofMethod === "COUNTERPARTY_SIGNATURE"} className={proofMethod === "COUNTERPARTY_SIGNATURE" ? "active" : ""} onClick={() => setProofMethod("COUNTERPARTY_SIGNATURE")}>
+                    <Link2 /><span><strong>Payer confirmation</strong><small>Send a secure signature link</small></span>
+                  </button>
+                </fieldset>
+                {proofMethod === "BOT_TRANSACTION" ? (
+                  <>
+                    <label>BOT payment transaction<input name="evidenceTxHash" placeholder="0x… transaction that transferred Testnet USDT to this wallet" required /></label>
+                    <p className="bond-note"><ShieldCheck size={15} /> Veritable independently checks the token, sender, recipient, amount, block timestamp, and transaction success.</p>
+                  </>
+                ) : (
+                  <div className="payer-request">
+                    <div className="field-grid">
+                      <label>Registered payer wallet<input name="evidencePayerWallet" placeholder="0x… payer wallet" required /></label>
+                      <label>Payment date<input name="evidencePaidAt" type="date" required /></label>
+                    </div>
+                    <button className="secondary-action" type="button" onClick={() => void createPayerRequest()}><Link2 size={16} /> Create payer link</button>
+                    {confirmationUrl && <div className="share-link">
+                      <span><b>{confirmationStatus}</b><code>{confirmationUrl}</code></span>
+                      <button type="button" aria-label="Copy payer link" onClick={() => void navigator.clipboard.writeText(confirmationUrl)}><Copy size={15} /></button>
+                      <a href={confirmationUrl} target="_blank" rel="noreferrer">Open <ArrowUpRight size={14} /></a>
+                      <button type="button" onClick={() => void checkPayerRequest()}>Check status</button>
+                    </div>}
+                    <p className="bond-note"><ShieldCheck size={15} /> The payer reviews the amount and date, then signs from the registered wallet. No funds or bank credentials are requested.</p>
+                  </div>
+                )}
                 <label className="consent"><input type="checkbox" required /> I have permission to send this document's extracted text to DeepSeek and store the original in private evidence storage.</label>
-                <p className="bond-note"><ShieldCheck size={15} /> DeepSeek extracts typed document facts. A separate signed payment source establishes payment status; originals and the canonical bundle are stored privately.</p>
-                <button className="submit" disabled={!canWrite || isPending}><Bot /> Prepare live evidence</button>
+                <button className="submit" disabled={!canWrite || isPending || (proofMethod === "COUNTERPARTY_SIGNATURE" && confirmationStatus !== "CONFIRMED")}><Bot /> Verify proof & prepare evidence</button>
               </form>
             ) : active === "claim" ? (
               <form onSubmit={(event) => void safelyRun(submitClaim, event)}>
                 <div className="form-head"><div><span>03 / Issuer</span><h3>Commit provider-verified revenue evidence</h3></div><span className="demo-badge">Live providers</span></div>
                 <label>Asset ID<input name="assetId" defaultValue={lastAssetId} placeholder="Asset label or bytes32 ID" required /></label>
                 <label>Escrow amount <span>{isMainnet ? "official" : "Testnet"} USDT</span><div className="amount-input"><input name="amount" type="number" min="0.000001" step="0.000001" placeholder="Amount already held by this wallet" required /><b>USDT</b></div></label>
-                <label>Prepared evidence bundle <span>DeepSeek + signed source</span><textarea name="evidenceBundle" rows={14} defaultValue={lastEvidenceBundle} placeholder="Prepare live evidence first, then paste the returned canonical bundle" required /></label>
-                <p className="bond-note"><ShieldCheck size={15} /> The exact bundle is hashed onchain. DeepSeek facts must match registered terms, and the independent payment-source signature must validate.</p>
+                <label>Prepared evidence bundle <span>Generated automatically</span><textarea name="evidenceBundle" rows={14} defaultValue={lastEvidenceBundle} placeholder="Prepare live evidence first; Veritable fills this automatically" required /></label>
+                <p className="bond-note"><ShieldCheck size={15} /> The exact bundle is hashed onchain. DeepSeek facts must match registered terms, and the selected payment proof is independently revalidated.</p>
                 <button className="submit" disabled={!canWrite || isPending}>{isPending ? <LoaderCircle className="spin" /> : <Fingerprint />} Approve & submit on {isMainnet ? "Mainnet" : "Testnet"}</button>
               </form>
             ) : (

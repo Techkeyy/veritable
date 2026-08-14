@@ -10,6 +10,7 @@ import {
   createWalletClient,
   getAddress,
   http,
+  isHex,
   keccak256,
   stringToHex,
   verifyMessage,
@@ -19,6 +20,7 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { activeChain, contracts, networkLabel } from "./chain";
+import { envelopeFromBotTransaction, payerReferenceHash } from "./paymentProofs";
 
 const vaultServerAbi = [
   { type: "function", name: "claimForAttestation", stateMutability: "view", inputs: [{ name: "claimId", type: "bytes32" }], outputs: [
@@ -62,22 +64,51 @@ function requiredPrivateKey(value: string | undefined, label: string): Hex {
   return value as Hex;
 }
 
-async function validatePayment(bundle: EvidenceBundle): Promise<PaymentRecord> {
-  const expectedSigner = requiredAddress(
-    activeChain.id === 677 ? process.env.MAINNET_EVIDENCE_SIGNER_ADDRESS : process.env.EVIDENCE_SIGNER_ADDRESS,
-    "Evidence signer address",
-  );
+async function validatePayment(bundle: EvidenceBundle, expectedRecipient: Address): Promise<PaymentRecord> {
   const envelope = bundle.paymentEnvelope;
   const unsigned = { ...envelope.record } as Record<string, unknown>;
   delete unsigned.payloadHash;
   const hashMatches = hashCanonical(unsigned).toLowerCase() === envelope.record.payloadHash.toLowerCase();
-  const signatureValid = hashMatches
-    && envelope.signer.toLowerCase() === expectedSigner.toLowerCase()
-    && await verifyMessage({
-      address: envelope.signer as Address,
-      message: { raw: envelope.record.payloadHash as Hex },
-      signature: envelope.signature as Hex,
-    });
+  let signatureValid = false;
+  if (envelope.record.source.startsWith("BOT_CHAIN_TX:")) {
+    const txHash = envelope.record.source.slice("BOT_CHAIN_TX:".length);
+    if (isHex(txHash) && txHash.length === 66 && envelope.record.amountMinor) {
+      const reconstructed = await envelopeFromBotTransaction({
+        txHash: txHash as Hex,
+        recipient: expectedRecipient,
+        expectedAmountMinor: envelope.record.amountMinor,
+      });
+      signatureValid = hashMatches
+        && reconstructed.signer.toLowerCase() === envelope.signer.toLowerCase()
+        && hashCanonical(reconstructed.record).toLowerCase() === hashCanonical(envelope.record).toLowerCase();
+    }
+  } else if (envelope.record.source.startsWith("COUNTERPARTY_ATTESTATION:")) {
+    const [, requestId, sourceIssuer, sourcePeriod, sourceDocumentHash, sourceChainId] = envelope.record.source.split(":");
+    signatureValid = Boolean(requestId)
+      && sourceIssuer?.toLowerCase() === expectedRecipient.toLowerCase()
+      && sourcePeriod === bundle.periodKey
+      && sourceDocumentHash?.toLowerCase() === bundle.documents[0]?.contentHash.toLowerCase()
+      && sourceChainId === String(activeChain.id)
+      && hashMatches
+      && envelope.record.payerReferenceHash?.toLowerCase() === payerReferenceHash(envelope.signer as Address).toLowerCase()
+      && await verifyMessage({
+        address: envelope.signer as Address,
+        message: { raw: envelope.record.payloadHash as Hex },
+        signature: envelope.signature as Hex,
+      });
+  } else {
+    const expectedSigner = requiredAddress(
+      activeChain.id === 677 ? process.env.MAINNET_EVIDENCE_SIGNER_ADDRESS : process.env.EVIDENCE_SIGNER_ADDRESS,
+      "Evidence signer address",
+    );
+    signatureValid = hashMatches
+      && envelope.signer.toLowerCase() === expectedSigner.toLowerCase()
+      && await verifyMessage({
+        address: envelope.signer as Address,
+        message: { raw: envelope.record.payloadHash as Hex },
+        signature: envelope.signature as Hex,
+      });
+  }
   return { ...envelope.record, signatureValid };
 }
 
@@ -106,7 +137,7 @@ export async function buildPublicVerification(claimId: Hex, rawBundle: unknown) 
   if (hashCanonical(bundle.assetTerms).toLowerCase() !== registeredTermsHash.toLowerCase()) throw new Error("Evidence terms do not match the asset's onchain terms commitment");
   const policyHash = keccak256(stringToHex("policy-v1"));
   if (registeredPolicyHash.toLowerCase() !== policyHash.toLowerCase()) throw new Error("Asset is not registered for policy-v1");
-  const paymentRecord = await validatePayment(bundle);
+  const paymentRecord = await validatePayment(bundle, fullClaim.issuer);
   const input: VerificationInput = {
     claimId,
     assetId,

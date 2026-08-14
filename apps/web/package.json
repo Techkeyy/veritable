@@ -7,7 +7,7 @@
     "prebuild": "pnpm --filter @veritable/schemas build && pnpm --filter @veritable/policy build",
     "build": "next build",
     "build:sites": "vinext build",
-    "test": "vitest run --config vitest.config.ts src/lib/evidenceAuthorization.test.ts",
+    "test": "vitest run --config vitest.config.ts src/lib",
     "test:hosted-auth": "node scripts/test-hosted-auth.mjs",
     "acceptance:fresh-production": "node scripts/fresh-wallet-production.mjs",
     "start": "next start",
