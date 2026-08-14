@@ -47,7 +47,6 @@ import { attestationRequestMessage } from "../../lib/attestationRequest";
 import { evidencePreparationMessage, evidenceRequestMessage } from "../../lib/evidenceAuthorization";
 import { hashCanonical } from "@veritable/policy";
 import { evidenceBundleSchema, type AssetTerms } from "@veritable/schemas";
-import { ThemeToggle } from "../../components/theme-toggle";
 
 type Action = "evidence" | "asset" | "list" | "claim" | "inspect" | "collect" | "stake" | "challenge" | "resolve";
 type ProofMethod = "BOT_TRANSACTION" | "COUNTERPARTY_SIGNATURE";
@@ -426,8 +425,6 @@ export default function Home() {
       <nav className="nav shell">
         <a className="brand" href="/" aria-label="Veritable home"><span className="brand-mark"><Fingerprint size={19} /></span>Veritable</a>
         <div className="nav-right">
-          <ThemeToggle />
-          <a className="docs-link" href="https://docs.botchain.ai" target="_blank" rel="noreferrer">BOT docs <ArrowUpRight size={14} /></a>
           <a className="docs-link" href="/marketplace">Marketplace <Store size={14} /></a>
           {isConnected ? (
             <button className="wallet-button connected" aria-label={`Disconnect wallet ${walletLabel}`} onClick={() => disconnect()}><Wallet size={16} /><span>{walletLabel}</span></button>

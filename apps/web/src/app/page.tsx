@@ -1,6 +1,5 @@
-import { ArrowDown, ArrowUpRight, Bot, CircleDollarSign, Fingerprint, Gavel, ShieldCheck } from "lucide-react";
+import { ArrowDown, ArrowUpRight, Bot, CircleDollarSign, Fingerprint, Gavel } from "lucide-react";
 import { ScrollReveal } from "../components/scroll-reveal";
-import { ThemeToggle } from "../components/theme-toggle";
 
 export default function LandingPage() {
   return (
@@ -14,15 +13,12 @@ export default function LandingPage() {
             Veritable
           </a>
           <div className="nav-right">
-            <ThemeToggle />
-            <a className="cinematic-nav-link" href="https://docs.botchain.ai" target="_blank" rel="noreferrer">BOT docs <ArrowUpRight size={13} /></a>
             <a className="cinematic-launch" href="/app">Launch app <ArrowUpRight size={15} /></a>
           </div>
         </nav>
 
         <div className="cinematic-hero-content shell">
-          <p className="cinematic-kicker"><ShieldCheck size={13} /> BOT Chain · AI × RWA</p>
-          <h1 className="cinematic-title" aria-label="Veritable"><span>VERI</span><span>TABLE</span></h1>
+          <h1 className="cinematic-title">VERITABLE</h1>
           <p className="cinematic-lede">Make real-world yield prove itself. Turn payment evidence into deterministic, challengeable settlement—not another promise investors must trust.</p>
           <div className="cinematic-actions">
             <a className="cinematic-primary" href="/marketplace">Explore properties <ArrowUpRight size={15} /></a>
@@ -30,7 +26,6 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className="cinematic-dots" aria-label="Page sections"><a href="#top" aria-label="Hero" /><a href="#enter" aria-label="Enter the protocol" /><a href="#how" aria-label="How it works" /></div>
       </section>
 
       <section className="cinematic-entry" id="enter">
