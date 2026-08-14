@@ -189,6 +189,42 @@ input:focus,textarea:focus { border-color:var(--lime); box-shadow:0 0 0 3px colo
 :root[data-theme="light"] .report-card.blocked { background:#fff3f1; }
 :root[data-theme="light"] .report-card.inconclusive { background:#fff9e9; }
 
+/* Readable product typography. Mono is reserved for compact system metadata. */
+.app-page,.market-page { font-family:"Inter","Segoe UI Variable",Arial,sans-serif; font-size:16px; }
+.app-page .eyebrow,.market-page .eyebrow { font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.08em; }
+.app-page .section-heading h2,.market-page .section-heading h2 { letter-spacing:-.04em; }
+.app-page .section-heading>p,.market-page .section-heading>p { font-size:15px; color:#525b53; }
+.app-page .tabs strong,.app-page .tab-market-link strong { font-family:"Inter",sans-serif; font-size:14px; font-weight:700; letter-spacing:-.01em; }
+.app-page .tabs small,.app-page .tab-market-link small { font-family:"Inter",sans-serif; font-size:12px; line-height:1.4; }
+.app-page .tab-group-label { font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.07em; }
+.app-page .tab-group-label small { font-size:10px; }
+.app-page .guard { font-size:13px; line-height:1.45; }
+.app-page .form-head span { font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.08em; }
+.app-page .form-head h3 { font-size:27px; letter-spacing:-.03em; }
+.app-page label,.app-page legend { font-family:"Inter",sans-serif; font-size:13px; font-weight:700; letter-spacing:.015em; }
+.app-page input,.app-page textarea,.app-page select { font-family:"Inter",sans-serif; font-size:14px; line-height:1.45; }
+.app-page input[type="file"]::file-selector-button { font-family:"Inter",sans-serif; font-size:12px; letter-spacing:.02em; }
+.app-page .proof-methods button strong { font-family:"Inter",sans-serif; font-size:14px; }
+.app-page .proof-methods button small { font-family:"Inter",sans-serif; font-size:12px; line-height:1.4; }
+.app-page .bond-note { font-size:13px; line-height:1.5; }
+.app-page .status-line { font-family:"Inter",sans-serif; font-size:13px; line-height:1.5; }
+.app-page .share-link b,.app-page .share-link code,.app-page .share-link button,.app-page .share-link a { font-size:11px; }
+.app-page .report-title>span { font-size:13px; }
+.app-page .rule-list b { width:66px; font-size:11px; }
+.app-page .rule-list strong,.app-page .rule-list small,.app-page .report-card p { font-family:"Inter",sans-serif; font-size:12px; line-height:1.5; }
+.app-page .report-card code,.app-page .report-identifiers span,.app-page .report-identifiers button,.app-page .report-actions button { font-size:11px; }
+.market-page .market-hero .hero-copy { color:#525b53; font-size:18px; line-height:1.7; }
+.market-page .market-disclaimer { font-size:13px; line-height:1.5; }
+.market-page .offering-card h3 { font-size:24px; letter-spacing:-.025em; }
+.market-page .offering-card>p { font-size:14px; line-height:1.65; }
+.market-page .offering-top span,.market-page .offering-top small { font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.04em; }
+.market-page .offering-card dt { font-size:12px; }
+.market-page .offering-card dd { font-family:"IBM Plex Mono",monospace; font-size:12px; line-height:1.4; }
+.market-page .owned-badge,.market-page .chain-link { font-size:12px; line-height:1.45; }
+.market-page .portfolio-grid span { font-family:"IBM Plex Mono",monospace; font-size:14px; }
+.market-page .portfolio-grid small { font-size:12px; }
+.market-page .market-status { font-family:"Inter",sans-serif; font-size:13px; line-height:1.4; }
+
 /* Editorial landing system inspired by the supplied Ballroom reference. */
 .ballroom-landing { min-height:100vh; background:var(--bg); }
 .cinematic-hero { position:relative; min-height:100svh; width:100%; overflow:hidden; background:#fff; color:#0a0b0a; isolation:isolate; }
