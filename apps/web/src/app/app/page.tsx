@@ -458,16 +458,26 @@ export default function Home() {
           <div className={`readiness ${isConfigured ? "ready" : ""}`}><span />{isConfigured ? "Contracts configured" : `Awaiting ${networkLabel} deployment`}</div>
         </div>
         <div className="console-grid">
-          <aside className="tabs" aria-label="Protocol actions">
-            <button aria-pressed={active === "evidence"} className={active === "evidence" ? "active" : ""} onClick={() => setActive("evidence")}><Bot /> <span><strong>Prepare evidence</strong><small>DeepSeek + signed source</small></span></button>
-            <button aria-pressed={active === "asset"} className={active === "asset" ? "active" : ""} onClick={() => setActive("asset")}><Building2 /> <span><strong>Create asset</strong><small>Issuer onboarding</small></span></button>
-            <button aria-pressed={active === "list"} className={active === "list" ? "active" : ""} onClick={() => setActive("list")}><Store /> <span><strong>List offering</strong><small>Public primary sale</small></span></button>
-            <button aria-pressed={active === "claim"} className={active === "claim" ? "active" : ""} onClick={() => setActive("claim")}><FileCheck2 /> <span><strong>Submit yield</strong><small>Issuer workflow</small></span></button>
-            <button aria-pressed={active === "inspect"} className={active === "inspect" ? "active" : ""} onClick={() => setActive("inspect")}><SearchCheck /> <span><strong>Inspect report</strong><small>Public audit trail</small></span></button>
-            <button aria-pressed={active === "collect"} className={active === "collect" ? "active" : ""} onClick={() => setActive("collect")}><CircleDollarSign /> <span><strong>Claim proceeds</strong><small>Investor workflow</small></span></button>
-            <button aria-pressed={active === "stake"} className={active === "stake" ? "active" : ""} onClick={() => setActive("stake")}><LockKeyhole /> <span><strong>Stake as verifier</strong><small>Agent collateral</small></span></button>
-            <button aria-pressed={active === "challenge"} className={active === "challenge" ? "active" : ""} onClick={() => setActive("challenge")}><Gavel /> <span><strong>Challenge</strong><small>Dispute workflow</small></span></button>
-            <button aria-pressed={active === "resolve"} className={active === "resolve" ? "active" : ""} onClick={() => setActive("resolve")}><Scale /> <span><strong>Finalize</strong><small>Settlement & resolution</small></span></button>
+          <aside className="tabs" aria-label="Protocol actions by role">
+            <div className="tab-group">
+              <div className="tab-group-label"><span>Issuer</span><small>Publish & report</small></div>
+              <button aria-pressed={active === "evidence"} className={active === "evidence" ? "active" : ""} onClick={() => setActive("evidence")}><Bot /> <span><strong>Prepare evidence</strong><small>DeepSeek + signed source</small></span></button>
+              <button aria-pressed={active === "asset"} className={active === "asset" ? "active" : ""} onClick={() => setActive("asset")}><Building2 /> <span><strong>Create asset</strong><small>Issuer onboarding</small></span></button>
+              <button aria-pressed={active === "list"} className={active === "list" ? "active" : ""} onClick={() => setActive("list")}><Store /> <span><strong>List offering</strong><small>Public primary sale</small></span></button>
+              <button aria-pressed={active === "claim"} className={active === "claim" ? "active" : ""} onClick={() => setActive("claim")}><FileCheck2 /> <span><strong>Submit yield</strong><small>Deposit verified income</small></span></button>
+            </div>
+            <div className="tab-group">
+              <div className="tab-group-label"><span>Investor & public</span><small>Review & collect</small></div>
+              <a className="tab-market-link" href="/marketplace"><Store /> <span><strong>Browse marketplace</strong><small>Discover public offerings</small></span></a>
+              <button aria-pressed={active === "inspect"} className={active === "inspect" ? "active" : ""} onClick={() => setActive("inspect")}><SearchCheck /> <span><strong>Inspect report</strong><small>Public audit trail</small></span></button>
+              <button aria-pressed={active === "collect"} className={active === "collect" ? "active" : ""} onClick={() => setActive("collect")}><CircleDollarSign /> <span><strong>Claim proceeds</strong><small>Investor distributions</small></span></button>
+            </div>
+            <div className="tab-group">
+              <div className="tab-group-label"><span>Protocol security</span><small>Verify & dispute</small></div>
+              <button aria-pressed={active === "stake"} className={active === "stake" ? "active" : ""} onClick={() => setActive("stake")}><LockKeyhole /> <span><strong>Stake as verifier</strong><small>Agent collateral</small></span></button>
+              <button aria-pressed={active === "challenge"} className={active === "challenge" ? "active" : ""} onClick={() => setActive("challenge")}><Gavel /> <span><strong>Challenge</strong><small>Dispute an attestation</small></span></button>
+              <button aria-pressed={active === "resolve"} className={active === "resolve" ? "active" : ""} onClick={() => setActive("resolve")}><Scale /> <span><strong>Finalize</strong><small>Settlement & resolution</small></span></button>
+            </div>
           </aside>
           <div className="action-panel">
             {active !== "inspect" && !isConnected && <div className="guard"><Unplug size={19} /><span><strong>Wallet required</strong>Connect an injected wallet to begin.</span></div>}
