@@ -19,6 +19,10 @@ export const evidenceDocumentSchema = z.object({
   mediaType: z.string().min(1),
   kind: z.enum(["LEASE", "RECEIPT", "BANK_SCREENSHOT", "OTHER"]),
   extractedText: z.string().optional(),
+  extractedFacts: z.object({
+    expectedAmountMinor: minorUnitSchema.optional(),
+    dueDate: isoDateSchema.optional(),
+  }).optional(),
 });
 
 export const paymentRecordSchema = z.object({
@@ -58,6 +62,7 @@ export const verificationInputSchema = z.object({
   documents: z.array(evidenceDocumentSchema),
   paymentRecords: z.array(paymentRecordSchema).min(1),
   evidenceRoot: bytes32Schema,
+  extractionRequired: z.boolean().optional(),
 });
 
 export const ruleResultSchema = z.object({

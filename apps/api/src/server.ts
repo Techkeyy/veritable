@@ -41,6 +41,9 @@ async function readEvidenceStore(): Promise<Record<string, unknown>> {
 async function validateBundle(raw: unknown) {
   if (!trustedSigner) throw new Error("EVIDENCE_SIGNER_ADDRESS is required");
   const bundle = evidenceBundleSchema.parse(raw);
+  if ("provider" in bundle.paymentEnvelope) {
+    throw new Error("Provider-backed evidence is prepared and stored by the hosted web service");
+  }
   const unsigned = { ...bundle.paymentEnvelope.record } as Record<string, unknown>;
   delete unsigned.payloadHash;
   const hashMatches = hashCanonical(unsigned).toLowerCase() === bundle.paymentEnvelope.record.payloadHash.toLowerCase();

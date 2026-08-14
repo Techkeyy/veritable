@@ -131,6 +131,42 @@ describe("policy-v1", () => {
     expect(evaluateClaim(input, NOW).outcome).toBe("BLOCKED");
   });
 
+  it("requires complete DeepSeek facts for provider-backed claims", () => {
+    const input = fixture({ extractionRequired: true });
+    input.documents = [{ id: "deepseek:run", contentHash: HASH_B, mediaType: "application/pdf", kind: "LEASE" }];
+    const report = evaluateClaim(input, NOW);
+    expect(report.outcome).toBe("INCONCLUSIVE");
+    expect(report.ruleResults.find((rule) => rule.ruleId === "AI_EXTRACTION_PRESENT")?.status).toBe("UNKNOWN");
+  });
+
+  it("verifies provider-backed claims only when extracted terms match", () => {
+    const input = fixture({ extractionRequired: true });
+    input.documents = [{
+      id: "deepseek:run",
+      contentHash: HASH_B,
+      mediaType: "application/pdf",
+      kind: "LEASE",
+      extractedFacts: { expectedAmountMinor: "2000000000", dueDate: "2026-08-01" },
+    }];
+    const report = evaluateClaim(input, NOW);
+    expect(report.outcome).toBe("VERIFIED");
+    expect(report.ruleResults.find((rule) => rule.ruleId === "AI_TERMS_MATCH")?.status).toBe("PASS");
+  });
+
+  it("blocks provider-backed claims when DeepSeek facts conflict with registered terms", () => {
+    const input = fixture({ extractionRequired: true });
+    input.documents = [{
+      id: "deepseek:run",
+      contentHash: HASH_B,
+      mediaType: "application/pdf",
+      kind: "LEASE",
+      extractedFacts: { expectedAmountMinor: "1200000000", dueDate: "2026-08-01" },
+    }];
+    const report = evaluateClaim(input, NOW);
+    expect(report.outcome).toBe("BLOCKED");
+    expect(report.ruleResults.find((rule) => rule.ruleId === "AI_TERMS_MATCH")?.status).toBe("FAIL");
+  });
+
   it("hashes objects canonically regardless of key order", () => {
     expect(hashCanonical({ b: 2, a: 1 })).toBe(hashCanonical({ a: 1, b: 2 }));
   });

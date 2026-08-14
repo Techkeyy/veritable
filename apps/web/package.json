@@ -7,6 +7,7 @@
     "prebuild": "pnpm --filter @veritable/schemas build && pnpm --filter @veritable/policy build",
     "build": "next build",
     "build:sites": "vinext build",
+    "test": "vitest run --config vitest.config.ts src/lib/evidenceAuthorization.test.ts",
     "test:hosted-auth": "node scripts/test-hosted-auth.mjs",
     "acceptance:fresh-production": "node scripts/fresh-wallet-production.mjs",
     "start": "next start",
@@ -16,6 +17,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "5.101.4",
+    "@vercel/blob": "2.3.0",
     "@veritable/policy": "workspace:*",
     "@veritable/schemas": "workspace:*",
     "dotenv": "17.4.2",
@@ -23,20 +25,22 @@
     "next": "16.3.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "unpdf": "1.8.0",
     "viem": "2.55.13",
     "wagmi": "3.7.6"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "1.37.1",
     "@types/node": "26.2.0",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
-    "typescript": "5.9.3",
-    "@cloudflare/vite-plugin": "1.37.1",
     "@vitejs/plugin-react": "6.0.2",
     "@vitejs/plugin-rsc": "0.5.26",
     "react-server-dom-webpack": "19.2.8",
+    "typescript": "5.9.3",
     "vinext": "1.0.0-beta.2",
     "vite": "8.0.13",
+    "vitest": "4.1.10",
     "wrangler": "4.92.0"
   },
   "type": "module"

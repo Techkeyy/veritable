@@ -1,5 +1,22 @@
 # Real evidence workflow
 
+## Preferred hosted workflow: DeepSeek + signed source + private storage
+
+The public product now prepares provider-backed evidence directly:
+
+1. The issuer connects a wallet and uploads a text-based PDF or plain-text source document.
+2. The server extracts bounded text locally and sends it to DeepSeek's JSON-output API. DeepSeek returns a redacted summary, citations, expected amount, and due date. Scanned or empty PDFs fail closed until a separate OCR provider is configured.
+3. A separate evidence-source operator supplies a signed payment record. The verifier checks its payload hash, signer identity, signature, freshness, payer reference, amount, and payment date. The AI cannot manufacture or override this record.
+4. The original document and canonical evidence bundle are written to private Vercel Blob storage. The browser receives the canonical bundle but is not the authoritative store.
+5. The issuer registers the exact DeepSeek-extracted terms and hashed payer reference, then escrows Testnet USDT and commits the bundle hash on BOT Chain.
+6. Before attesting, deterministic policy checks the DeepSeek-extracted amount/date against registered terms and the signed source record against the claim.
+
+USD amounts are represented as six-decimal nominal settlement units: one USD is `1_000_000` units. On Testnet, the issuer escrows the same nominal amount of Testnet USDT. This does not assert an FX guarantee and must become an explicit treasury/conversion policy before Mainnet.
+
+Required hosted secrets are `DEEPSEEK_API_KEY` and `BLOB_READ_WRITE_TOKEN`. `DEEPSEEK_MODEL` defaults to `deepseek-v4-pro`. Never expose these values with a `NEXT_PUBLIC_` prefix.
+
+The legacy externally signed bundle workflow below remains supported for recovery and protocol compatibility, but it is no longer the primary user path.
+
 Veritable's live verifier accepts no scenario labels, seeded payment outcomes, fixed periods, fixed terms, or server-generated evidence. Every claim commits the canonical hash of an issuer-supplied evidence bundle. The verifier reconstructs the report only from that exact bundle and live BOT Chain state.
 
 ## Trust boundary

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isHex, zeroHash, type Hex } from "viem";
 import { buildPublicVerification } from "../../../../lib/serverVerifier";
+import { loadClaimEvidence } from "../../../../lib/evidenceStorage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,9 +12,15 @@ export async function POST(request: Request, context: { params: Promise<{ claimI
     if (!isHex(claimId, { strict: true }) || claimId.length !== 66) {
       return NextResponse.json({ error: "A bytes32 claim ID is required" }, { status: 400 });
     }
-    const body = await request.json() as { evidenceBundle?: unknown };
-    if (!body.evidenceBundle) return NextResponse.json({ error: "The committed evidence bundle is required" }, { status: 400 });
-    const result = await buildPublicVerification(claimId as Hex, body.evidenceBundle);
+    let suppliedBundle: unknown;
+    try {
+      suppliedBundle = (await request.json() as { evidenceBundle?: unknown }).evidenceBundle;
+    } catch {
+      suppliedBundle = undefined;
+    }
+    const evidenceBundle = suppliedBundle ?? await loadClaimEvidence(claimId as Hex);
+    if (!evidenceBundle) return NextResponse.json({ error: "No durable evidence record exists for this claim" }, { status: 404 });
+    const result = await buildPublicVerification(claimId as Hex, evidenceBundle);
     return NextResponse.json({
       report: result.report,
       reportHash: result.reportHash,

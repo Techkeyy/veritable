@@ -3,6 +3,8 @@ import { isAddress, isHex, verifyMessage, type Address, type Hex } from "viem";
 import { processPublicClaim } from "../../../../lib/serverVerifier";
 import { attestationRequestMessage } from "../../../../lib/attestationRequest";
 import { activeChain, networkLabel } from "../../../../lib/chain";
+import { storeClaimEvidence } from "../../../../lib/evidenceStorage";
+import { evidenceBundleSchema } from "@veritable/schemas";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,7 +31,13 @@ export async function POST(request: Request, context: { params: Promise<{ claimI
     });
     if (!signatureValid) return NextResponse.json({ error: "Issuer authorization signature is invalid" }, { status: 401 });
     if (!body.evidenceBundle) return NextResponse.json({ error: "The committed evidence bundle is required" }, { status: 400 });
-    const result = await processPublicClaim(claimId as Hex, body.requester as Address, body.evidenceBundle);
+    const evidenceBundle = evidenceBundleSchema.parse(body.evidenceBundle);
+    const result = await processPublicClaim(
+      claimId as Hex,
+      body.requester as Address,
+      evidenceBundle,
+      async () => { await storeClaimEvidence(claimId as Hex, evidenceBundle); },
+    );
     return NextResponse.json({
       status: result.report.outcome === "INCONCLUSIVE" ? "INCONCLUSIVE" : result.transactionHash ? "SUBMITTED" : "ALREADY_SUBMITTED",
       outcome: result.report.outcome,

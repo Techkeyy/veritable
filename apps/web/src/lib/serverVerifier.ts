@@ -117,6 +117,7 @@ export async function buildPublicVerification(claimId: Hex, rawBundle: unknown) 
     documents: bundle.documents,
     paymentRecords: [paymentRecord],
     evidenceRoot,
+    extractionRequired: bundle.documents.some((document) => document.id.startsWith("deepseek:")),
   };
   const report = evaluateClaim(input, new Date());
   return {
@@ -129,10 +130,16 @@ export async function buildPublicVerification(claimId: Hex, rawBundle: unknown) 
   };
 }
 
-export async function processPublicClaim(claimId: Hex, requester: Address, rawBundle: unknown) {
+export async function processPublicClaim(
+  claimId: Hex,
+  requester: Address,
+  rawBundle: unknown,
+  beforeAttestation?: (verification: Awaited<ReturnType<typeof buildPublicVerification>>) => Promise<void>,
+) {
   if (activeChain.id === 677 && process.env.ALLOW_MAINNET !== "true") throw new Error("Mainnet hosted verifier is locked until ALLOW_MAINNET=true after explicit migration authorization");
   const verification = await buildPublicVerification(claimId, rawBundle);
   if (verification.claim.issuer.toLowerCase() !== requester.toLowerCase()) throw new Error("Only the onchain claim issuer may request its attestation");
+  await beforeAttestation?.(verification);
   if (verification.report.outcome === "INCONCLUSIVE") return { ...verification, transactionHash: undefined };
   if (verification.existingAttestationId !== zeroHash) return { ...verification, transactionHash: undefined };
   const verifierKey = requiredPrivateKey(activeChain.id === 677 ? process.env.MAINNET_VERIFIER_PRIVATE_KEY : process.env.VERIFIER_PRIVATE_KEY, "Verifier");

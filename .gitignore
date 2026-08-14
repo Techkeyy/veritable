@@ -17,3 +17,4 @@ typechain-types/
 .DS_Store
 Thumbs.db
 deployments/*/private-*.json
+.vercel/

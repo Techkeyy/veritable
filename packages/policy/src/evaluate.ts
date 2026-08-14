@@ -31,6 +31,33 @@ export function evaluateClaim(
   const results: RuleResult[] = [];
   const record = input.paymentRecords[0];
 
+  if (input.extractionRequired) {
+    const extractedFacts = input.documents.find((document) => document.extractedFacts)?.extractedFacts;
+    results.push(rule(
+      "AI_EXTRACTION_PRESENT",
+      extractedFacts ? "PASS" : "UNKNOWN",
+      extractedFacts
+        ? "A live model extraction supplied structured asset terms."
+        : "The provider-backed claim has no structured model extraction.",
+      input.documents.map((document) => document.contentHash),
+    ));
+    const completeFacts = extractedFacts?.expectedAmountMinor && extractedFacts?.dueDate ? extractedFacts : undefined;
+    const termsMatch = completeFacts
+      ? completeFacts.expectedAmountMinor === input.assetTerms.expectedAmountMinor
+        && completeFacts.dueDate === input.assetTerms.dueDate
+      : false;
+    results.push(rule(
+      "AI_TERMS_MATCH",
+      !completeFacts ? "UNKNOWN" : termsMatch ? "PASS" : "FAIL",
+      !completeFacts
+        ? "Extracted terms are unavailable."
+        : termsMatch
+          ? "DeepSeek-extracted amount and due date match the registered asset terms."
+          : "DeepSeek-extracted amount or due date conflicts with the registered asset terms.",
+      input.documents.map((document) => document.contentHash),
+    ));
+  }
+
   if (!record) {
     throw new Error("Schema invariant violated: at least one payment record is required");
   }
