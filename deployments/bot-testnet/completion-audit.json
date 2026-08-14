@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-12T04:54:23.988Z",
+  "generatedAt": "2026-08-14T03:47:30.591Z",
   "scope": "BOT_TESTNET_PRODUCT_COMPLETION",
   "product": "Veritable",
-  "site": "https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site",
+  "site": "https://veritable-web-sigma.vercel.app",
   "chainId": 968,
-  "latestBlock": "19566935",
+  "latestBlock": "19791974",
   "complete": true,
-  "checksPassed": 36,
-  "checksTotal": 36,
+  "checksPassed": 45,
+  "checksTotal": 45,
   "checks": [
     {
       "requirement": "BOT Testnet chain ID",
@@ -18,7 +18,7 @@
     {
       "requirement": "BOT Testnet RPC is live",
       "ok": true,
-      "evidence": "block 19566935"
+      "evidence": "block 19791974"
     },
     {
       "requirement": "Deployed bytecode: settlementToken",
@@ -33,7 +33,7 @@
     {
       "requirement": "Deployed bytecode: assetFactory",
       "ok": true,
-      "evidence": "0x5B1001A141AD718842fA965Ea556f43CB3F95fd2"
+      "evidence": "0xe47Eb79160F4594891dF5caf8335580B97b30369"
     },
     {
       "requirement": "Deployed bytecode: revenueShareToken",
@@ -54,6 +54,11 @@
       "requirement": "Deployed bytecode: attestationRegistry",
       "ok": true,
       "evidence": "0x5e18D2c62257bceddCC21e0a0fd2dD9d6ED79A37"
+    },
+    {
+      "requirement": "Deployed bytecode: marketplace",
+      "ok": true,
+      "evidence": "0xdA709994FA8E4BfCC550E8C6504B9017590fa318"
     },
     {
       "requirement": "Successful transaction: acceptance:verified.approve",
@@ -156,6 +161,26 @@
       "evidence": "0xb0d346cf4f54b1d7706c0ace465216d6256f3f3432dd3ab1ca8b0a84907d22e5 @ block 19560871"
     },
     {
+      "requirement": "Successful transaction: marketplace:fundInvestorGas",
+      "ok": true,
+      "evidence": "0x1dc96caae914c4a7aeab6a918720cc0859f7e42944dedcac9e202c07939986db @ block 19791617"
+    },
+    {
+      "requirement": "Successful transaction: marketplace:mintInvestorTestUsdt",
+      "ok": true,
+      "evidence": "0xf1ef5bded86d5802e817178361877867fa6cc94100358155c85bcf578da42d34 @ block 19791619"
+    },
+    {
+      "requirement": "Successful transaction: marketplace:approveMarketplace",
+      "ok": true,
+      "evidence": "0x136fdf6181fa683c2d7fb05ae8760e338b67482769699e4b89384a90e61a6a2b @ block 19791623"
+    },
+    {
+      "requirement": "Successful transaction: marketplace:purchaseShares",
+      "ok": true,
+      "evidence": "0x645e01aba9353216fee75eb5beb0817dd741fe6ed0bdd6c4c71e7e2755292ce0 @ block 19791626"
+    },
+    {
       "requirement": "Verified distribution conserves escrow",
       "ok": true,
       "evidence": "1200 + 800 = 2000 USDT"
@@ -176,9 +201,29 @@
       "evidence": "secret flags are false"
     },
     {
+      "requirement": "Fresh investor purchases live marketplace shares",
+      "ok": true,
+      "evidence": "25000000 minor units -> 1000000000000000000 share units"
+    },
+    {
+      "requirement": "Public offering remains live onchain",
+      "ok": true,
+      "evidence": "listings=1; available=19000000000000000000"
+    },
+    {
+      "requirement": "Only fixed-supply factory remains authorized",
+      "ok": true,
+      "evidence": "new=true; legacy=false"
+    },
+    {
+      "requirement": "Seed share supply is permanently locked",
+      "ok": true,
+      "evidence": "minter=false; admin=false"
+    },
+    {
       "requirement": "Public Veritable product is reachable",
       "ok": true,
-      "evidence": "https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site -> 200"
+      "evidence": "https://veritable-web-sigma.vercel.app -> 200"
     },
     {
       "requirement": "Public deterministic report is auditable",

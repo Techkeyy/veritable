@@ -1,6 +1,20 @@
 export const erc20Abi = [
   {
     type: "function",
+    name: "name",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "string" }],
+  },
+  {
+    type: "function",
+    name: "symbol",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "string" }],
+  },
+  {
+    type: "function",
     name: "balanceOf",
     stateMutability: "view",
     inputs: [{ name: "account", type: "address" }],
@@ -15,6 +29,86 @@ export const erc20Abi = [
       { name: "amount", type: "uint256" },
     ],
     outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    type: "function",
+    name: "mint",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [],
+  },
+] as const;
+
+export const assetRegistryAbi = [
+  {
+    type: "function",
+    name: "shareTokenOf",
+    stateMutability: "view",
+    inputs: [{ name: "assetId", type: "bytes32" }],
+    outputs: [{ name: "shareToken", type: "address" }],
+  },
+] as const;
+
+export const marketplaceAbi = [
+  {
+    type: "function",
+    name: "listingCount",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "getListing",
+    stateMutability: "view",
+    inputs: [{ name: "listingId", type: "uint256" }],
+    outputs: [{
+      name: "listing",
+      type: "tuple",
+      components: [
+        { name: "assetId", type: "bytes32" },
+        { name: "issuer", type: "address" },
+        { name: "shareToken", type: "address" },
+        { name: "pricePerShareMinor", type: "uint256" },
+        { name: "availableShares", type: "uint256" },
+        { name: "soldShares", type: "uint256" },
+        { name: "metadataURI", type: "string" },
+        { name: "active", type: "bool" },
+      ],
+    }],
+  },
+  {
+    type: "function",
+    name: "createListing",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "assetId", type: "bytes32" },
+      { name: "shareAmount", type: "uint256" },
+      { name: "pricePerShareMinor", type: "uint256" },
+      { name: "metadataURI", type: "string" },
+    ],
+    outputs: [{ name: "listingId", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "buy",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "listingId", type: "uint256" },
+      { name: "shareAmount", type: "uint256" },
+      { name: "maxCostMinor", type: "uint256" },
+    ],
+    outputs: [{ name: "costMinor", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "cancelListing",
+    stateMutability: "nonpayable",
+    inputs: [{ name: "listingId", type: "uint256" }],
+    outputs: [],
   },
 ] as const;
 

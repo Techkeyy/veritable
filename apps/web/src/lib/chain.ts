@@ -53,6 +53,7 @@ export const contracts = {
   attestation: process.env.NEXT_PUBLIC_ATTESTATION_REGISTRY_ADDRESS as `0x${string}` | undefined,
   staking: process.env.NEXT_PUBLIC_VERIFIER_STAKING_ADDRESS as `0x${string}` | undefined,
   settlement: process.env.NEXT_PUBLIC_SETTLEMENT_TOKEN_ADDRESS as `0x${string}` | undefined,
+  marketplace: process.env.NEXT_PUBLIC_MARKETPLACE_ADDRESS as `0x${string}` | undefined,
 };
 
 export const isConfigured = Object.values(contracts).every(Boolean);

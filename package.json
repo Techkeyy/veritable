@@ -23,6 +23,7 @@
     "deploy:testnet": "pnpm --filter @veritable/contracts deploy:testnet",
     "deploy:mainnet": "pnpm --filter @veritable/contracts deploy:mainnet",
     "acceptance:testnet": "pnpm --filter @veritable/contracts acceptance:testnet",
+    "acceptance:marketplace:testnet": "tsx scripts/accept-marketplace-testnet.ts",
     "init:testnet-env": "tsx scripts/init-testnet-env.ts",
     "clean": "pnpm -r clean"
   },

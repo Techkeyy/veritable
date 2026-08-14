@@ -241,6 +241,9 @@ describe("Veritable core protocol", () => {
     assert.equal(await token.read.balanceOf([fixture.accounts.holderA.account!.address]), 60n * 10n ** 18n);
     assert.equal(await token.read.hasRole([await token.read.SNAPSHOT_ROLE(), fixture.contracts.vault.address]), true);
     assert.equal(await token.read.hasRole([await token.read.DEFAULT_ADMIN_ROLE(), factory.address]), false);
+    assert.equal(await token.read.hasRole([await token.read.DEFAULT_ADMIN_ROLE(), fixture.accounts.issuer.account!.address]), false);
+    assert.equal(await token.read.hasRole([await token.read.MINTER_ROLE(), fixture.accounts.issuer.account!.address]), false);
+    await assert.rejects(token.write.mint([fixture.accounts.issuer.account!.address, 1n], { account: fixture.accounts.issuer.account! }));
   });
 
   it("runs signed evidence through deterministic policy into on-chain settlement", async () => {

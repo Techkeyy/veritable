@@ -47,8 +47,6 @@ contract AssetFactory {
         RevenueShareToken token = new RevenueShareToken(name, symbol, address(this));
         bytes32 adminRole = token.DEFAULT_ADMIN_ROLE();
         bytes32 minterRole = token.MINTER_ROLE();
-        token.grantRole(adminRole, msg.sender);
-        token.grantRole(minterRole, msg.sender);
         token.grantRole(token.SNAPSHOT_ROLE(), yieldVault);
 
         for (uint256 index = 0; index < holders.length; ++index) {

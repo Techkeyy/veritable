@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { createPublicClient, defineChain, getAddress, http, type Address, type Hash } from "viem";
 
 const root = process.cwd();
-const site = "https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site";
+const site = "https://veritable-web-sigma.vercel.app";
 const canonicalClaim = "0xd4cf42cb6f65510f1500ffdad7e41a23fac339c509f0e0527bc49f47eaff00e3";
 const chain = defineChain({
   id: 968,
@@ -18,8 +18,10 @@ const client = createPublicClient({ chain, transport: http(process.env.BOT_TESTN
 
 type Manifest = {
   chainId: number;
+  deployer: Address;
   contracts: Record<string, Address>;
   transactions: Record<string, Hash>;
+  marketplaceDeployment: { legacyAssetFactory: Address };
 };
 type Acceptance = {
   chainId: number;
@@ -32,16 +34,28 @@ type Acceptance = {
 };
 type Fresh = {
   chainId: number;
+  site?: string;
   privateKeyIncluded: boolean;
   outcome: string;
   amountMinor: string;
   receivedMinor: string;
   transactions: Record<string, { hash: Hash; explorerUrl: string }>;
 };
+type MarketplaceAcceptance = {
+  chainId: number;
+  privateKeyIncluded: boolean;
+  paidMinor: string;
+  sharesReceived: string;
+  inventoryBefore: string;
+  inventoryAfter: string;
+  transactions: Record<string, { hash: Hash; explorerUrl: string }>;
+};
 
 const manifest = JSON.parse(await readFile(resolve(root, "deployments/bot-testnet/manifest.json"), "utf8")) as Manifest;
 const acceptance = JSON.parse(await readFile(resolve(root, "deployments/bot-testnet/acceptance.json"), "utf8")) as Acceptance;
 const fresh = JSON.parse(await readFile(resolve(root, "deployments/bot-testnet/fresh-wallet-production.json"), "utf8")) as Fresh;
+const marketplaceAcceptance = JSON.parse(await readFile(resolve(root, "deployments/bot-testnet/marketplace-acceptance.json"), "utf8")) as MarketplaceAcceptance;
+const reportSite = fresh.site ?? "https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site";
 const checks: Array<{ requirement: string; ok: boolean; evidence: string }> = [];
 const check = (requirement: string, ok: boolean, evidence: string) => checks.push({ requirement, ok, evidence });
 
@@ -59,6 +73,7 @@ for (const [name, rawAddress] of Object.entries(manifest.contracts)) {
 const transactionGroups = [
   ...Object.entries(acceptance.transactions).map(([name, value]) => [`acceptance:${name}`, value.hash] as const),
   ...Object.entries(fresh.transactions).map(([name, value]) => [`fresh-wallet:${name}`, value.hash] as const),
+  ...Object.entries(marketplaceAcceptance.transactions).map(([name, value]) => [`marketplace:${name}`, value.hash] as const),
 ];
 for (const [name, hash] of transactionGroups) {
   const receipt = await client.getTransactionReceipt({ hash });
@@ -84,11 +99,55 @@ check(
   `${fresh.receivedMinor}/${fresh.amountMinor} minor units`,
 );
 check("Evidence artifacts contain no private key", !acceptance.secretsIncluded && !fresh.privateKeyIncluded, "secret flags are false");
+check(
+  "Fresh investor purchases live marketplace shares",
+  marketplaceAcceptance.chainId === 968
+    && !marketplaceAcceptance.privateKeyIncluded
+    && BigInt(marketplaceAcceptance.paidMinor) === 25_000_000n
+    && BigInt(marketplaceAcceptance.sharesReceived) === 10n ** 18n
+    && BigInt(marketplaceAcceptance.inventoryBefore) - BigInt(marketplaceAcceptance.inventoryAfter) === 10n ** 18n,
+  `${marketplaceAcceptance.paidMinor} minor units -> ${marketplaceAcceptance.sharesReceived} share units`,
+);
+
+const marketplaceAbi = [
+  { type: "function", name: "listingCount", stateMutability: "view", inputs: [], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "getListing", stateMutability: "view", inputs: [{ name: "listingId", type: "uint256" }], outputs: [{ name: "listing", type: "tuple", components: [{ name: "assetId", type: "bytes32" }, { name: "issuer", type: "address" }, { name: "shareToken", type: "address" }, { name: "pricePerShareMinor", type: "uint256" }, { name: "availableShares", type: "uint256" }, { name: "soldShares", type: "uint256" }, { name: "metadataURI", type: "string" }, { name: "active", type: "bool" }] }] },
+] as const;
+const roleAbi = [
+  { type: "function", name: "ASSET_MANAGER_ROLE", stateMutability: "view", inputs: [], outputs: [{ type: "bytes32" }] },
+  { type: "function", name: "hasRole", stateMutability: "view", inputs: [{ name: "role", type: "bytes32" }, { name: "account", type: "address" }], outputs: [{ type: "bool" }] },
+] as const;
+const tokenRoleAbi = [
+  { type: "function", name: "MINTER_ROLE", stateMutability: "view", inputs: [], outputs: [{ type: "bytes32" }] },
+  { type: "function", name: "DEFAULT_ADMIN_ROLE", stateMutability: "view", inputs: [], outputs: [{ type: "bytes32" }] },
+  { type: "function", name: "hasRole", stateMutability: "view", inputs: [{ name: "role", type: "bytes32" }, { name: "account", type: "address" }], outputs: [{ type: "bool" }] },
+] as const;
+const [listingCount, listing, managerRole, minterRole, adminRole] = await Promise.all([
+  client.readContract({ address: manifest.contracts.marketplace, abi: marketplaceAbi, functionName: "listingCount" }),
+  client.readContract({ address: manifest.contracts.marketplace, abi: marketplaceAbi, functionName: "getListing", args: [1n] }),
+  client.readContract({ address: manifest.contracts.assetRegistry, abi: roleAbi, functionName: "ASSET_MANAGER_ROLE" }),
+  client.readContract({ address: manifest.contracts.revenueShareToken, abi: tokenRoleAbi, functionName: "MINTER_ROLE" }),
+  client.readContract({ address: manifest.contracts.revenueShareToken, abi: tokenRoleAbi, functionName: "DEFAULT_ADMIN_ROLE" }),
+]);
+const [newFactoryAuthorized, legacyFactoryAuthorized, demoMinter, demoAdmin] = await Promise.all([
+  client.readContract({ address: manifest.contracts.assetRegistry, abi: roleAbi, functionName: "hasRole", args: [managerRole, manifest.contracts.assetFactory] }),
+  client.readContract({ address: manifest.contracts.assetRegistry, abi: roleAbi, functionName: "hasRole", args: [managerRole, manifest.marketplaceDeployment.legacyAssetFactory] }),
+  client.readContract({ address: manifest.contracts.revenueShareToken, abi: tokenRoleAbi, functionName: "hasRole", args: [minterRole, manifest.deployer] }),
+  client.readContract({ address: manifest.contracts.revenueShareToken, abi: tokenRoleAbi, functionName: "hasRole", args: [adminRole, manifest.deployer] }),
+]);
+check("Public offering remains live onchain", listingCount >= 1n && listing.active && listing.availableShares === 19n * 10n ** 18n, `listings=${listingCount}; available=${listing.availableShares}`);
+check("Only fixed-supply factory remains authorized", newFactoryAuthorized && !legacyFactoryAuthorized, `new=${newFactoryAuthorized}; legacy=${legacyFactoryAuthorized}`);
+check("Seed share supply is permanently locked", !demoMinter && !demoAdmin, `minter=${demoMinter}; admin=${demoAdmin}`);
 
 const landing = await fetch(site);
 const landingHtml = await landing.text();
 check("Public Veritable product is reachable", landing.status === 200 && landingHtml.includes("Veritable"), `${site} -> ${landing.status}`);
-const reportResponse = await fetch(`${site}/v1/reports/${canonicalClaim}`);
+let reportResponse = await fetch(`${reportSite}/v1/reports/${canonicalClaim}`, {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: "{}",
+});
+if (reportResponse.status === 405) reportResponse = await fetch(`${reportSite}/v1/reports/${canonicalClaim}`);
 const publicReport = await reportResponse.json() as { report?: { outcome?: string; ruleResults?: unknown[] }; reportHash?: string };
 check(
   "Public deterministic report is auditable",

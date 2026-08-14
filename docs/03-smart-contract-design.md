@@ -14,7 +14,22 @@ For the MVP, use OpenZeppelin 4.9.x `ERC20Snapshot` or implement an equivalent a
 
 ### `AssetFactory.sol`
 
-Provides bounded, permissionless issuer onboarding. It deploys a revenue-share token, allocates shares to at most 20 initial holders, grants snapshot authority only to the vault, transfers token administration to the issuer, renounces its own token privileges, and registers the asset through its narrowly scoped registry role.
+Provides bounded, permissionless issuer onboarding. It deploys a fixed-supply revenue-share token, allocates shares to at most 20 initial holders, grants snapshot authority only to the vault, permanently removes all minting and administration authority, and registers the asset through its narrowly scoped registry role. This prevents post-sale dilution.
+
+### `PrimaryOfferingMarketplace.sol`
+
+Provides public Testnet primary issuance without pretending to be a secondary exchange. A registered issuer approves and escrows existing fixed-supply share tokens, chooses an immutable USDT price per whole share, and publishes optional public metadata. Any wallet can approve the exact TestUSDT cost and buy available shares. TestUSDT moves directly to the issuer while shares move from contract escrow to the investor.
+
+Core functions:
+
+```solidity
+createListing(assetId, shareAmount, pricePerShareMinor, metadataURI)
+buy(listingId, shareAmount, maxCostMinor)
+cancelListing(listingId)
+getListing(listingId)
+```
+
+The contract rechecks asset activity, permits only the registered issuer to list, uses SafeERC20 and a reentrancy guard, rounds fractional-share costs upward to the nearest settlement-token minor unit, and returns unsold inventory only to the issuer.
 
 ### `YieldVault.sol`
 

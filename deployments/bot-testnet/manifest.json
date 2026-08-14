@@ -25,11 +25,12 @@
   "contracts": {
     "settlementToken": "0x38fbbd141c1e31d1058bbd15bbcb7b37233802db",
     "assetRegistry": "0xa5728e7aab1373d2af4b39d58ee1010167123560",
-    "assetFactory": "0x5b1001a141ad718842fa965ea556f43cb3f95fd2",
+    "assetFactory": "0xe47eb79160f4594891df5caf8335580b97b30369",
     "revenueShareToken": "0x67cd42e7017ad134c00a04dcf005fb5cedb9b988",
     "verifierStaking": "0x17e8bcb0940e656abeef09e7610ec6c623ec8f39",
     "yieldVault": "0x6786d682738d2f0e1d31c113de9aece14ac43f1a",
-    "attestationRegistry": "0x5e18d2c62257bceddcc21e0a0fd2dd9d6ed79a37"
+    "attestationRegistry": "0x5e18d2c62257bceddcc21e0a0fd2dd9d6ed79a37",
+    "marketplace": "0xda709994fa8e4bfcc550e8c6504b9017590fa318"
   },
   "demo": {
     "assetId": "0xbad31a38b101816683ad85fec41b7b5e17aeb80fe7b2dd326855e70fbe158612",
@@ -46,6 +47,17 @@
     "mintHolderA": "0x9645e500a7a42a6833082a4f392e31d33b4484097c22c37ac638d453f26cae89",
     "mintHolderB": "0xd077f7b67f506aebfb4b080c4c7dcf94e31f8a5346a059818160cddc1d1be6e2",
     "mintIssuerTestUsdt": "0x703decb2eb38d8872a8f40c8b1ec94749bf09e0194c7ded266b0b157f2893448",
-    "seedVerifierStake": "0x15aedf6595dba29f6b2db02bfda24d8d05dca2b8919ff99c924cf8be63d750be"
+    "seedVerifierStake": "0x15aedf6595dba29f6b2db02bfda24d8d05dca2b8919ff99c924cf8be63d750be",
+    "grantReplacementFactoryRole": "0x4c9dbb4c92187c89e0e4accf13ec4f94a5452ea3af04208afd63c7086316ef18",
+    "revokeLegacyFactoryRole": "0x1316e539f9b30d42d55ff77ace9451de969da0f017233bf290aa2250735f42aa",
+    "marketplaceShareApproval": "0x2bd00f4267bbcbefd92585bc1d3833116d962f56e1b0c972eb4c137a710b5ebb",
+    "seedMarketplaceListing": "0x29c06f1a0483cd40d85e0b8d422bc9ee72164347552215f453de3794f33b30c8",
+    "lockDemoShareMinter": "0x9ebd0482e344816d862f1e76c15aae5773eef971d8a33962de95149f15468473",
+    "lockDemoShareAdmin": "0x596e15a040d9f3884e88555448bf33659a8ab1e3f17d353e732e52fb4edc309b"
+  },
+  "marketplaceDeployment": {
+    "deployedAt": "2026-08-14T03:39:28.034Z",
+    "blockNumber": "19791353",
+    "legacyAssetFactory": "0x5b1001a141ad718842fa965ea556f43cb3f95fd2"
   }
 }

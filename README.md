@@ -18,7 +18,7 @@ The product does **not** claim that an LLM creates truth. It creates an auditabl
 
 Phase 1 ships a publicly accessible, wallet-connected, reproducible product whose complete critical loop runs on BOT Chain Testnet. Mainnet is a separate, locked migration after the acceptance gate:
 
-`register asset -> issue shares -> escrow USDT claim -> verify evidence -> bond attestation -> challenge/settle -> claim or block yield`
+`register asset -> list fixed-supply shares -> public TestUSDT purchase -> escrow yield -> verify evidence -> challenge/settle -> investor claim`
 
 The primary submission lane is **RWA Applications**, with AI as a core on-chain decision participant.
 
@@ -45,12 +45,13 @@ The Testnet build is not demo-ready until a fresh wallet completes the complete 
 1. A valid income claim settles and a holder claims the correct USDT share.
 2. A mismatched or unsupported claim fails closed and distributes nothing.
 3. A deliberately incorrect verifier attestation is challenged, reversed, and slashed according to the published rule.
+4. A fresh investor wallet purchases escrowed shares from a public Testnet offering before a later yield snapshot.
 
 The malicious-verifier case intentionally uses the adversarial acceptance runner rather than the honest hosted verifier; otherwise the demo would require compromising the production verifier to manufacture a false result.
 
 ## Current status
 
-The BOT Testnet protocol and real-evidence application path are implemented. The production UI accepts no preset payment scenarios, fixed terms, fixed periods, demo claim IDs, or verifier-generated evidence. Its preferred path extracts typed document facts with live DeepSeek and proves payment in one of two user-facing ways: Veritable independently verifies a real Testnet USDT transfer on BOT Chain, or the issuer sends a one-time confirmation link that the registered payer signs with their wallet. The document, issuer, payer, amount, date, period, and proof are cryptographically bound, stored in private durable object storage, and committed on BOT Chain before a bonded attestation. No bank or payment processor integration is claimed; that remains a disclosed production roadmap item. Golden fixtures remain isolated to automated tests and historical acceptance artifacts.
+The BOT Testnet protocol, public primary marketplace, and real-evidence application path are implemented. Issuers create fixed-supply revenue-share tokens, escrow inventory in a public fixed-price listing, and receive TestUSDT directly when any wallet invests. Investors can browse without connecting, purchase onchain, inspect holdings, and later claim verified yield from the immutable claim snapshot. The evidence path accepts no preset scenarios: live DeepSeek extracts typed facts while a BOT transaction or counterparty wallet signature independently proves payment. No bank, regulated payment processor, KYC/AML, legal securities offering, or secondary market is claimed; those remain disclosed production requirements.
 
 Every push and pull request runs the pinned install, complete regression suite, all-workspace type-check, production build, and production dependency audit in CI on the repository's pinned Node.js runtime.
 

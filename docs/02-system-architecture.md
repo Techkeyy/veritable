@@ -19,6 +19,9 @@ flowchart LR
     Challenger["Challenger wallet"] --> Web
     Web --> API["Application API"]
     Web --> Contracts["BOT Chain contracts"]
+    Investor -->|"TestUSDT purchase"| Market["Primary offering marketplace"]
+    Issuer -->|"Escrow fixed-supply shares"| Market
+    Market --> Contracts
     API --> Storage["Private evidence storage"]
     API --> DB["Postgres state/read model"]
     Oracle["Signed payment evidence service"] --> Agent["Verifier agent"]
@@ -40,6 +43,7 @@ flowchart LR
 | `apps/api` | Evidence upload, signed URLs, read model, fixture oracle, notifications | Fastify or Next.js route service, Zod, Postgres |
 | `apps/agent` | Event recovery/subscription, evidence pipeline, typed extraction, signing/relay | Node/TypeScript, viem, structured model output |
 | `packages/contracts` | Assets, escrow, attestation, challenge, slashing, distribution | Solidity, Hardhat 3, OpenZeppelin |
+| `PrimaryOfferingMarketplace` | Public fixed-price TestUSDT purchases of issuer-escrowed share inventory | Standalone non-custodial Solidity contract |
 | `packages/policy` | Pure deterministic verification rules | TypeScript, no network dependencies |
 | `packages/schemas` | Canonical API, evidence, report, and EIP-712 schemas | Zod plus generated JSON Schema |
 | `packages/config` | Chain/address manifests and environment validation | TypeScript |
@@ -104,6 +108,7 @@ sequenceDiagram
 On-chain:
 
 - asset ID, issuer, token, policy hash/version;
+- public listing inventory, price, sales, issuer proceeds, and investor share ownership;
 - claim period, amount, evidence root, token snapshot ID;
 - verifier, outcome, verified amount, report hash, bond amount;
 - challenge/resolution state and timestamps;

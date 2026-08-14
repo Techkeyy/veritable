@@ -41,12 +41,13 @@ Avoid claims such as “AI proves reality,” “fully trustless bank verificati
 2. Register a sandbox rental property and upload a lease/evidence bundle.
 3. Configure expected amount, payment window, currency, and redacted tenant reference.
 4. Create an issuance and allocate/purchase shares.
-5. Submit a monthly claim and escrow official BOT Chain USDT.
-6. Watch verification progress, read the report, and respond to a block or challenge.
+5. Escrow issuer-owned inventory in a public fixed-price Testnet offering.
+6. Submit a monthly claim and escrow official BOT Chain USDT.
+7. Watch verification progress, read the report, and respond to a block or challenge.
 
 ### Investor
 
-1. Connect wallet and acquire sandbox share tokens.
+1. Browse public property offerings, connect a wallet, and acquire sandbox share tokens with TestUSDT.
 2. Inspect the asset terms and historic claim outcomes.
 3. See pending, verified, blocked, challenged, and settled states.
 4. Claim the wallet's exact snapshot-based USDT entitlement after settlement.
@@ -109,4 +110,3 @@ Every rubric item needs evidence:
 | Innovation (20%) | Period-specific Proof of Income plus bonded AI liability and challenge demo |
 | UX (15%) | State timeline, human-readable mismatch report, network guard, transaction links |
 | Technical quality (10%) | Tests, invariants, typed schemas, deterministic policy, threat model, doctor command |
-

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "network": "bot-testnet",
+  "chainId": 968,
+  "investor": "0xcA652555aa59BFaD6787dCFdC352dA0d09c3b7ff",
+  "privateKeyIncluded": false,
+  "listingId": "1",
+  "paidMinor": "25000000",
+  "sharesReceived": "1000000000000000000",
+  "inventoryBefore": "20000000000000000000",
+  "inventoryAfter": "19000000000000000000",
+  "transactions": {
+    "fundInvestorGas": {
+      "hash": "0x1dc96caae914c4a7aeab6a918720cc0859f7e42944dedcac9e202c07939986db",
+      "explorerUrl": "https://scan.bohr.life/tx/0x1dc96caae914c4a7aeab6a918720cc0859f7e42944dedcac9e202c07939986db"
+    },
+    "mintInvestorTestUsdt": {
+      "hash": "0xf1ef5bded86d5802e817178361877867fa6cc94100358155c85bcf578da42d34",
+      "explorerUrl": "https://scan.bohr.life/tx/0xf1ef5bded86d5802e817178361877867fa6cc94100358155c85bcf578da42d34"
+    },
+    "approveMarketplace": {
+      "hash": "0x136fdf6181fa683c2d7fb05ae8760e338b67482769699e4b89384a90e61a6a2b",
+      "explorerUrl": "https://scan.bohr.life/tx/0x136fdf6181fa683c2d7fb05ae8760e338b67482769699e4b89384a90e61a6a2b"
+    },
+    "purchaseShares": {
+      "hash": "0x645e01aba9353216fee75eb5beb0817dd741fe6ed0bdd6c4c71e7e2755292ce0",
+      "explorerUrl": "https://scan.bohr.life/tx/0x645e01aba9353216fee75eb5beb0817dd741fe6ed0bdd6c4c71e7e2755292ce0"
+    }
+  }
+}

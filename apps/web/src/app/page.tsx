@@ -33,8 +33,8 @@ export default function LandingPage() {
           onchain settlement—without letting an AI decide who gets paid.
         </p>
         <div className="hero-actions">
-          <a className="primary-link" href="/app">Open Testnet app <ArrowUpRight size={17} /></a>
-          <a className="secondary-link" href="#how">See the trust model</a>
+          <a className="primary-link" href="/marketplace">Explore properties <ArrowUpRight size={17} /></a>
+          <a className="secondary-link" href="/app">Open protocol console</a>
         </div>
         <div className="proof-strip">
           <div><strong>AI extracts</strong><span>Documents become structured facts</span></div>

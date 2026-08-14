@@ -9,6 +9,7 @@ import {
   FileCheck2,
   SearchCheck,
   Scale,
+  Store,
   Fingerprint,
   Gavel,
   LoaderCircle,
@@ -30,7 +31,7 @@ import {
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
-import { assetFactoryAbi, attestationAbi, erc20Abi, stakingAbi, vaultAbi } from "../../lib/abis";
+import { assetFactoryAbi, assetRegistryAbi, attestationAbi, erc20Abi, marketplaceAbi, stakingAbi, vaultAbi } from "../../lib/abis";
 import {
   activeChain,
   challengeBondBot,
@@ -47,7 +48,7 @@ import { evidencePreparationMessage, evidenceRequestMessage } from "../../lib/ev
 import { hashCanonical } from "@veritable/policy";
 import { evidenceBundleSchema, type AssetTerms } from "@veritable/schemas";
 
-type Action = "evidence" | "asset" | "claim" | "inspect" | "collect" | "stake" | "challenge" | "resolve";
+type Action = "evidence" | "asset" | "list" | "claim" | "inspect" | "collect" | "stake" | "challenge" | "resolve";
 type ProofMethod = "BOT_TRANSACTION" | "COUNTERPARTY_SIGNATURE";
 
 interface PublicReport {
@@ -335,6 +336,39 @@ export default function Home() {
       setStatus("Asset created and shares allocated. Continue to Submit yield using the same Asset ID.");
       return;
     }
+    if (active === "list" && contracts.assetRegistry && contracts.marketplace && address) {
+      if (!publicClient) throw new Error(`${networkLabel} RPC client is unavailable`);
+      const assetId = bytes32(String(form.get("listingAssetId")));
+      const shareAmount = parseUnits(String(form.get("listingShareAmount")), 18);
+      const pricePerShareMinor = parseUnits(String(form.get("listingPrice")), 6);
+      const shareToken = await publicClient.readContract({
+        address: contracts.assetRegistry,
+        abi: assetRegistryAbi,
+        functionName: "shareTokenOf",
+        args: [assetId],
+      });
+      if (shareToken === "0x0000000000000000000000000000000000000000") throw new Error("That asset is not registered");
+      setStatus("Approving the marketplace to escrow the listed shares…");
+      const approval = await writeContractAsync({
+        address: shareToken,
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [contracts.marketplace, shareAmount],
+        chainId: activeChain.id,
+      });
+      if ((await publicClient.waitForTransactionReceipt({ hash: approval })).status !== "success") throw new Error("Share-token approval reverted");
+      setStatus("Creating the public fixed-price offering…");
+      const listingHash = await writeContractAsync({
+        address: contracts.marketplace,
+        abi: marketplaceAbi,
+        functionName: "createListing",
+        args: [assetId, shareAmount, pricePerShareMinor, String(form.get("listingMetadata") || "")],
+        chainId: activeChain.id,
+      });
+      if ((await publicClient.waitForTransactionReceipt({ hash: listingHash })).status !== "success") throw new Error("Marketplace listing reverted");
+      setStatus("Offering is live. Any Testnet wallet can now purchase the escrowed shares.");
+      return;
+    }
     if (active === "inspect") {
       setPublicReport(undefined);
       setStatus("Loading the redacted deterministic report…");
@@ -392,6 +426,7 @@ export default function Home() {
         <a className="brand" href="/" aria-label="Veritable home"><span className="brand-mark"><Fingerprint size={19} /></span>Veritable</a>
         <div className="nav-right">
           <a className="docs-link" href="https://docs.botchain.ai" target="_blank" rel="noreferrer">BOT docs <ArrowUpRight size={14} /></a>
+          <a className="docs-link" href="/marketplace">Marketplace <Store size={14} /></a>
           {isConnected ? (
             <button className="wallet-button connected" aria-label={`Disconnect wallet ${walletLabel}`} onClick={() => disconnect()}><Wallet size={16} /><span>{walletLabel}</span></button>
           ) : (
@@ -426,6 +461,7 @@ export default function Home() {
           <aside className="tabs" aria-label="Protocol actions">
             <button aria-pressed={active === "evidence"} className={active === "evidence" ? "active" : ""} onClick={() => setActive("evidence")}><Bot /> <span><strong>Prepare evidence</strong><small>DeepSeek + signed source</small></span></button>
             <button aria-pressed={active === "asset"} className={active === "asset" ? "active" : ""} onClick={() => setActive("asset")}><Building2 /> <span><strong>Create asset</strong><small>Issuer onboarding</small></span></button>
+            <button aria-pressed={active === "list"} className={active === "list" ? "active" : ""} onClick={() => setActive("list")}><Store /> <span><strong>List offering</strong><small>Public primary sale</small></span></button>
             <button aria-pressed={active === "claim"} className={active === "claim" ? "active" : ""} onClick={() => setActive("claim")}><FileCheck2 /> <span><strong>Submit yield</strong><small>Issuer workflow</small></span></button>
             <button aria-pressed={active === "inspect"} className={active === "inspect" ? "active" : ""} onClick={() => setActive("inspect")}><SearchCheck /> <span><strong>Inspect report</strong><small>Public audit trail</small></span></button>
             <button aria-pressed={active === "collect"} className={active === "collect" ? "active" : ""} onClick={() => setActive("collect")}><CircleDollarSign /> <span><strong>Claim proceeds</strong><small>Investor workflow</small></span></button>
@@ -489,7 +525,7 @@ export default function Home() {
               </form>
             ) : active === "claim" ? (
               <form onSubmit={(event) => void safelyRun(submitClaim, event)}>
-                <div className="form-head"><div><span>03 / Issuer</span><h3>Commit provider-verified revenue evidence</h3></div><span className="demo-badge">Live providers</span></div>
+                <div className="form-head"><div><span>04 / Issuer</span><h3>Commit provider-verified revenue evidence</h3></div><span className="demo-badge">Live providers</span></div>
                 <label>Asset ID<input name="assetId" defaultValue={lastAssetId} placeholder="Asset label or bytes32 ID" required /></label>
                 <label>Escrow amount <span>{isMainnet ? "official" : "Testnet"} USDT</span><div className="amount-input"><input name="amount" type="number" min="0.000001" step="0.000001" placeholder="Amount already held by this wallet" required /><b>USDT</b></div></label>
                 <label>Prepared evidence bundle <span>Generated automatically</span><textarea name="evidenceBundle" rows={14} defaultValue={lastEvidenceBundle} placeholder="Prepare live evidence first; Veritable fills this automatically" required /></label>
@@ -498,7 +534,7 @@ export default function Home() {
               </form>
             ) : (
               <form onSubmit={(event) => void safelyRun(runSimple, event)}>
-                <div className="form-head"><div><span>{active === "asset" ? "02 / Issuer" : active === "inspect" ? "04 / Public" : active === "collect" ? "05 / Investor" : active === "stake" ? "06 / Verifier" : active === "challenge" ? "07 / Challenger" : "08 / Resolver"}</span><h3>{active === "asset" ? "Create and allocate an RWA" : active === "inspect" ? "Audit a verification result" : active === "collect" ? "Collect verified proceeds" : active === "stake" ? "Back attestations with BOT" : active === "challenge" ? "Dispute a bad attestation" : "Finalize an attestation"}</h3></div></div>
+                <div className="form-head"><div><span>{active === "asset" ? "02 / Issuer" : active === "list" ? "03 / Issuer" : active === "inspect" ? "05 / Public" : active === "collect" ? "06 / Investor" : active === "stake" ? "07 / Verifier" : active === "challenge" ? "08 / Challenger" : "09 / Resolver"}</span><h3>{active === "asset" ? "Create and allocate an RWA" : active === "list" ? "Publish a fixed-price offering" : active === "inspect" ? "Audit a verification result" : active === "collect" ? "Collect verified proceeds" : active === "stake" ? "Back attestations with BOT" : active === "challenge" ? "Dispute a bad attestation" : "Finalize an attestation"}</h3></div></div>
                 {active === "asset" && <>
                   <div className="field-grid"><label>Asset ID<input name="newAssetId" placeholder="Unique asset label or bytes32 ID" required /></label><label>Payer reference hash<input name="assetPayerReferenceHash" defaultValue={preparedTerms?.payerReferenceHash} placeholder="Prepare evidence to bind the signed source" required /></label></div>
                   <div className="field-grid"><label>Share token name<input name="tokenName" required /></label><label>Symbol<input name="tokenSymbol" maxLength={12} required /></label></div>
@@ -508,12 +544,18 @@ export default function Home() {
                   <div className="field-grid"><label>Holder B <span>optional</span><input name="holderB" placeholder="0x…" /></label><label>Holder B shares <span>optional</span><input name="holderBShares" type="number" min="0.000001" step="0.000001" /></label></div>
                   <p className="bond-note"><ShieldCheck size={15} /> Uses the registered deterministic policy-v1 and a maximum of 20 initial holders.</p>
                 </>}
+                {active === "list" && <>
+                  <label>Registered asset ID<input name="listingAssetId" defaultValue={lastAssetId} placeholder="Asset label or bytes32 ID" required /></label>
+                  <div className="field-grid"><label>Shares to offer<input name="listingShareAmount" type="number" min="0.000001" step="0.000001" required /></label><label>Price per share <span>TestUSDT</span><input name="listingPrice" type="number" min="0.000001" step="0.000001" required /></label></div>
+                  <label>Property summary or metadata URI <span>public</span><input name="listingMetadata" placeholder="e.g. Lekki rental property · ipfs://…" /></label>
+                  <p className="bond-note"><ShieldCheck size={15} /> Listed shares are escrowed by the marketplace. Buyers pay the connected issuer directly in TestUSDT.</p>
+                </>}
                 {active === "inspect" && <><label>Claim ID<input name="reportClaimId" defaultValue={lastClaimId} placeholder="0x…" required /></label><label>Committed evidence bundle <span>optional recovery JSON</span><textarea name="reportEvidenceBundle" rows={8} defaultValue={lastEvidenceBundle} placeholder="Usually loaded from private durable storage; paste only for recovery" /></label></>}
                 {active === "collect" && <label>Claim ID<input name="claimId" defaultValue={publicReport?.report.claimId ?? lastClaimId} placeholder="0x…" required /></label>}
                 {active === "stake" && <label>Stake amount <span>{nativeTokenLabel}</span><div className="amount-input"><input name="stakeAmount" type="number" min="0.001" step="0.001" required /><b>{nativeTokenLabel}</b></div></label>}
                 {active === "challenge" && <><label>Attestation ID<input name="attestationId" defaultValue={publicReport?.attestationId} placeholder="0x…" required /></label><label>Counter-evidence reference<input name="counterEvidence" placeholder="IPFS CID, document hash, or reference" required /></label><p className="bond-note"><LockKeyhole size={15} /> Requires a {challengeBondBot ?? "configured"} {nativeTokenLabel} challenge bond.</p></>}
                 {active === "resolve" && <><label>Attestation ID<input name="resolutionAttestationId" defaultValue={publicReport?.attestationId} placeholder="0x…" required /></label><label>Action<select name="resolutionMode" defaultValue="settle"><option value="settle">Settle unchallenged attestation</option><option value="overturn">Overturn false approval (resolver only)</option></select></label><p className="bond-note"><Scale size={15} /> Settlement is permissionless after the window; reversal requires the disclosed resolver role.</p></>}
-                <button className="submit" disabled={(active !== "inspect" && !canWrite) || isPending}>{isPending ? <LoaderCircle className="spin" /> : active === "asset" ? <Building2 /> : active === "inspect" ? <SearchCheck /> : active === "resolve" ? <Scale /> : active === "challenge" ? <Gavel /> : active === "stake" ? <LockKeyhole /> : <CircleDollarSign />}{active === "asset" ? `Create ${isMainnet ? "Mainnet" : "Testnet"} asset` : active === "inspect" ? "Load verification report" : active === "collect" ? "Claim distribution" : active === "stake" ? `Stake ${nativeTokenLabel}` : active === "resolve" ? "Finalize attestation" : "Open challenge"}</button>
+                <button className="submit" disabled={(active !== "inspect" && !canWrite) || isPending}>{isPending ? <LoaderCircle className="spin" /> : active === "asset" ? <Building2 /> : active === "list" ? <Store /> : active === "inspect" ? <SearchCheck /> : active === "resolve" ? <Scale /> : active === "challenge" ? <Gavel /> : active === "stake" ? <LockKeyhole /> : <CircleDollarSign />}{active === "asset" ? `Create ${isMainnet ? "Mainnet" : "Testnet"} asset` : active === "list" ? "Publish offering" : active === "inspect" ? "Load verification report" : active === "collect" ? "Claim distribution" : active === "stake" ? `Stake ${nativeTokenLabel}` : active === "resolve" ? "Finalize attestation" : "Open challenge"}</button>
                 {active === "inspect" && publicReport && <div className={`report-card ${publicReport.report.outcome.toLowerCase()}`}>
                   <div className="report-title"><span>{publicReport.report.outcome}</span><small>{publicReport.report.policyVersion} · {publicReport.report.periodKey}</small></div>
                   <div className="rule-list">{publicReport.report.ruleResults.map((rule) => <div key={rule.ruleId}><b className={rule.status.toLowerCase()}>{rule.status}</b><span><strong>{rule.ruleId.replaceAll("_", " ")}</strong><small>{rule.message}</small></span></div>)}</div>

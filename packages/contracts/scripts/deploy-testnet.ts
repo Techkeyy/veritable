@@ -57,6 +57,7 @@ const shareToken = await viem.deployContract("RevenueShareToken", ["VeriFi Solar
 const staking = await viem.deployContract("VerifierStaking", [admin, UNSTAKE_COOLDOWN], { client: { wallet: deployer } });
 const vault = await viem.deployContract("YieldVault", [admin, settlement.address, assetRegistry.address, BLOCKED_REFUND_DELAY], { client: { wallet: deployer } });
 const assetFactory = await viem.deployContract("AssetFactory", [assetRegistry.address, vault.address], { client: { wallet: deployer } });
+const marketplace = await viem.deployContract("PrimaryOfferingMarketplace", [assetRegistry.address, settlement.address], { client: { wallet: deployer } });
 const attestationRegistry = await viem.deployContract(
   "AttestationRegistry",
   [admin, vault.address, assetRegistry.address, staking.address, treasury, VERIFIER_BOND, CHALLENGER_BOND, CHALLENGE_WINDOW],
@@ -71,6 +72,8 @@ transactions.grantVerifierRole = await attestationRegistry.write.grantRole([awai
 transactions.registerDemoAsset = await assetRegistry.write.registerAsset([DEMO_ASSET_ID, issuer, shareToken.address, POLICY_HASH, TERMS_HASH]);
 transactions.mintHolderA = await shareToken.write.mint([holderA, 60n * 10n ** 18n]);
 transactions.mintHolderB = await shareToken.write.mint([holderB, 40n * 10n ** 18n]);
+transactions.lockDemoShareMinter = await shareToken.write.renounceRole([await shareToken.read.MINTER_ROLE(), admin]);
+transactions.lockDemoShareAdmin = await shareToken.write.renounceRole([await shareToken.read.DEFAULT_ADMIN_ROLE(), admin]);
 transactions.mintIssuerTestUsdt = await settlement.write.mint([issuer, parseUnits("100000", 6)]);
 const verifierStaking = await viem.getContractAt("VerifierStaking", staking.address, {
   client: { wallet: verifierWallet },
@@ -104,6 +107,7 @@ const manifest = {
     settlementToken: settlement.address,
     assetRegistry: assetRegistry.address,
     assetFactory: assetFactory.address,
+    marketplace: marketplace.address,
     revenueShareToken: shareToken.address,
     verifierStaking: staking.address,
     yieldVault: vault.address,
@@ -120,6 +124,7 @@ const webEnvironment = [
   `NEXT_PUBLIC_BOT_TESTNET_RPC_URL=https://rpc.bohr.life`,
   `NEXT_PUBLIC_ASSET_REGISTRY_ADDRESS=${assetRegistry.address}`,
   `NEXT_PUBLIC_ASSET_FACTORY_ADDRESS=${assetFactory.address}`,
+  `NEXT_PUBLIC_MARKETPLACE_ADDRESS=${marketplace.address}`,
   `NEXT_PUBLIC_YIELD_VAULT_ADDRESS=${vault.address}`,
   `NEXT_PUBLIC_ATTESTATION_REGISTRY_ADDRESS=${attestationRegistry.address}`,
   `NEXT_PUBLIC_VERIFIER_STAKING_ADDRESS=${staking.address}`,

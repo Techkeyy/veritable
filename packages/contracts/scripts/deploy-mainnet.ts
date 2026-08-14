@@ -115,6 +115,7 @@ const vault = await viem.deployContract(
   { client: { wallet: deployer } },
 );
 const assetFactory = await viem.deployContract("AssetFactory", [assetRegistry.address, vault.address], { client: { wallet: deployer } });
+const marketplace = await viem.deployContract("PrimaryOfferingMarketplace", [assetRegistry.address, configuredUsdt], { client: { wallet: deployer } });
 const attestationRegistry = await viem.deployContract(
   "AttestationRegistry",
   [temporaryAdmin, vault.address, assetRegistry.address, staking.address, treasury, verifierBond, challengerBond, challengeWindow],
@@ -166,6 +167,7 @@ const manifest = {
     settlementToken: configuredUsdt,
     assetRegistry: assetRegistry.address,
     assetFactory: assetFactory.address,
+    marketplace: marketplace.address,
     verifierStaking: staking.address,
     yieldVault: vault.address,
     attestationRegistry: attestationRegistry.address,
@@ -191,6 +193,7 @@ await writeFile(
     `NEXT_PUBLIC_CHALLENGE_WINDOW_SECONDS=${challengeWindow}`,
     `NEXT_PUBLIC_ASSET_REGISTRY_ADDRESS=${assetRegistry.address}`,
     `NEXT_PUBLIC_ASSET_FACTORY_ADDRESS=${assetFactory.address}`,
+    `NEXT_PUBLIC_MARKETPLACE_ADDRESS=${marketplace.address}`,
     `NEXT_PUBLIC_YIELD_VAULT_ADDRESS=${vault.address}`,
     `NEXT_PUBLIC_ATTESTATION_REGISTRY_ADDRESS=${attestationRegistry.address}`,
     `NEXT_PUBLIC_VERIFIER_STAKING_ADDRESS=${staking.address}`,
