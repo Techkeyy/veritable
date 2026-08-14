@@ -6,6 +6,7 @@ import {
   Fingerprint,
   ShieldCheck,
 } from "lucide-react";
+import { ThemeToggle } from "../components/theme-toggle";
 
 export default function LandingPage() {
   return (
@@ -16,6 +17,7 @@ export default function LandingPage() {
           Veritable
         </a>
         <div className="nav-right">
+          <ThemeToggle />
           <a className="docs-link" href="https://docs.botchain.ai" target="_blank" rel="noreferrer">
             BOT docs <ArrowUpRight size={14} />
           </a>

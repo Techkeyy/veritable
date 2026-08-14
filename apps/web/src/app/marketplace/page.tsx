@@ -6,6 +6,7 @@ import { formatUnits, parseUnits, type Address, type Hex } from "viem";
 import { useAccount, useConnect, useDisconnect, usePublicClient, useSwitchChain, useWriteContract } from "wagmi";
 import { erc20Abi, marketplaceAbi } from "../../lib/abis";
 import { activeChain, contracts, isMainnet, networkLabel, writesEnabled } from "../../lib/chain";
+import { ThemeToggle } from "../../components/theme-toggle";
 
 interface Offering {
   listingId: bigint;
@@ -105,7 +106,7 @@ export default function MarketplacePage() {
     <main className="market-page">
       <nav className="nav shell">
         <a className="brand" href="/" aria-label="Veritable home"><span className="brand-mark"><Fingerprint size={19} /></span>Veritable</a>
-        <div className="nav-right"><a className="docs-link" href="/app">Protocol console <ArrowUpRight size={14} /></a>{isConnected ? <button className="wallet-button connected" onClick={() => disconnect()}><Wallet size={16} /><span>{short(address)}</span></button> : <button className="wallet-button" disabled={!connector || isConnecting} onClick={() => connector && connect({ connector })}>{isConnecting ? <LoaderCircle className="spin" size={16} /> : <Wallet size={16} />}<span>Connect wallet</span></button>}</div>
+        <div className="nav-right"><ThemeToggle /><a className="docs-link" href="/app">Protocol console <ArrowUpRight size={14} /></a>{isConnected ? <button className="wallet-button connected" onClick={() => disconnect()}><Wallet size={16} /><span>{short(address)}</span></button> : <button className="wallet-button" disabled={!connector || isConnecting} onClick={() => connector && connect({ connector })}>{isConnecting ? <LoaderCircle className="spin" size={16} /> : <Wallet size={16} />}<span>Connect wallet</span></button>}</div>
       </nav>
 
       <section className="market-hero shell">

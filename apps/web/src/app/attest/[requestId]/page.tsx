@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { formatUnits, type Address, type Hex } from "viem";
 import { useAccount, useConnect, useSignMessage } from "wagmi";
+import { ThemeToggle } from "../../../components/theme-toggle";
 
 interface ConfirmationRequest {
   requestId: string;
@@ -74,9 +75,12 @@ export default function PayerConfirmationPage() {
     <main className="attest-page">
       <nav className="nav shell">
         <a className="brand" href="/" aria-label="Veritable home"><span className="brand-mark"><Fingerprint size={19} /></span>Veritable</a>
-        {!isConnected && <button className="wallet-button" disabled={!connector || isConnecting} onClick={() => connector && connect({ connector })}>
-          {isConnecting ? <LoaderCircle className="spin" size={16} /> : <Wallet size={16} />}<span>Connect payer wallet</span>
-        </button>}
+        <div className="nav-right">
+          <ThemeToggle />
+          {!isConnected && <button className="wallet-button" disabled={!connector || isConnecting} onClick={() => connector && connect({ connector })}>
+            {isConnecting ? <LoaderCircle className="spin" size={16} /> : <Wallet size={16} />}<span>Connect payer wallet</span>
+          </button>}
+        </div>
       </nav>
       <section className="attest-shell shell">
         <div className="eyebrow"><ShieldCheck size={15} /> Counterparty payment confirmation</div>
