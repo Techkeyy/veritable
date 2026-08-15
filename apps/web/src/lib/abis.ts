@@ -32,6 +32,16 @@ export const erc20Abi = [
   },
   {
     type: "function",
+    name: "transfer",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    type: "function",
     name: "mint",
     stateMutability: "nonpayable",
     inputs: [
@@ -49,6 +59,13 @@ export const assetRegistryAbi = [
     stateMutability: "view",
     inputs: [{ name: "assetId", type: "bytes32" }],
     outputs: [{ name: "shareToken", type: "address" }],
+  },
+  {
+    type: "function",
+    name: "termsHashOf",
+    stateMutability: "view",
+    inputs: [{ name: "assetId", type: "bytes32" }],
+    outputs: [{ type: "bytes32" }],
   },
 ] as const;
 

@@ -2,36 +2,34 @@
 
 import {
   ArrowUpRight,
-  Building2,
   Bot,
   CircleDollarSign,
   Copy,
-  FileCheck2,
-  SearchCheck,
-  Scale,
-  Store,
+  FileText,
   Fingerprint,
   Gavel,
+  Link2,
   LoaderCircle,
   LockKeyhole,
-  Link2,
+  Scale,
   ShieldCheck,
+  Store,
   Unplug,
-  Wallet,
 } from "lucide-react";
-import { FormEvent, useMemo, useState } from "react";
-import { formatUnits, getAddress, isAddress, isHex, keccak256, parseEther, parseUnits, stringToHex, zeroHash } from "viem";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import { getAddress, isAddress, isHex, keccak256, parseEther, parseUnits, stringToHex, zeroAddress, zeroHash } from "viem";
 import {
   useAccount,
   useConnect,
-  useDisconnect,
   usePublicClient,
   useSignMessage,
   useSwitchChain,
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
+import { SiteNav } from "../../components/site-nav";
 import { assetFactoryAbi, assetRegistryAbi, attestationAbi, erc20Abi, marketplaceAbi, stakingAbi, vaultAbi } from "../../lib/abis";
+import { attestationRequestMessage } from "../../lib/attestationRequest";
 import {
   activeChain,
   challengeBondBot,
@@ -43,12 +41,24 @@ import {
   networkLabel,
   writesEnabled,
 } from "../../lib/chain";
-import { attestationRequestMessage } from "../../lib/attestationRequest";
 import { evidencePreparationMessage, evidenceRequestMessage } from "../../lib/evidenceAuthorization";
+import {
+  compactId,
+  currentPeriodKey,
+  firstOfPeriod,
+  formatAmount,
+  formatCountdown,
+  outcomeCopy,
+  periodLabel,
+  RULE_COPY,
+  sampleLeaseText,
+  symbolFromName,
+} from "../../lib/format";
+import { loadSession, recallEvidence, rememberEvidence, saveSession, type WorkspaceSession } from "../../lib/session";
 import { hashCanonical } from "@veritable/policy";
-import { evidenceBundleSchema, type AssetTerms } from "@veritable/schemas";
+import { evidenceBundleSchema, type EvidenceBundle } from "@veritable/schemas";
 
-type Action = "evidence" | "asset" | "list" | "claim" | "inspect" | "collect" | "stake" | "challenge" | "resolve";
+type Mode = "issue" | "track";
 type ProofMethod = "BOT_TRANSACTION" | "COUNTERPARTY_SIGNATURE";
 
 interface PublicReport {
@@ -75,178 +85,134 @@ interface ProcessResult {
   report: PublicReport["report"];
 }
 
-function short(value?: string) {
-  return value ? `${value.slice(0, 6)}…${value.slice(-4)}` : "Not connected";
-}
-
 function bytes32(value: string) {
   if (isHex(value, { strict: true }) && value.length === 66) return value as `0x${string}`;
   return keccak256(stringToHex(value));
 }
 
-function strictBytes32(value: string, label: string) {
-  if (!isHex(value, { strict: true }) || value.length !== 66) throw new Error(`${label} must be a 32-byte 0x-prefixed hash`);
-  return value as `0x${string}`;
+function downloadText(filename: string, contents: string) {
+  const url = URL.createObjectURL(new Blob([contents], { type: "text/plain" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
-function termsFromForm(form: FormData, prefix: "asset" | "claim"): AssetTerms {
-  return {
-    expectedAmountMinor: parseUnits(String(form.get(`${prefix}ExpectedAmount`)), 6).toString(),
-    dueDate: String(form.get(`${prefix}DueDate`)),
-    windowDays: Number(form.get(`${prefix}WindowDays`)),
-    amountToleranceMinor: parseUnits(String(form.get(`${prefix}Tolerance`)), 6).toString(),
-    payerReferenceHash: strictBytes32(String(form.get(`${prefix}PayerReferenceHash`)), "Payer reference hash"),
-  };
-}
-
-export default function Home() {
+export default function AppPage() {
   const { address, chainId, isConnected } = useAccount();
   const { connectors, connect, isPending: isConnecting } = useConnect();
-  const { disconnect } = useDisconnect();
   const { switchChain, isPending: isSwitching } = useSwitchChain();
   const { writeContractAsync, data: transactionHash, isPending } = useWriteContract();
   const { signMessageAsync } = useSignMessage();
   const publicClient = usePublicClient({ chainId: activeChain.id });
   const receipt = useWaitForTransactionReceipt({ hash: transactionHash });
-  const [active, setActive] = useState<Action>("evidence");
-  const [status, setStatus] = useState(`Ready for a ${networkLabel} action.`);
-  const [publicReport, setPublicReport] = useState<PublicReport>();
-  const [lastClaimId, setLastClaimId] = useState("");
-  const [lastAssetId, setLastAssetId] = useState("");
-  const [lastEvidenceBundle, setLastEvidenceBundle] = useState("");
-  const [preparedTerms, setPreparedTerms] = useState<AssetTerms>();
+  const connector = connectors[0];
+
+  const [mode, setMode] = useState<Mode>("issue");
+  const [session, setSession] = useState<WorkspaceSession>(() => loadSession());
+  const [status, setStatus] = useState("Connect a wallet to report this month’s rent.");
+  const [propertyName, setPropertyName] = useState("");
+  const [periodKey, setPeriodKey] = useState(currentPeriodKey());
+  const [expectedAmount, setExpectedAmount] = useState("2000");
+  const [dueDate, setDueDate] = useState(firstOfPeriod(currentPeriodKey()));
+  const [windowDays, setWindowDays] = useState("5");
+  const [tolerance, setTolerance] = useState("0");
+  const [leaseFile, setLeaseFile] = useState<File>();
   const [proofMethod, setProofMethod] = useState<ProofMethod>("BOT_TRANSACTION");
+  const [paymentTxHash, setPaymentTxHash] = useState("");
+  const [payerWallet, setPayerWallet] = useState("");
+  const [paidAt, setPaidAt] = useState(firstOfPeriod(currentPeriodKey()));
   const [paymentRequestId, setPaymentRequestId] = useState("");
   const [confirmationUrl, setConfirmationUrl] = useState("");
   const [confirmationStatus, setConfirmationStatus] = useState<"IDLE" | "PENDING" | "CONFIRMED">("IDLE");
+  const [publicReport, setPublicReport] = useState<PublicReport>();
+  const [lookupClaimId, setLookupClaimId] = useState("");
+  const [now, setNow] = useState(Date.now());
+  const [listShares, setListShares] = useState("40");
+  const [listPrice, setListPrice] = useState("10");
+  const [stakeAmount, setStakeAmount] = useState("5");
+  const [counterEvidence, setCounterEvidence] = useState("public-challenge");
 
   const networkReady = chainId === activeChain.id;
   const canWrite = isConnected && networkReady && isConfigured && writesEnabled;
   const txUrl = transactionHash ? `${activeChain.blockExplorers.default.url}/tx/${transactionHash}` : undefined;
-  const walletLabel = useMemo(() => short(address), [address]);
+  const remainingSeconds = session.attestedAt
+    ? Math.max(0, Math.ceil((session.attestedAt + challengeWindowSeconds * 1000 - now) / 1000))
+    : 0;
+  const windowOpen = Boolean(session.attestationId) && remainingSeconds > 0 && !session.settled;
+  const windowClosed = Boolean(session.attestationId) && remainingSeconds === 0;
 
-  async function safelyRun(
-    action: (event: FormEvent<HTMLFormElement>) => Promise<void>,
-    event: FormEvent<HTMLFormElement>,
-  ) {
-    try {
-      await action(event);
-    } catch (error) {
-      const detail = error instanceof Error ? error.message.split("\n")[0] : "The action could not be completed.";
-      setStatus(detail);
+  const setupReady = canWrite;
+  const signingSteps = useMemo(() => [
+    "Approve the TestUSDT escrow",
+    "Submit this month’s claim",
+    "Authorize the bonded verifier",
+  ], []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hash = window.location.hash;
+    if (params.get("mode") === "track" || hash === "#console" || hash === "#inspect") {
+      setMode("track");
     }
+    const stored = loadSession();
+    setSession(stored);
+    if (stored.assetName) setPropertyName(stored.assetName);
+    if (stored.periodKey) {
+      setPeriodKey(stored.periodKey);
+      setDueDate(firstOfPeriod(stored.periodKey));
+      setPaidAt(firstOfPeriod(stored.periodKey));
+    }
+    if (stored.expectedAmount) setExpectedAmount(stored.expectedAmount);
+    if (stored.claimId) setLookupClaimId(stored.claimId);
+  }, []);
+
+  useEffect(() => {
+    saveSession(session);
+  }, [session]);
+
+  useEffect(() => {
+    if (mode !== "track") return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [mode]);
+
+  useEffect(() => {
+    if (mode !== "track" || publicReport || !session.claimId) return;
+    void loadReport(session.claimId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, session.claimId]);
+
+  function updateSession(patch: Partial<WorkspaceSession>) {
+    setSession((current) => ({ ...current, ...patch }));
   }
 
-  async function prepareEvidence(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!address) return;
-    const form = new FormData(event.currentTarget);
-    const file = form.get("evidenceDocument");
-    if (!(file instanceof File) || file.size === 0) throw new Error("Choose a text-based PDF or plain-text evidence document");
-    const periodKey = String(form.get("evidencePeriodKey"));
-    const documentHash = keccak256(new Uint8Array(await file.arrayBuffer()));
-    const assetTerms: AssetTerms = {
-      expectedAmountMinor: parseUnits(String(form.get("evidenceExpectedAmount")), 6).toString(),
-      dueDate: String(form.get("evidenceDueDate")),
-      windowDays: Number(form.get("evidenceWindowDays")),
-      amountToleranceMinor: parseUnits(String(form.get("evidenceTolerance")), 6).toString(),
-      payerReferenceHash: zeroHash,
-    };
-    const transactionHash = String(form.get("evidenceTxHash") || "");
-    const paymentProof = proofMethod === "BOT_TRANSACTION"
-      ? { kind: "BOT_TRANSACTION" as const, txHash: transactionHash }
-      : { kind: "COUNTERPARTY_SIGNATURE" as const, requestId: paymentRequestId };
-    if (proofMethod === "COUNTERPARTY_SIGNATURE" && confirmationStatus !== "CONFIRMED") {
-      throw new Error("The registered payer must confirm the payment before evidence can be prepared");
-    }
-    const proofReference = proofMethod === "BOT_TRANSACTION"
-      ? `BOT_TRANSACTION:${transactionHash.toLowerCase()}`
-      : `COUNTERPARTY_SIGNATURE:${paymentRequestId}`;
-    setStatus("Authorizing live evidence extraction…");
-    const signature = await signMessageAsync({ message: evidencePreparationMessage({ requester: address, periodKey, proofReference, documentHash, chainId: activeChain.id }) });
-    const payload = new FormData();
-    payload.set("document", file);
-    payload.set("requester", address);
-    payload.set("signature", signature);
-    payload.set("periodKey", periodKey);
-    payload.set("paymentProof", JSON.stringify(paymentProof));
-    payload.set("assetTerms", JSON.stringify(assetTerms));
-    setStatus("DeepSeek is extracting the document and binding it to the verified payment proof…");
-    const response = await fetch("/v1/evidence/prepare", { method: "POST", body: payload });
-    const result = await response.json() as { evidenceBundle?: unknown; providerRunId?: string; error?: string };
-    if (!response.ok || !result.evidenceBundle) throw new Error(result.error || `Evidence service returned ${response.status}`);
-    const parsedBundle = evidenceBundleSchema.parse(result.evidenceBundle);
-    const serialized = JSON.stringify(parsedBundle, null, 2);
-    setLastEvidenceBundle(serialized);
-    setPreparedTerms(parsedBundle.assetTerms);
-    setStatus(`Live evidence prepared and privately stored. DeepSeek run ${short(result.providerRunId)} is committed. Create the asset with the populated terms, or continue to Submit yield if it already exists.`);
-    setActive("asset");
+  async function waitForTx(hash: `0x${string}`, label: string) {
+    if (!publicClient) throw new Error(`${networkLabel} RPC client is unavailable`);
+    const next = await publicClient.waitForTransactionReceipt({ hash });
+    if (next.status !== "success") throw new Error(`${label} reverted`);
+    return next;
   }
 
-  async function createPayerRequest() {
-    try {
-      if (!address) throw new Error("Connect the issuer wallet first");
-      const formElement = document.getElementById("evidence-form");
-      if (!(formElement instanceof HTMLFormElement)) throw new Error("Evidence form is unavailable");
-      const form = new FormData(formElement);
-      const file = form.get("evidenceDocument");
-      const payer = String(form.get("evidencePayerWallet") || "");
-      const periodKey = String(form.get("evidencePeriodKey") || "");
-      const paidAt = String(form.get("evidencePaidAt") || "");
-      if (!(file instanceof File) || file.size === 0) throw new Error("Choose the evidence document first");
-      if (!isAddress(payer)) throw new Error("Enter the payer's wallet address");
-      const documentHash = keccak256(new Uint8Array(await file.arrayBuffer()));
-      const amountMinor = parseUnits(String(form.get("evidenceExpectedAmount")), 6).toString();
-      setStatus("Authorizing the payer confirmation request…");
-      const signature = await signMessageAsync({
-        message: evidenceRequestMessage({
-          issuer: address,
-          payer,
-          periodKey,
-          amountMinor,
-          paidAt,
-          documentHash,
-          chainId: activeChain.id,
-        }),
-      });
-      const response = await fetch("/v1/evidence/requests", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ issuer: address, payer, periodKey, amountMinor, paidAt, documentHash, signature }),
-      });
-      const result = await response.json() as { requestId?: string; confirmationUrl?: string; error?: string };
-      if (!response.ok || !result.requestId || !result.confirmationUrl) throw new Error(result.error || "Could not create payer request");
-      setPaymentRequestId(result.requestId);
-      setConfirmationUrl(result.confirmationUrl);
-      setConfirmationStatus("PENDING");
-      setStatus("Payer link created. Share it with the registered payer, then check confirmation.");
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Could not create payer request");
-    }
+  async function mintTestUsdt() {
+    if (!address || !contracts.settlement || isMainnet) return;
+    setStatus("Minting 10,000 TestUSDT…");
+    const hash = await writeContractAsync({
+      address: contracts.settlement,
+      abi: erc20Abi,
+      functionName: "mint",
+      args: [address, parseUnits("10000", 6)],
+      chainId: activeChain.id,
+    });
+    await waitForTx(hash, "TestUSDT faucet");
+    setStatus("10,000 TestUSDT received.");
   }
 
-  async function checkPayerRequest() {
-    try {
-      if (!paymentRequestId) throw new Error("Create a payer request first");
-      const response = await fetch(`/v1/evidence/requests/${paymentRequestId}`, { cache: "no-store" });
-      const result = await response.json() as { status?: "PENDING" | "CONFIRMED"; error?: string };
-      if (!response.ok || !result.status) throw new Error(result.error || "Could not check payer confirmation");
-      setConfirmationStatus(result.status);
-      setStatus(result.status === "CONFIRMED" ? "Payer confirmation received. Evidence is ready to prepare." : "Still waiting for the payer signature.");
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Could not check payer confirmation");
-    }
-  }
-
-  async function submitClaim(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!contracts.vault || !contracts.settlement || !address || !publicClient) return;
-    const form = new FormData(event.currentTarget);
-    const assetId = bytes32(String(form.get("assetId")));
-    const amount = parseUnits(String(form.get("amount")), 6);
-    const evidenceBundle = evidenceBundleSchema.parse(JSON.parse(String(form.get("evidenceBundle") || "{}")));
-    const periodKey = bytes32(evidenceBundle.periodKey);
-    const evidenceRoot = hashCanonical(evidenceBundle) as `0x${string}`;
+  async function sendTestPayment() {
+    if (!address || !publicClient || !contracts.settlement) return;
+    const amount = parseUnits(expectedAmount || "0", 6);
+    if (amount <= 0n) throw new Error("Enter the rent amount first");
     const balance = await publicClient.readContract({
       address: contracts.settlement,
       abi: erc20Abi,
@@ -254,349 +220,687 @@ export default function Home() {
       args: [address],
     });
     if (balance < amount) {
-      throw new Error(`Insufficient ${isMainnet ? "official" : "Testnet"} USDT. Fund the connected wallet before submitting a claim.`);
+      setStatus("Minting TestUSDT for the payment proof…");
+      const mintHash = await writeContractAsync({
+        address: contracts.settlement,
+        abi: erc20Abi,
+        functionName: "mint",
+        args: [address, parseUnits("10000", 6)],
+        chainId: activeChain.id,
+      });
+      await waitForTx(mintHash, "TestUSDT mint");
     }
-    setStatus("Approving test USDT escrow…");
-    const approvalHash = await writeContractAsync({
+    setStatus("Sending a TestUSDT payment to this wallet…");
+    const hash = await writeContractAsync({
+      address: contracts.settlement,
+      abi: erc20Abi,
+      functionName: "transfer",
+      args: [address, amount],
+      chainId: activeChain.id,
+    });
+    await waitForTx(hash, "Test payment");
+    setPaymentTxHash(hash);
+    setStatus(`Payment recorded. Transaction ${compactId(hash)} will be used as proof.`);
+  }
+
+  function useSampleLease() {
+    const file = new File(
+      [sampleLeaseText({ propertyName, amount: expectedAmount, periodKey, dueDate })],
+      "sample-lease.txt",
+      { type: "text/plain" },
+    );
+    setLeaseFile(file);
+    setStatus("Sample lease attached. You can still replace it with your own file.");
+  }
+
+  async function createPayerRequest() {
+    if (!address) throw new Error("Connect the issuer wallet first");
+    const file = leaseFile;
+    if (!file) throw new Error("Attach the lease first");
+    if (!isAddress(payerWallet)) throw new Error("Enter the payer’s wallet address");
+    const documentHash = keccak256(new Uint8Array(await file.arrayBuffer()));
+    const amountMinor = parseUnits(expectedAmount, 6).toString();
+    setStatus("Authorizing the payer confirmation request…");
+    const signature = await signMessageAsync({
+      message: evidenceRequestMessage({
+        issuer: address,
+        payer: payerWallet,
+        periodKey,
+        amountMinor,
+        paidAt,
+        documentHash,
+        chainId: activeChain.id,
+      }),
+    });
+    const response = await fetch("/v1/evidence/requests", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        issuer: address,
+        payer: payerWallet,
+        periodKey,
+        amountMinor,
+        paidAt,
+        documentHash,
+        signature,
+      }),
+    });
+    const result = await response.json() as { requestId?: string; confirmationUrl?: string; error?: string };
+    if (!response.ok || !result.requestId || !result.confirmationUrl) {
+      throw new Error(result.error || "Could not create payer request");
+    }
+    setPaymentRequestId(result.requestId);
+    setConfirmationUrl(result.confirmationUrl);
+    setConfirmationStatus("PENDING");
+    setStatus("Payer link created. Share it, then check confirmation before reporting.");
+  }
+
+  async function checkPayerRequest() {
+    if (!paymentRequestId) throw new Error("Create a payer request first");
+    const response = await fetch(`/v1/evidence/requests/${paymentRequestId}`, { cache: "no-store" });
+    const result = await response.json() as { status?: "PENDING" | "CONFIRMED"; error?: string };
+    if (!response.ok || !result.status) throw new Error(result.error || "Could not check payer confirmation");
+    setConfirmationStatus(result.status);
+    setStatus(result.status === "CONFIRMED" ? "Payer confirmation received." : "Still waiting for the payer signature.");
+  }
+
+  async function reportRent(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!address || !publicClient || !contracts.vault || !contracts.settlement || !contracts.assetFactory || !contracts.assetRegistry) {
+      throw new Error("The Testnet product is not configured yet");
+    }
+    const name = propertyName.trim();
+    if (!name) throw new Error("Name the property");
+    const file = leaseFile;
+    if (!file) throw new Error("Attach a lease, or use the sample");
+    const amount = parseUnits(expectedAmount, 6);
+    if (amount <= 0n) throw new Error("Enter a rent amount");
+    if (proofMethod === "BOT_TRANSACTION" && !(isHex(paymentTxHash) && paymentTxHash.length === 66)) {
+      throw new Error("Send a test payment or paste a TestUSDT transaction hash");
+    }
+    if (proofMethod === "COUNTERPARTY_SIGNATURE" && confirmationStatus !== "CONFIRMED") {
+      throw new Error("The registered payer must confirm before you report");
+    }
+
+    const paymentProof = proofMethod === "BOT_TRANSACTION"
+      ? { kind: "BOT_TRANSACTION" as const, txHash: paymentTxHash }
+      : { kind: "COUNTERPARTY_SIGNATURE" as const, requestId: paymentRequestId };
+    const proofReference = proofMethod === "BOT_TRANSACTION"
+      ? `BOT_TRANSACTION:${paymentTxHash.toLowerCase()}`
+      : `COUNTERPARTY_SIGNATURE:${paymentRequestId}`;
+    const documentHash = keccak256(new Uint8Array(await file.arrayBuffer()));
+    const assetTerms = {
+      expectedAmountMinor: amount.toString(),
+      dueDate,
+      windowDays: Number(windowDays),
+      amountToleranceMinor: parseUnits(tolerance || "0", 6).toString(),
+      payerReferenceHash: zeroHash,
+    };
+
+    setStatus("Authorizing live evidence extraction…");
+    const prepareSignature = await signMessageAsync({
+      message: evidencePreparationMessage({
+        requester: address,
+        periodKey,
+        proofReference,
+        documentHash,
+        chainId: activeChain.id,
+      }),
+    });
+    const payload = new FormData();
+    payload.set("document", file);
+    payload.set("requester", address);
+    payload.set("signature", prepareSignature);
+    payload.set("periodKey", periodKey);
+    payload.set("paymentProof", JSON.stringify(paymentProof));
+    payload.set("assetTerms", JSON.stringify(assetTerms));
+    setStatus("Reading the lease and checking the payment proof…");
+    const prepared = await fetch("/v1/evidence/prepare", { method: "POST", body: payload });
+    const preparedBody = await prepared.json() as { evidenceBundle?: unknown; error?: string };
+    if (!prepared.ok || !preparedBody.evidenceBundle) {
+      throw new Error(preparedBody.error || "Evidence preparation failed");
+    }
+    const bundle = evidenceBundleSchema.parse(preparedBody.evidenceBundle);
+    const serialized = JSON.stringify(bundle);
+    const assetId = bytes32(name);
+    const shareToken = await publicClient.readContract({
+      address: contracts.assetRegistry,
+      abi: assetRegistryAbi,
+      functionName: "shareTokenOf",
+      args: [assetId],
+    });
+    const termsHash = hashCanonical(bundle.assetTerms) as `0x${string}`;
+    if (shareToken === zeroAddress) {
+      setStatus("Registering the property and issuing your shares…");
+      const createHash = await writeContractAsync({
+        address: contracts.assetFactory,
+        abi: assetFactoryAbi,
+        functionName: "createAsset",
+        args: [
+          assetId,
+          name,
+          symbolFromName(name),
+          bytes32("policy-v1"),
+          termsHash,
+          [getAddress(address)],
+          [parseUnits("100", 18)],
+        ],
+        chainId: activeChain.id,
+      });
+      await waitForTx(createHash, "Property registration");
+    } else {
+      const registeredTerms = await publicClient.readContract({
+        address: contracts.assetRegistry,
+        abi: assetRegistryAbi,
+        functionName: "termsHashOf",
+        args: [assetId],
+      });
+      if (registeredTerms.toLowerCase() !== termsHash.toLowerCase()) {
+        throw new Error("This property is already registered with different rent terms");
+      }
+    }
+
+    const balance = await publicClient.readContract({
+      address: contracts.settlement,
+      abi: erc20Abi,
+      functionName: "balanceOf",
+      args: [address],
+    });
+    if (balance < amount) {
+      throw new Error("Not enough TestUSDT to escrow this claim. Use Get TestUSDT first.");
+    }
+    setStatus("Approving the TestUSDT escrow…");
+    const approval = await writeContractAsync({
       address: contracts.settlement,
       abi: erc20Abi,
       functionName: "approve",
       args: [contracts.vault, amount],
       chainId: activeChain.id,
     });
-    setStatus(`Approval submitted ${short(approvalHash)}. Waiting for confirmation…`);
-    const approvalReceipt = await publicClient.waitForTransactionReceipt({ hash: approvalHash });
-    if (approvalReceipt.status !== "success") throw new Error("Settlement-token approval reverted");
-    setStatus("Approval confirmed. Submitting the escrowed claim…");
+    await waitForTx(approval, "USDT approval");
+    setStatus("Submitting the escrowed claim…");
     const claimHash = await writeContractAsync({
       address: contracts.vault,
       abi: vaultAbi,
       functionName: "submitClaim",
-      args: [assetId, periodKey, amount, evidenceRoot],
+      args: [assetId, bytes32(bundle.periodKey), amount, hashCanonical(bundle) as `0x${string}`],
       chainId: activeChain.id,
     });
-    const claimReceipt = await publicClient.waitForTransactionReceipt({ hash: claimHash });
-    if (claimReceipt.status !== "success") throw new Error("Yield claim transaction reverted");
+    await waitForTx(claimHash, "Yield claim");
     const claimId = await publicClient.readContract({
       address: contracts.vault,
       abi: vaultAbi,
       functionName: "periodClaims",
-      args: [assetId, periodKey],
+      args: [assetId, bytes32(bundle.periodKey)],
     });
-    setLastClaimId(claimId);
-    setStatus(`Claim ${short(claimId)} escrowed. Sign once to authorize its bonded verification.`);
-    const signature = await signMessageAsync({ message: attestationRequestMessage(claimId, activeChain.id, networkLabel) });
-    const response = await fetch(`/v1/process/${claimId}`, {
+    setStatus("Authorizing the bonded verifier…");
+    const verifySignature = await signMessageAsync({
+      message: attestationRequestMessage(claimId, activeChain.id, networkLabel),
+    });
+    const processed = await fetch(`/v1/process/${claimId}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ requester: address, signature, evidenceBundle }),
+      body: JSON.stringify({ requester: address, signature: verifySignature, evidenceBundle: bundle }),
     });
-    if (!response.ok) throw new Error(`Verifier service returned ${response.status}`);
-    const result = await response.json() as ProcessResult;
-    const serializedBundle = JSON.stringify(evidenceBundle, null, 2);
-    setLastEvidenceBundle(serializedBundle);
-    window.localStorage.setItem(`veritable:evidence:${claimId}`, serializedBundle);
-    setPublicReport({ reportHash: result.reportHash, attestationId: result.attestationId, attestationTransactionHash: result.transactionHash, report: result.report });
-    setActive("inspect");
+    if (!processed.ok) throw new Error(`Verifier service returned ${processed.status}`);
+    const result = await processed.json() as ProcessResult;
+    rememberEvidence(claimId, serialized);
+    const nextSession: WorkspaceSession = {
+      assetLabel: name,
+      assetName: name,
+      tokenSymbol: symbolFromName(name),
+      periodKey,
+      expectedAmount,
+      evidenceBundle: serialized,
+      claimId,
+      attestationId: result.attestationId || "",
+      attestationTx: result.transactionHash || "",
+      attestedAt: result.attestationId ? Date.now() : 0,
+      settled: false,
+    };
+    setSession(nextSession);
+    setLookupClaimId(claimId);
+    setPublicReport({
+      reportHash: result.reportHash,
+      attestationId: result.attestationId,
+      attestationTransactionHash: result.transactionHash,
+      report: result.report,
+    });
+    setMode("track");
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", "/app?mode=track");
+    }
     setStatus(result.status === "INCONCLUSIVE"
-      ? `Claim ${short(claimId)} is inconclusive; no onchain attestation was submitted.`
-      : `Claim ${short(claimId)} was attested as ${result.outcome}. The ${challengeWindowSeconds}-second challenge window is open.`);
+      ? "The verifier could not decide. Escrow stays locked."
+      : `Claim attested as ${result.outcome}. The challenge window is open.`);
   }
 
-  async function runSimple(event: FormEvent<HTMLFormElement>) {
+  async function loadReport(claimIdRaw: string, bundleRaw?: string) {
+    const claimId = bytes32(claimIdRaw);
+    const supplied = bundleRaw || session.evidenceBundle || recallEvidence(claimId);
+    let evidenceBundle: EvidenceBundle | undefined;
+    if (supplied) {
+      try {
+        evidenceBundle = evidenceBundleSchema.parse(JSON.parse(supplied));
+      } catch {
+        evidenceBundle = undefined;
+      }
+    }
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || window.location.origin;
+    const response = await fetch(new URL(`/v1/reports/${claimId}`, apiBase), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ evidenceBundle }),
+    });
+    if (!response.ok) {
+      setStatus(response.status === 404 ? "No report has been produced for that claim yet." : `Report service returned ${response.status}.`);
+      return;
+    }
+    const report = await response.json() as PublicReport;
+    setPublicReport(report);
+    updateSession({
+      claimId: report.report.claimId,
+      attestationId: report.attestationId || session.attestationId,
+      evidenceBundle: supplied || session.evidenceBundle,
+    });
+    setStatus("Verification report loaded.");
+  }
+
+  async function challengeAttestation() {
+    if (!contracts.attestation || !session.attestationId) throw new Error("No attestation to challenge");
+    if (!challengeBondBot) throw new Error("Challenge bond is not configured");
+    setStatus("Submitting the challenge…");
+    const hash = await writeContractAsync({
+      address: contracts.attestation,
+      abi: attestationAbi,
+      functionName: "challenge",
+      args: [bytes32(session.attestationId), bytes32(counterEvidence || "public-challenge")],
+      value: parseEther(challengeBondBot),
+      chainId: activeChain.id,
+    });
+    await waitForTx(hash, "Challenge");
+    setStatus(`Challenge submitted with a ${challengeBondBot} ${nativeTokenLabel} bond.`);
+  }
+
+  async function finalizeAttestation() {
+    if (!contracts.attestation || !session.attestationId) throw new Error("No attestation to finalize");
+    setStatus("Finalizing the unchallenged attestation…");
+    const hash = await writeContractAsync({
+      address: contracts.attestation,
+      abi: attestationAbi,
+      functionName: "settle",
+      args: [bytes32(session.attestationId)],
+      chainId: activeChain.id,
+    });
+    await waitForTx(hash, "Settlement");
+    updateSession({ settled: true });
+    setStatus("Attestation settled. Holders can claim their share.");
+  }
+
+  async function overturnAttestation() {
+    if (!contracts.attestation || !session.attestationId) throw new Error("No attestation to overturn");
+    setStatus("Submitting the admin reversal…");
+    const hash = await writeContractAsync({
+      address: contracts.attestation,
+      abi: attestationAbi,
+      functionName: "resolve",
+      args: [bytes32(session.attestationId), false, 2, 0n],
+      chainId: activeChain.id,
+    });
+    await waitForTx(hash, "Resolver reversal");
+    updateSession({ settled: true });
+    setStatus("Admin reversal submitted. The claim is blocked and the verifier can be slashed.");
+  }
+
+  async function claimProceeds() {
+    if (!contracts.vault || !session.claimId) throw new Error("No settled claim to collect");
+    setStatus("Claiming your share of the verified escrow…");
+    const hash = await writeContractAsync({
+      address: contracts.vault,
+      abi: vaultAbi,
+      functionName: "claimYield",
+      args: [bytes32(session.claimId)],
+      chainId: activeChain.id,
+    });
+    await waitForTx(hash, "Yield claim");
+    setStatus("Distribution submitted against the holder snapshot.");
+  }
+
+  async function offerShares(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    if (active === "asset" && contracts.assetFactory && address) {
-      const assetId = bytes32(String(form.get("newAssetId")));
-      const holderInputs = [
-        [String(form.get("holderA") || ""), String(form.get("holderAShares") || "")],
-        [String(form.get("holderB") || ""), String(form.get("holderBShares") || "")],
-      ].filter(([holder, shares]) => holder || shares);
-      if (holderInputs.length === 0 || holderInputs.some(([holder, shares]) => !isAddress(holder) || !shares || Number(shares) <= 0)) throw new Error("Provide at least one valid holder and a positive share amount");
-      const assetTerms = termsFromForm(form, "asset");
-      const hash = await writeContractAsync({
-        address: contracts.assetFactory,
-        abi: assetFactoryAbi,
-        functionName: "createAsset",
-        args: [
-          assetId,
-          String(form.get("tokenName")),
-          String(form.get("tokenSymbol")),
-          bytes32("policy-v1"),
-          hashCanonical(assetTerms) as `0x${string}`,
-          holderInputs.map(([holder]) => getAddress(holder)),
-          holderInputs.map(([, shares]) => parseUnits(shares, 18)),
-        ],
-        chainId: activeChain.id,
-      });
-      if (!publicClient) throw new Error(`${networkLabel} RPC client is unavailable`);
-      const creationReceipt = await publicClient.waitForTransactionReceipt({ hash });
-      if (creationReceipt.status !== "success") throw new Error("Asset creation reverted");
-      setLastAssetId(assetId);
-      setStatus("Asset created and shares allocated. Continue to Submit yield using the same Asset ID.");
-      return;
-    }
-    if (active === "list" && contracts.assetRegistry && contracts.marketplace && address) {
-      if (!publicClient) throw new Error(`${networkLabel} RPC client is unavailable`);
-      const assetId = bytes32(String(form.get("listingAssetId")));
-      const shareAmount = parseUnits(String(form.get("listingShareAmount")), 18);
-      const pricePerShareMinor = parseUnits(String(form.get("listingPrice")), 6);
-      const shareToken = await publicClient.readContract({
-        address: contracts.assetRegistry,
-        abi: assetRegistryAbi,
-        functionName: "shareTokenOf",
-        args: [assetId],
-      });
-      if (shareToken === "0x0000000000000000000000000000000000000000") throw new Error("That asset is not registered");
-      setStatus("Approving the marketplace to escrow the listed shares…");
-      const approval = await writeContractAsync({
-        address: shareToken,
-        abi: erc20Abi,
-        functionName: "approve",
-        args: [contracts.marketplace, shareAmount],
-        chainId: activeChain.id,
-      });
-      if ((await publicClient.waitForTransactionReceipt({ hash: approval })).status !== "success") throw new Error("Share-token approval reverted");
-      setStatus("Creating the public fixed-price offering…");
-      const listingHash = await writeContractAsync({
-        address: contracts.marketplace,
-        abi: marketplaceAbi,
-        functionName: "createListing",
-        args: [assetId, shareAmount, pricePerShareMinor, String(form.get("listingMetadata") || "")],
-        chainId: activeChain.id,
-      });
-      if ((await publicClient.waitForTransactionReceipt({ hash: listingHash })).status !== "success") throw new Error("Marketplace listing reverted");
-      setStatus("Offering is live. Any Testnet wallet can now purchase the escrowed shares.");
-      return;
-    }
-    if (active === "inspect") {
-      setPublicReport(undefined);
-      setStatus("Loading the redacted deterministic report…");
-      const claimId = bytes32(String(form.get("reportClaimId")));
-      setLastClaimId(claimId);
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || window.location.origin;
-      const suppliedBundle = String(form.get("reportEvidenceBundle") || lastEvidenceBundle || window.localStorage.getItem(`veritable:evidence:${claimId}`) || "");
-      const evidenceBundle = suppliedBundle ? evidenceBundleSchema.parse(JSON.parse(suppliedBundle)) : undefined;
-      const response = await fetch(new URL(`/v1/reports/${claimId}`, apiBase), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ evidenceBundle }) });
-      if (!response.ok) {
-        setStatus(response.status === 404 ? "No report has been produced for that claim yet." : `Report service returned ${response.status}.`);
-        return;
-      }
-      setPublicReport(await response.json() as PublicReport);
-      setStatus("Verification report loaded from the agent's public audit trail.");
-      return;
-    }
-    if (active === "collect" && contracts.vault) {
-      await writeContractAsync({ address: contracts.vault, abi: vaultAbi, functionName: "claimYield", args: [bytes32(String(form.get("claimId")))], chainId: activeChain.id });
-      setStatus("Distribution claim submitted against the immutable holder snapshot.");
-    }
-    if (active === "stake" && contracts.staking) {
-      await writeContractAsync({ address: contracts.staking, abi: stakingAbi, functionName: "stake", value: parseEther(String(form.get("stakeAmount"))), chainId: activeChain.id });
-      setStatus("Verifier stake submitted. Stake becomes slashable when an attestation locks it.");
-    }
-    if (active === "challenge" && contracts.attestation) {
-      if (!challengeBondBot) throw new Error("Challenge bond is not configured for this deployment");
-      await writeContractAsync({
-        address: contracts.attestation,
-        abi: attestationAbi,
-        functionName: "challenge",
-        args: [bytes32(String(form.get("attestationId"))), bytes32(String(form.get("counterEvidence")))],
-        value: parseEther(challengeBondBot),
-        chainId: activeChain.id,
-      });
-      setStatus(`Challenge submitted with a ${challengeBondBot} ${nativeTokenLabel} bond for resolver review.`);
-    }
-    if (active === "resolve" && contracts.attestation) {
-      const attestationId = bytes32(String(form.get("resolutionAttestationId")));
-      const mode = String(form.get("resolutionMode"));
-      if (mode === "settle") {
-        await writeContractAsync({ address: contracts.attestation, abi: attestationAbi, functionName: "settle", args: [attestationId], chainId: activeChain.id });
-        setStatus("Unchallenged attestation settlement submitted after its challenge window.");
-      } else {
-        await writeContractAsync({ address: contracts.attestation, abi: attestationAbi, functionName: "resolve", args: [attestationId, false, 2, 0n], chainId: activeChain.id });
-        setStatus("Resolver reversal submitted: claim blocked, verifier stake slashed, challenger bond returned.");
-      }
+    if (!address || !publicClient || !contracts.marketplace || !contracts.assetRegistry) return;
+    const assetId = bytes32(session.assetName || propertyName);
+    const shareAmount = parseUnits(listShares, 18);
+    const pricePerShareMinor = parseUnits(listPrice, 6);
+    const shareToken = await publicClient.readContract({
+      address: contracts.assetRegistry,
+      abi: assetRegistryAbi,
+      functionName: "shareTokenOf",
+      args: [assetId],
+    });
+    if (shareToken === zeroAddress) throw new Error("Report rent first so the property exists");
+    setStatus("Approving the marketplace to escrow shares…");
+    const approval = await writeContractAsync({
+      address: shareToken,
+      abi: erc20Abi,
+      functionName: "approve",
+      args: [contracts.marketplace, shareAmount],
+      chainId: activeChain.id,
+    });
+    await waitForTx(approval, "Share approval");
+    setStatus("Publishing the offering…");
+    const listingHash = await writeContractAsync({
+      address: contracts.marketplace,
+      abi: marketplaceAbi,
+      functionName: "createListing",
+      args: [assetId, shareAmount, pricePerShareMinor, session.assetName || propertyName],
+      chainId: activeChain.id,
+    });
+    await waitForTx(listingHash, "Marketplace listing");
+    setStatus("Offering is live on the marketplace.");
+  }
+
+  async function stakeVerifier(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!contracts.staking) return;
+    setStatus(`Staking ${stakeAmount} ${nativeTokenLabel}…`);
+    const hash = await writeContractAsync({
+      address: contracts.staking,
+      abi: stakingAbi,
+      functionName: "stake",
+      value: parseEther(stakeAmount),
+      chainId: activeChain.id,
+    });
+    await waitForTx(hash, "Verifier stake");
+    setStatus("Stake submitted. It becomes slashable when an attestation locks it.");
+  }
+
+  async function safelyRun(action: () => Promise<void>) {
+    try {
+      await action();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message.split("\n")[0] : "The action could not be completed.");
     }
   }
 
-  const connector = connectors[0];
   return (
     <main className="app-page">
-      <nav className="nav shell">
-        <a className="brand" href="/" aria-label="Veritable home"><span className="brand-mark"><Fingerprint size={19} /></span>Veritable</a>
-        <div className="nav-right">
-          <a className="docs-link" href="/marketplace">Marketplace <Store size={14} /></a>
-          {isConnected ? (
-            <button className="wallet-button connected" aria-label={`Disconnect wallet ${walletLabel}`} onClick={() => disconnect()}><Wallet size={16} /><span>{walletLabel}</span></button>
-          ) : (
-            <button className="wallet-button" disabled={!connector || isConnecting} onClick={() => connector && connect({ connector })}>
-              {isConnecting ? <LoaderCircle className="spin" size={16} /> : <Wallet size={16} />}<span>{isConnecting ? "Connecting" : "Connect wallet"}</span>
-            </button>
-          )}
-        </div>
-      </nav>
+      <SiteNav active={mode === "track" ? "track" : "issue"} />
 
-      <section className="hero shell" id="top">
-        <div className="eyebrow"><ShieldCheck size={15} /> Built for the AI × RWA challenge</div>
-        <h1>Make real-world yield<br /><span>prove itself.</span></h1>
-        <p className="hero-copy">Veritable turns messy payment evidence into deterministic, challengeable onchain settlement without letting an AI decide who gets paid.</p>
-        <div className="hero-actions">
-          <a className="primary-link" href="#console">Open {isMainnet ? "Mainnet" : "Testnet"} console <ArrowUpRight size={17} /></a>
-          <a className="secondary-link" href="#how">See the trust model</a>
-        </div>
-        <div className="proof-strip">
-          <div><strong>AI extracts</strong><span>Documents become structured facts</span></div>
-          <div><strong>Policy decides</strong><span>Versioned rules reproduce outcomes</span></div>
-          <div><strong>BOT settles</strong><span>Bonds and disputes create accountability</span></div>
-        </div>
-      </section>
-
-      <section className="console shell" id="console">
-        <div className="section-heading">
-          <div><span className="kicker">Live protocol surface</span><h2>Test the full verification loop</h2></div>
-          <div className={`readiness ${isConfigured ? "ready" : ""}`}><span />{isConfigured ? "Contracts configured" : `Awaiting ${networkLabel} deployment`}</div>
-        </div>
-        <div className="console-grid">
-          <aside className="tabs" aria-label="Protocol actions by role">
-            <div className="tab-group">
-              <div className="tab-group-label"><span>Issuer</span><small>Publish & report</small></div>
-              <button aria-pressed={active === "evidence"} className={active === "evidence" ? "active" : ""} onClick={() => setActive("evidence")}><Bot /> <span><strong>Prepare evidence</strong><small>DeepSeek + signed source</small></span></button>
-              <button aria-pressed={active === "asset"} className={active === "asset" ? "active" : ""} onClick={() => setActive("asset")}><Building2 /> <span><strong>Create asset</strong><small>Issuer onboarding</small></span></button>
-              <button aria-pressed={active === "list"} className={active === "list" ? "active" : ""} onClick={() => setActive("list")}><Store /> <span><strong>List offering</strong><small>Public primary sale</small></span></button>
-              <button aria-pressed={active === "claim"} className={active === "claim" ? "active" : ""} onClick={() => setActive("claim")}><FileCheck2 /> <span><strong>Submit yield</strong><small>Deposit verified income</small></span></button>
-            </div>
-            <div className="tab-group">
-              <div className="tab-group-label"><span>Investor & public</span><small>Review & collect</small></div>
-              <a className="tab-market-link" href="/marketplace"><Store /> <span><strong>Browse marketplace</strong><small>Discover public offerings</small></span></a>
-              <button aria-pressed={active === "inspect"} className={active === "inspect" ? "active" : ""} onClick={() => setActive("inspect")}><SearchCheck /> <span><strong>Inspect report</strong><small>Public audit trail</small></span></button>
-              <button aria-pressed={active === "collect"} className={active === "collect" ? "active" : ""} onClick={() => setActive("collect")}><CircleDollarSign /> <span><strong>Claim proceeds</strong><small>Investor distributions</small></span></button>
-            </div>
-            <div className="tab-group">
-              <div className="tab-group-label"><span>Protocol security</span><small>Verify & dispute</small></div>
-              <button aria-pressed={active === "stake"} className={active === "stake" ? "active" : ""} onClick={() => setActive("stake")}><LockKeyhole /> <span><strong>Stake as verifier</strong><small>Agent collateral</small></span></button>
-              <button aria-pressed={active === "challenge"} className={active === "challenge" ? "active" : ""} onClick={() => setActive("challenge")}><Gavel /> <span><strong>Challenge</strong><small>Dispute an attestation</small></span></button>
-              <button aria-pressed={active === "resolve"} className={active === "resolve" ? "active" : ""} onClick={() => setActive("resolve")}><Scale /> <span><strong>Finalize</strong><small>Settlement & resolution</small></span></button>
-            </div>
-          </aside>
-          <div className="action-panel">
-            {active !== "inspect" && !isConnected && <div className="guard"><Unplug size={19} /><span><strong>Wallet required</strong>Connect an injected wallet to begin.</span></div>}
-            {active !== "inspect" && isConnected && !networkReady && <div className="guard warning"><ShieldCheck size={19} /><span><strong>Wrong network</strong>This release writes only to {networkLabel} chain {activeChain.id}.</span><button onClick={() => switchChain({ chainId: activeChain.id })}>{isSwitching ? "Switching…" : "Switch network"}</button></div>}
-            {active !== "inspect" && isConnected && networkReady && !isConfigured && <div className="guard warning"><Bot size={19} /><span><strong>Deployment pending</strong>The interface is ready; {networkLabel} addresses will unlock transactions.</span></div>}
-            {active !== "inspect" && isConnected && networkReady && isConfigured && !writesEnabled && <div className="guard warning"><ShieldCheck size={19} /><span><strong>Mainnet writes locked</strong>This build is configured for read-only inspection until the migration gate is explicitly enabled.</span></div>}
-
-            {active === "evidence" ? (
-              <form id="evidence-form" onSubmit={(event) => void safelyRun(prepareEvidence, event)}>
-                <div className="form-head"><div><span>01 / Evidence</span><h3>Extract and prove revenue</h3></div><span className="demo-badge">No manual JSON</span></div>
-                <div className="field-grid">
-                  <label>Period<input name="evidencePeriodKey" placeholder="YYYY-MM" pattern="\d{4}-(0[1-9]|1[0-2])" required /></label>
-                  <label>Evidence document<input name="evidenceDocument" type="file" accept="application/pdf,text/plain" required /></label>
-                </div>
-                <div className="field-grid">
-                  <label>Expected amount <span>USD / nominal USDT</span><input name="evidenceExpectedAmount" type="number" min="0" step="0.000001" required /></label>
-                  <label>Due date<input name="evidenceDueDate" type="date" required /></label>
-                </div>
-                <div className="field-grid">
-                  <label>Allowed window <span>days</span><input name="evidenceWindowDays" type="number" min="0" max="60" step="1" required /></label>
-                  <label>Amount tolerance <span>USD</span><input name="evidenceTolerance" type="number" min="0" step="0.000001" required /></label>
-                </div>
-                <fieldset className="proof-methods">
-                  <legend>How will payment be proven?</legend>
-                  <button type="button" aria-pressed={proofMethod === "BOT_TRANSACTION"} className={proofMethod === "BOT_TRANSACTION" ? "active" : ""} onClick={() => setProofMethod("BOT_TRANSACTION")}>
-                    <Fingerprint /><span><strong>BOT payment</strong><small>Verify a real Testnet USDT transfer</small></span>
-                  </button>
-                  <button type="button" aria-pressed={proofMethod === "COUNTERPARTY_SIGNATURE"} className={proofMethod === "COUNTERPARTY_SIGNATURE" ? "active" : ""} onClick={() => setProofMethod("COUNTERPARTY_SIGNATURE")}>
-                    <Link2 /><span><strong>Payer confirmation</strong><small>Send a secure signature link</small></span>
-                  </button>
-                </fieldset>
-                {proofMethod === "BOT_TRANSACTION" ? (
-                  <>
-                    <label>BOT payment transaction<input name="evidenceTxHash" placeholder="0x… transaction that transferred Testnet USDT to this wallet" required /></label>
-                    <p className="bond-note"><ShieldCheck size={15} /> Veritable independently checks the token, sender, recipient, amount, block timestamp, and transaction success.</p>
-                  </>
-                ) : (
-                  <div className="payer-request">
-                    <div className="field-grid">
-                      <label>Registered payer wallet<input name="evidencePayerWallet" placeholder="0x… payer wallet" required /></label>
-                      <label>Payment date<input name="evidencePaidAt" type="date" required /></label>
-                    </div>
-                    <button className="secondary-action" type="button" onClick={() => void createPayerRequest()}><Link2 size={16} /> Create payer link</button>
-                    {confirmationUrl && <div className="share-link">
-                      <span><b>{confirmationStatus}</b><code>{confirmationUrl}</code></span>
-                      <button type="button" aria-label="Copy payer link" onClick={() => void navigator.clipboard.writeText(confirmationUrl)}><Copy size={15} /></button>
-                      <a href={confirmationUrl} target="_blank" rel="noreferrer">Open <ArrowUpRight size={14} /></a>
-                      <button type="button" onClick={() => void checkPayerRequest()}>Check status</button>
-                    </div>}
-                    <p className="bond-note"><ShieldCheck size={15} /> The payer reviews the amount and date, then signs from the registered wallet. No funds or bank credentials are requested.</p>
-                  </div>
-                )}
-                <label className="consent"><input type="checkbox" required /> I have permission to send this document's extracted text to DeepSeek and store the original in private evidence storage.</label>
-                <button className="submit" disabled={!canWrite || isPending || (proofMethod === "COUNTERPARTY_SIGNATURE" && confirmationStatus !== "CONFIRMED")}><Bot /> Verify proof & prepare evidence</button>
-              </form>
-            ) : active === "claim" ? (
-              <form onSubmit={(event) => void safelyRun(submitClaim, event)}>
-                <div className="form-head"><div><span>04 / Issuer</span><h3>Commit provider-verified revenue evidence</h3></div><span className="demo-badge">Live providers</span></div>
-                <label>Asset ID<input name="assetId" defaultValue={lastAssetId} placeholder="Asset label or bytes32 ID" required /></label>
-                <label>Escrow amount <span>{isMainnet ? "official" : "Testnet"} USDT</span><div className="amount-input"><input name="amount" type="number" min="0.000001" step="0.000001" placeholder="Amount already held by this wallet" required /><b>USDT</b></div></label>
-                <label>Prepared evidence bundle <span>Generated automatically</span><textarea name="evidenceBundle" rows={14} defaultValue={lastEvidenceBundle} placeholder="Prepare live evidence first; Veritable fills this automatically" required /></label>
-                <p className="bond-note"><ShieldCheck size={15} /> The exact bundle is hashed onchain. DeepSeek facts must match registered terms, and the selected payment proof is independently revalidated.</p>
-                <button className="submit" disabled={!canWrite || isPending}>{isPending ? <LoaderCircle className="spin" /> : <Fingerprint />} Approve & submit on {isMainnet ? "Mainnet" : "Testnet"}</button>
-              </form>
-            ) : (
-              <form onSubmit={(event) => void safelyRun(runSimple, event)}>
-                <div className="form-head"><div><span>{active === "asset" ? "02 / Issuer" : active === "list" ? "03 / Issuer" : active === "inspect" ? "05 / Public" : active === "collect" ? "06 / Investor" : active === "stake" ? "07 / Verifier" : active === "challenge" ? "08 / Challenger" : "09 / Resolver"}</span><h3>{active === "asset" ? "Create and allocate an RWA" : active === "list" ? "Publish a fixed-price offering" : active === "inspect" ? "Audit a verification result" : active === "collect" ? "Collect verified proceeds" : active === "stake" ? "Back attestations with BOT" : active === "challenge" ? "Dispute a bad attestation" : "Finalize an attestation"}</h3></div></div>
-                {active === "asset" && <>
-                  <div className="field-grid"><label>Asset ID<input name="newAssetId" placeholder="Unique asset label or bytes32 ID" required /></label><label>Payer reference hash<input name="assetPayerReferenceHash" defaultValue={preparedTerms?.payerReferenceHash} placeholder="Prepare evidence to bind the signed source" required /></label></div>
-                  <div className="field-grid"><label>Share token name<input name="tokenName" required /></label><label>Symbol<input name="tokenSymbol" maxLength={12} required /></label></div>
-                  <div className="field-grid"><label>Expected amount <span>USDT</span><input name="assetExpectedAmount" type="number" min="0" step="0.000001" defaultValue={preparedTerms ? formatUnits(BigInt(preparedTerms.expectedAmountMinor), 6) : undefined} required /></label><label>Due date<input name="assetDueDate" type="date" defaultValue={preparedTerms?.dueDate} required /></label></div>
-                  <div className="field-grid"><label>Allowed window <span>days</span><input name="assetWindowDays" type="number" min="0" max="60" step="1" defaultValue={preparedTerms?.windowDays} required /></label><label>Amount tolerance <span>USDT</span><input name="assetTolerance" type="number" min="0" step="0.000001" defaultValue={preparedTerms ? formatUnits(BigInt(preparedTerms.amountToleranceMinor), 6) : undefined} required /></label></div>
-                  <div className="field-grid"><label>Holder A<input name="holderA" defaultValue={address ?? ""} placeholder="0x…" required /></label><label>Holder A shares<input name="holderAShares" type="number" min="0.000001" step="0.000001" required /></label></div>
-                  <div className="field-grid"><label>Holder B <span>optional</span><input name="holderB" placeholder="0x…" /></label><label>Holder B shares <span>optional</span><input name="holderBShares" type="number" min="0.000001" step="0.000001" /></label></div>
-                  <p className="bond-note"><ShieldCheck size={15} /> Uses the registered deterministic policy-v1 and a maximum of 20 initial holders.</p>
-                </>}
-                {active === "list" && <>
-                  <label>Registered asset ID<input name="listingAssetId" defaultValue={lastAssetId} placeholder="Asset label or bytes32 ID" required /></label>
-                  <div className="field-grid"><label>Shares to offer<input name="listingShareAmount" type="number" min="0.000001" step="0.000001" required /></label><label>Price per share <span>TestUSDT</span><input name="listingPrice" type="number" min="0.000001" step="0.000001" required /></label></div>
-                  <label>Property summary or metadata URI <span>public</span><input name="listingMetadata" placeholder="e.g. Lekki rental property · ipfs://…" /></label>
-                  <p className="bond-note"><ShieldCheck size={15} /> Listed shares are escrowed by the marketplace. Buyers pay the connected issuer directly in TestUSDT.</p>
-                </>}
-                {active === "inspect" && <><label>Claim ID<input name="reportClaimId" defaultValue={lastClaimId} placeholder="0x…" required /></label><label>Committed evidence bundle <span>optional recovery JSON</span><textarea name="reportEvidenceBundle" rows={8} defaultValue={lastEvidenceBundle} placeholder="Usually loaded from private durable storage; paste only for recovery" /></label></>}
-                {active === "collect" && <label>Claim ID<input name="claimId" defaultValue={publicReport?.report.claimId ?? lastClaimId} placeholder="0x…" required /></label>}
-                {active === "stake" && <label>Stake amount <span>{nativeTokenLabel}</span><div className="amount-input"><input name="stakeAmount" type="number" min="0.001" step="0.001" required /><b>{nativeTokenLabel}</b></div></label>}
-                {active === "challenge" && <><label>Attestation ID<input name="attestationId" defaultValue={publicReport?.attestationId} placeholder="0x…" required /></label><label>Counter-evidence reference<input name="counterEvidence" placeholder="IPFS CID, document hash, or reference" required /></label><p className="bond-note"><LockKeyhole size={15} /> Requires a {challengeBondBot ?? "configured"} {nativeTokenLabel} challenge bond.</p></>}
-                {active === "resolve" && <><label>Attestation ID<input name="resolutionAttestationId" defaultValue={publicReport?.attestationId} placeholder="0x…" required /></label><label>Action<select name="resolutionMode" defaultValue="settle"><option value="settle">Settle unchallenged attestation</option><option value="overturn">Overturn false approval (resolver only)</option></select></label><p className="bond-note"><Scale size={15} /> Settlement is permissionless after the window; reversal requires the disclosed resolver role.</p></>}
-                <button className="submit" disabled={(active !== "inspect" && !canWrite) || isPending}>{isPending ? <LoaderCircle className="spin" /> : active === "asset" ? <Building2 /> : active === "list" ? <Store /> : active === "inspect" ? <SearchCheck /> : active === "resolve" ? <Scale /> : active === "challenge" ? <Gavel /> : active === "stake" ? <LockKeyhole /> : <CircleDollarSign />}{active === "asset" ? `Create ${isMainnet ? "Mainnet" : "Testnet"} asset` : active === "list" ? "Publish offering" : active === "inspect" ? "Load verification report" : active === "collect" ? "Claim distribution" : active === "stake" ? `Stake ${nativeTokenLabel}` : active === "resolve" ? "Finalize attestation" : "Open challenge"}</button>
-                {active === "inspect" && publicReport && <div className={`report-card ${publicReport.report.outcome.toLowerCase()}`}>
-                  <div className="report-title"><span>{publicReport.report.outcome}</span><small>{publicReport.report.policyVersion} · {publicReport.report.periodKey}</small></div>
-                  <div className="rule-list">{publicReport.report.ruleResults.map((rule) => <div key={rule.ruleId}><b className={rule.status.toLowerCase()}>{rule.status}</b><span><strong>{rule.ruleId.replaceAll("_", " ")}</strong><small>{rule.message}</small></span></div>)}</div>
-                  <p>{publicReport.report.limitations[0]}</p>
-                  <div className="report-identifiers">
-                    <div><span>Claim ID</span><code>{publicReport.report.claimId}</code><button type="button" onClick={() => void navigator.clipboard.writeText(publicReport.report.claimId)}>Copy</button></div>
-                    {publicReport.attestationId && <div><span>Attestation ID</span><code>{publicReport.attestationId}</code><button type="button" onClick={() => void navigator.clipboard.writeText(publicReport.attestationId!)}>Copy</button></div>}
-                    <div><span>Report hash</span><code>{publicReport.reportHash}</code><button type="button" onClick={() => void navigator.clipboard.writeText(publicReport.reportHash)}>Copy</button></div>
-                  </div>
-                  <div className="report-actions">
-                    {publicReport.attestationId && <><button type="button" onClick={() => setActive("challenge")}>Challenge</button><button type="button" onClick={() => setActive("resolve")}>Finalize after {challengeWindowSeconds}s</button></>}
-                    <button type="button" onClick={() => setActive("collect")}>Claim proceeds</button>
-                  </div>
-                </div>}
-              </form>
-            )}
-            <div className="status-line"><span className={receipt.isSuccess ? "success-dot" : ""} /> <p>{receipt.isSuccess ? `Transaction confirmed on ${networkLabel}.` : status}</p>{txUrl && <a href={txUrl} target="_blank" rel="noreferrer">View tx <ArrowUpRight size={13} /></a>}</div>
+      <section className="product-shell shell">
+        <div className="product-heading">
+          <div>
+            <p className="kicker">{mode === "track" ? "Track a claim" : "Report this month’s rent"}</p>
+            <h1>{mode === "track" ? "See the verdict." : "Prove the rent, then get paid."}</h1>
+            <p className="hero-copy">
+              {mode === "track"
+                ? "A deterministic report, a challenge window, and the next money action. No console."
+                : "You declare the rent. The document is extracted separately. A payment proof has to match, or nothing is distributed."}
+            </p>
+          </div>
+          <div className="mode-switch" role="tablist" aria-label="Workspace">
+            <button type="button" className={mode === "issue" ? "active" : ""} onClick={() => setMode("issue")}>Report</button>
+            <button type="button" className={mode === "track" ? "active" : ""} onClick={() => setMode("track")}>Track</button>
           </div>
         </div>
-      </section>
 
-      <section className="trust shell" id="how">
-        <div className="section-heading"><div><span className="kicker">The trust boundary</span><h2>Intelligence without authority</h2></div><p>AI does the ambiguous work. Transparent code makes the consequential decision.</p></div>
-        <div className="trust-grid">
-          <article><span className="step">01</span><Bot /><h3>Extract</h3><p>An external extraction run turns source documents into typed, cited facts. Its documents, output, and signed payment record are hash-committed.</p><small>Source-bound · auditable</small></article>
-          <article><span className="step">02</span><FileCheck2 /><h3>Evaluate</h3><p>A deterministic policy checks signatures, payer identity, dates, and amounts. The same facts always yield the same result.</p><small>Reproducible · versioned</small></article>
-          <article><span className="step">03</span><ShieldCheck /><h3>Attest</h3><p>A bonded verifier signs the report. Anyone can challenge it before settlement; false approvals put stake at risk.</p><small>Accountable · challengeable</small></article>
-          <article><span className="step">04</span><CircleDollarSign /><h3>Settle</h3><p>Verified escrow becomes claimable by the exact token-holder snapshot. No loops and no retroactive entitlement changes.</p><small>Onchain · pull-based</small></article>
+        <div className="setup-strip">
+          {!isConnected && (
+            <div className="guard">
+              <Unplug size={18} />
+              <span><strong>Wallet required</strong>Connect an injected wallet to continue.</span>
+              <button type="button" disabled={!connector || isConnecting} onClick={() => connector && connect({ connector })}>
+                {isConnecting ? "Connecting…" : "Connect"}
+              </button>
+            </div>
+          )}
+          {isConnected && !networkReady && (
+            <div className="guard warning">
+              <ShieldCheck size={18} />
+              <span><strong>Wrong network</strong>Switch to {networkLabel} (chain {activeChain.id}).</span>
+              <button type="button" onClick={() => switchChain({ chainId: activeChain.id })}>{isSwitching ? "Switching…" : "Switch network"}</button>
+            </div>
+          )}
+          {isConnected && networkReady && !isConfigured && (
+            <div className="guard warning">
+              <Bot size={18} />
+              <span><strong>Deployment pending</strong>{networkLabel} addresses are not configured in this build.</span>
+            </div>
+          )}
+          {isConnected && networkReady && isConfigured && !writesEnabled && (
+            <div className="guard warning">
+              <ShieldCheck size={18} />
+              <span><strong>Writes locked</strong>This build is read-only until Mainnet writes are enabled.</span>
+            </div>
+          )}
+          {isConnected && networkReady && (
+            <div className="setup-actions">
+              <a className="secondary-link" href="https://faucet.botchain.ai/basic/" target="_blank" rel="noreferrer">
+                Get {nativeTokenLabel} <ArrowUpRight size={14} />
+              </a>
+              {!isMainnet && (
+                <button className="secondary-link" type="button" disabled={!setupReady || isPending} onClick={() => void safelyRun(mintTestUsdt)}>
+                  <CircleDollarSign size={15} /> Get TestUSDT
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {mode === "issue" ? (
+          <form className="report-form" onSubmit={(event) => void safelyRun(() => reportRent(event))}>
+            <div className="field-grid">
+              <label>Property name<input value={propertyName} onChange={(event) => setPropertyName(event.target.value)} placeholder="Lekki rental" required /></label>
+              <label>Period<input type="month" value={periodKey} onChange={(event) => {
+                const next = event.target.value;
+                setPeriodKey(next);
+                setDueDate(firstOfPeriod(next));
+                setPaidAt(firstOfPeriod(next));
+              }} required /></label>
+            </div>
+            <div className="field-grid">
+              <label>Rent amount <span>USDT</span><input type="number" min="0.000001" step="0.000001" value={expectedAmount} onChange={(event) => setExpectedAmount(event.target.value)} required /></label>
+              <label>Due date<input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} required /></label>
+            </div>
+
+            <div className="lease-block">
+              <label>Lease or rent document
+                <input
+                  type="file"
+                  accept="application/pdf,text/plain"
+                  onChange={(event) => setLeaseFile(event.target.files?.[0] || undefined)}
+                />
+              </label>
+              <div className="sample-actions">
+                <button type="button" className="secondary-action" onClick={useSampleLease}><FileText size={15} /> Use sample lease</button>
+                <button
+                  type="button"
+                  className="secondary-action"
+                  onClick={() => downloadText("sample-lease.txt", sampleLeaseText({ propertyName, amount: expectedAmount, periodKey, dueDate }))}
+                >
+                  Download sample
+                </button>
+                {leaseFile && <small>{leaseFile.name}</small>}
+              </div>
+              <p className="bond-note">You declare the rent above. The document is read separately. If they disagree, the claim fails.</p>
+            </div>
+
+            <fieldset className="proof-methods">
+              <legend>How was the rent paid?</legend>
+              <button type="button" aria-pressed={proofMethod === "BOT_TRANSACTION"} className={proofMethod === "BOT_TRANSACTION" ? "active" : ""} onClick={() => setProofMethod("BOT_TRANSACTION")}>
+                <Fingerprint /><span><strong>Testnet payment</strong><small>Send or paste a TestUSDT transfer</small></span>
+              </button>
+              <button type="button" aria-pressed={proofMethod === "COUNTERPARTY_SIGNATURE"} className={proofMethod === "COUNTERPARTY_SIGNATURE" ? "active" : ""} onClick={() => setProofMethod("COUNTERPARTY_SIGNATURE")}>
+                <Link2 /><span><strong>Payer confirmation</strong><small>Send a signature link</small></span>
+              </button>
+            </fieldset>
+
+            {proofMethod === "BOT_TRANSACTION" ? (
+              <div className="payment-block">
+                <button type="button" className="secondary-action" disabled={!canWrite || isPending} onClick={() => void safelyRun(sendTestPayment)}>
+                  <CircleDollarSign size={16} /> Send a test payment
+                </button>
+                <label>Or paste a TestUSDT transaction
+                  <input value={paymentTxHash} onChange={(event) => setPaymentTxHash(event.target.value)} placeholder="0x… transfer to this wallet" />
+                </label>
+              </div>
+            ) : (
+              <div className="payer-request">
+                <div className="field-grid">
+                  <label>Payer wallet<input value={payerWallet} onChange={(event) => setPayerWallet(event.target.value)} placeholder="0x…" required={proofMethod === "COUNTERPARTY_SIGNATURE"} /></label>
+                  <label>Payment date<input type="date" value={paidAt} onChange={(event) => setPaidAt(event.target.value)} required={proofMethod === "COUNTERPARTY_SIGNATURE"} /></label>
+                </div>
+                <button className="secondary-action" type="button" onClick={() => void safelyRun(createPayerRequest)}><Link2 size={16} /> Create payer link</button>
+                {confirmationUrl && (
+                  <div className="share-link">
+                    <span><b>{confirmationStatus}</b><code>{confirmationUrl}</code></span>
+                    <button type="button" aria-label="Copy payer link" onClick={() => void navigator.clipboard.writeText(confirmationUrl)}><Copy size={15} /></button>
+                    <a href={confirmationUrl} target="_blank" rel="noreferrer">Open <ArrowUpRight size={14} /></a>
+                    <button type="button" onClick={() => void safelyRun(checkPayerRequest)}>Check status</button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <details className="advanced-block">
+              <summary>Advanced terms</summary>
+              <div className="field-grid">
+                <label>Allowed window <span>days</span><input type="number" min="0" max="60" value={windowDays} onChange={(event) => setWindowDays(event.target.value)} /></label>
+                <label>Amount tolerance <span>USDT</span><input type="number" min="0" step="0.000001" value={tolerance} onChange={(event) => setTolerance(event.target.value)} /></label>
+              </div>
+            </details>
+
+            <div className="signing-preview">
+              <p>Your wallet will ask you to:</p>
+              <ol>{signingSteps.map((step) => <li key={step}>{step}</li>)}</ol>
+            </div>
+
+            <label className="consent">
+              <input type="checkbox" required />
+              I have permission to send this document’s extracted text to DeepSeek and store the original privately.
+            </label>
+            <button className="submit" disabled={!canWrite || isPending || (proofMethod === "COUNTERPARTY_SIGNATURE" && confirmationStatus !== "CONFIRMED")}>
+              {isPending ? <LoaderCircle className="spin" /> : <Fingerprint />}
+              Report this month’s rent
+            </button>
+          </form>
+        ) : (
+          <div className="tracker">
+            <form className="lookup-row" onSubmit={(event) => { event.preventDefault(); void safelyRun(() => loadReport(lookupClaimId)); }}>
+              <label>Load a claim
+                <input value={lookupClaimId} onChange={(event) => setLookupClaimId(event.target.value)} placeholder="Uses your last report if you leave this blank" />
+              </label>
+              <button className="secondary-action" type="submit">Load report</button>
+            </form>
+
+            {publicReport ? (
+              <article className={`tracker-report ${publicReport.report.outcome.toLowerCase()}`}>
+                <header>
+                  <p className="kicker">{session.assetName || "Reported property"} · {periodLabel(publicReport.report.periodKey || session.periodKey)}</p>
+                  <h2>{publicReport.report.outcome === "VERIFIED" ? "Approved" : publicReport.report.outcome === "BLOCKED" ? "Blocked" : "Inconclusive"}</h2>
+                  <p>{outcomeCopy(publicReport.report.outcome)}</p>
+                  {publicReport.report.outcome === "VERIFIED" && (
+                    <p className="verified-amount">{formatAmount(publicReport.report.verifiedAmountMinor)} USDT escrowed</p>
+                  )}
+                </header>
+                {windowOpen && (
+                  <p className="countdown">Challenge window {formatCountdown(remainingSeconds)}</p>
+                )}
+                <ul className="human-rules">
+                  {publicReport.report.ruleResults.map((rule) => (
+                    <li key={rule.ruleId}>
+                      <b className={rule.status.toLowerCase()}>{rule.status}</b>
+                      <span>
+                        <strong>{RULE_COPY[rule.ruleId] || rule.ruleId.replaceAll("_", " ").toLowerCase()}</strong>
+                        <small>{rule.message}</small>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="limitation">{publicReport.report.limitations[0]}</p>
+                <div className="report-actions">
+                  {windowOpen && (
+                    <button type="button" disabled={!canWrite || isPending} onClick={() => void safelyRun(challengeAttestation)}>
+                      <Gavel size={15} /> Challenge
+                    </button>
+                  )}
+                  {windowClosed && !session.settled && publicReport.report.outcome !== "INCONCLUSIVE" && (
+                    <button type="button" disabled={!canWrite || isPending} onClick={() => void safelyRun(finalizeAttestation)}>
+                      <Scale size={15} /> Finalize
+                    </button>
+                  )}
+                  {session.settled && publicReport.report.outcome === "VERIFIED" && (
+                    <button type="button" disabled={!canWrite || isPending} onClick={() => void safelyRun(claimProceeds)}>
+                      <CircleDollarSign size={15} /> Claim your share
+                    </button>
+                  )}
+                </div>
+                <details className="proofs-block">
+                  <summary>Proofs</summary>
+                  <div className="report-identifiers">
+                    <div><span>Claim</span><code>{publicReport.report.claimId}</code><button type="button" onClick={() => void navigator.clipboard.writeText(publicReport.report.claimId)}>Copy</button></div>
+                    {publicReport.attestationId && <div><span>Attestation</span><code>{publicReport.attestationId}</code><button type="button" onClick={() => void navigator.clipboard.writeText(publicReport.attestationId!)}>Copy</button></div>}
+                    <div><span>Report</span><code>{publicReport.reportHash}</code><button type="button" onClick={() => void navigator.clipboard.writeText(publicReport.reportHash)}>Copy</button></div>
+                  </div>
+                  <div className="proof-links">
+                    {publicReport.attestationTransactionHash && (
+                      <a href={`${activeChain.blockExplorers.default.url}/tx/${publicReport.attestationTransactionHash}`} target="_blank" rel="noreferrer">
+                        Attestation tx <ArrowUpRight size={13} />
+                      </a>
+                    )}
+                    {session.attestationTx && session.attestationTx !== publicReport.attestationTransactionHash && (
+                      <a href={`${activeChain.blockExplorers.default.url}/tx/${session.attestationTx}`} target="_blank" rel="noreferrer">
+                        Saved tx <ArrowUpRight size={13} />
+                      </a>
+                    )}
+                  </div>
+                </details>
+              </article>
+            ) : (
+              <div className="empty-track">
+                <p>No report loaded yet. Report this month’s rent, or paste a claim ID above.</p>
+                <button type="button" className="secondary-action" onClick={() => setMode("issue")}>Report rent</button>
+              </div>
+            )}
+
+            <details className="advanced-block">
+              <summary>Offer shares</summary>
+              <form onSubmit={(event) => void safelyRun(() => offerShares(event))}>
+                <p className="bond-note">Optional. List some of your 100 issuer shares on the public marketplace.</p>
+                <div className="field-grid">
+                  <label>Shares to offer<input type="number" min="0.000001" step="0.000001" value={listShares} onChange={(event) => setListShares(event.target.value)} /></label>
+                  <label>Price per share <span>TestUSDT</span><input type="number" min="0.000001" step="0.000001" value={listPrice} onChange={(event) => setListPrice(event.target.value)} /></label>
+                </div>
+                <button className="secondary-action" disabled={!canWrite || isPending} type="submit"><Store size={15} /> Publish offering</button>
+              </form>
+            </details>
+
+            <details className="advanced-block">
+              <summary>Advanced</summary>
+              <form onSubmit={(event) => void safelyRun(() => stakeVerifier(event))}>
+                <label>Stake as verifier <span>{nativeTokenLabel}</span>
+                  <div className="amount-input">
+                    <input type="number" min="0.001" step="0.001" value={stakeAmount} onChange={(event) => setStakeAmount(event.target.value)} />
+                    <b>{nativeTokenLabel}</b>
+                  </div>
+                </label>
+                <button className="secondary-action" disabled={!canWrite || isPending} type="submit"><LockKeyhole size={15} /> Stake</button>
+              </form>
+              <label>Counter-evidence note<input value={counterEvidence} onChange={(event) => setCounterEvidence(event.target.value)} /></label>
+              <p className="bond-note">Admin only: overturn a challenged false approval.</p>
+              <button className="secondary-action" type="button" disabled={!canWrite || isPending} onClick={() => void safelyRun(overturnAttestation)}>
+                <Scale size={15} /> Overturn as admin
+              </button>
+            </details>
+          </div>
+        )}
+
+        <div className="status-line">
+          <span className={receipt.isSuccess ? "success-dot" : ""} />
+          <p>{status}</p>
+          {txUrl && <a href={txUrl} target="_blank" rel="noreferrer">View tx <ArrowUpRight size={13} /></a>}
         </div>
       </section>
-
-      <footer className="shell"><a className="brand" href="#top"><span className="brand-mark"><Fingerprint size={18} /></span>Veritable</a><p>Verifiable revenue rails for tokenized real-world assets.</p><span>Testnet prototype · not financial advice</span></footer>
     </main>
   );
 }
