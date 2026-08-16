@@ -12,9 +12,6 @@ export default function LandingPage() {
             <span className="brand-mark"><Fingerprint size={19} /></span>
             Veritable
           </a>
-          <div className="nav-right">
-            <a className="cinematic-launch" href="/app">Report this month’s income <ArrowUpRight size={15} /></a>
-          </div>
         </nav>
 
         <div className="cinematic-hero-content shell">
