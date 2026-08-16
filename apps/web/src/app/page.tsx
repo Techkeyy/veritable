@@ -13,7 +13,7 @@ export default function LandingPage() {
             Veritable
           </a>
           <div className="nav-right">
-            <a className="cinematic-launch" href="/app">Report this month’s rent <ArrowUpRight size={15} /></a>
+            <a className="cinematic-launch" href="/app">Report this month’s income <ArrowUpRight size={15} /></a>
           </div>
         </nav>
 
@@ -22,7 +22,7 @@ export default function LandingPage() {
           <p className="cinematic-lede">Make real-world yield prove itself. Turn payment evidence into deterministic, challengeable settlement, not another promise investors must trust.</p>
           <div className="cinematic-actions">
             <a className="cinematic-primary" href="/marketplace">Explore properties <ArrowUpRight size={15} /></a>
-            <a className="cinematic-secondary" href="/app">Report this month’s rent</a>
+            <a className="cinematic-secondary" href="/app">Report this month’s income</a>
           </div>
         </div>
 
@@ -33,7 +33,7 @@ export default function LandingPage() {
           <div className="cinematic-section-copy">
             <p className="cinematic-kicker">Choose a job</p>
             <ScrollReveal as="h2" className="cinematic-editorial-heading">One wallet. Every role. One verifiable rail.</ScrollReveal>
-            <p className="cinematic-body">Buy a share, report this month’s rent, or read the verdict. Try it: sample lease, send a test payment, wait the window, claim.</p>
+            <p className="cinematic-body">Buy a share, report this month’s income, or read the verdict. Try it: sample document, send a test payment, wait the window, claim.</p>
           </div>
 
           <div className="cinematic-entry-card">
@@ -41,7 +41,7 @@ export default function LandingPage() {
             <p className="cinematic-card-intro">Move directly to the surface built for what you came to do.</p>
             <div className="cinematic-role-links">
               <a href="/marketplace"><span>Investor</span><strong>Browse public offerings</strong><ArrowUpRight /></a>
-              <a href="/app"><span>Issuer</span><strong>Report this month’s rent</strong><ArrowUpRight /></a>
+              <a href="/app"><span>Issuer</span><strong>Report this month’s income</strong><ArrowUpRight /></a>
               <a href="/app?mode=track"><span>Public</span><strong>Track a claim</strong><ArrowUpRight /></a>
             </div>
             <p className="cinematic-card-note">One wallet identity · no custodial account · Testnet today</p>
@@ -62,7 +62,7 @@ export default function LandingPage() {
       </section>
 
       <footer className="cinematic-footer">
-        <div className="shell"><strong>Veritable</strong><span>Verifiable revenue · public proof · BOT Chain</span><div><a href="/marketplace">Marketplace</a><a href="/app">Report rent</a><a href="https://github.com/Techkeyy/veritable" target="_blank" rel="noreferrer">GitHub</a></div></div>
+        <div className="shell"><strong>Veritable</strong><span>Verifiable revenue · public proof · BOT Chain</span><div><a href="/marketplace">Marketplace</a><a href="/app">Report income</a><a href="https://github.com/Techkeyy/veritable" target="_blank" rel="noreferrer">GitHub</a></div></div>
       </footer>
     </main>
   );

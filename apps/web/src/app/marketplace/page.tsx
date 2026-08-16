@@ -121,7 +121,7 @@ export default function MarketplacePage() {
       if ((await publicClient.waitForTransactionReceipt({ hash: purchase })).status !== "success") {
         throw new Error("Share purchase reverted");
       }
-      setStatus(`You own ${formatShares(amount)} ${offering.symbol}. When this property reports verified rent, claim it from Track a claim.`);
+      setStatus(`You own ${formatShares(amount)} ${offering.symbol}. When this property reports verified income, claim it from Track a claim.`);
       await loadOfferings();
     } catch (error) {
       setStatus(error instanceof Error ? error.message.split("\n")[0] : "Purchase failed");
@@ -155,7 +155,7 @@ export default function MarketplacePage() {
       <section className="market-hero shell">
         <div className="eyebrow"><Store size={15} /> Public Testnet marketplace</div>
         <h1>Own the share.<br /><span>Verify the yield.</span></h1>
-        <p className="hero-copy">Buy revenue-share tokens with TestUSDT. You only collect income after Veritable verifies the rent.</p>
+        <p className="hero-copy">Buy revenue-share tokens with TestUSDT. You only collect yield after Veritable verifies the income.</p>
         <div className="market-toolbar">
           {!isConnected ? (
             <p className="hero-copy">Connect a wallet in the header to invest.</p>
@@ -196,7 +196,7 @@ export default function MarketplacePage() {
                 </div>
                 <Building2 size={27} />
                 <h3>{offering.name}</h3>
-                <p>{offering.metadataURI || "Issuer-registered rental-income asset"}</p>
+                <p>{offering.metadataURI || "Issuer-registered income property"}</p>
                 <dl>
                   <div><dt>Price / share</dt><dd>{formatAmount(offering.pricePerShareMinor)} USDT</dd></div>
                   <div><dt>Available</dt><dd>{formatShares(offering.availableShares)} {offering.symbol}</dd></div>
@@ -235,8 +235,8 @@ export default function MarketplacePage() {
             <div className="empty-market">
               <Store />
               <h3>No listings yet</h3>
-              <p>Report rent to create a property, then offer shares from Track a claim.</p>
-              <a href="/app">Report rent</a>
+              <p>Report income to create a property, then offer shares from Track a claim.</p>
+              <a href="/app">Report income</a>
             </div>
           )}
         </div>
@@ -257,7 +257,7 @@ export default function MarketplacePage() {
               <div key={offering.listingId.toString()}>
                 <strong>{offering.name}</strong>
                 <span>{formatShares(offering.walletBalance)} {offering.symbol}</span>
-                <small>Claim verified rent from Track a claim.</small>
+                <small>Claim verified yield from Track a claim.</small>
               </div>
             ))}
           </div>

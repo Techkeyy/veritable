@@ -6,6 +6,7 @@ import {
   type EvidenceDocument,
 } from "@veritable/schemas";
 import { keccak256, type Hex } from "viem";
+import { parseExtractedAmountMinor } from "./format";
 
 const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
 const MAX_EXTRACTED_CHARACTERS = 100_000;
@@ -73,7 +74,7 @@ export async function extractDocumentWithDeepSeek(file: File): Promise<{
         },
         {
           role: "user",
-          content: `Return JSON matching exactly this shape: {"documentKind":"LEASE|RECEIPT|BANK_SCREENSHOT|OTHER","redactedExtractedText":"concise redacted summary","citedFacts":[{"field":"string","value":"string","sourceLocation":"page or section"}],"expectedAmountMinor":"six-decimal USD minor units or null","dueDate":"YYYY-MM-DD or null"}. Convert a visibly stated USD amount to six-decimal minor units. Extract only visibly supported facts.\n\n<document>\n${sourceText}\n</document>`,
+          content: `Return JSON matching exactly this shape: {"documentKind":"LEASE|RECEIPT|BANK_SCREENSHOT|OTHER","redactedExtractedText":"concise redacted summary","citedFacts":[{"field":"string","value":"string","sourceLocation":"page or section"}],"expectedAmountMinor":"USD amount as 2000, 2000.00, or six-decimal minor units, or null","dueDate":"YYYY-MM-DD or null"}. Extract only visibly supported facts. Do not invent an amount.\n\n<document>\n${sourceText}\n</document>`,
         },
       ],
     }),
@@ -86,8 +87,10 @@ export async function extractDocumentWithDeepSeek(file: File): Promise<{
   const extracted = JSON.parse(choice.message.content) as ModelExtraction;
   if (!(["LEASE", "RECEIPT", "BANK_SCREENSHOT", "OTHER"] as string[]).includes(extracted.documentKind)) throw new Error("DeepSeek returned an invalid document kind");
   if (typeof extracted.redactedExtractedText !== "string" || !Array.isArray(extracted.citedFacts)) throw new Error("DeepSeek returned an invalid extraction schema");
-  if (extracted.expectedAmountMinor !== null && !/^\d+$/.test(extracted.expectedAmountMinor)) throw new Error("DeepSeek returned an invalid amount");
-  if (extracted.dueDate !== null && !/^\d{4}-\d{2}-\d{2}$/.test(extracted.dueDate)) throw new Error("DeepSeek returned an invalid due date");
+  const expectedAmountMinor = parseExtractedAmountMinor(extracted.expectedAmountMinor);
+  if (extracted.dueDate !== null && extracted.dueDate !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(String(extracted.dueDate))) {
+    throw new Error("DeepSeek returned an invalid due date");
+  }
 
   const document: EvidenceDocument = {
     id: `deepseek:${run.id}:${file.name}`,
@@ -96,7 +99,7 @@ export async function extractDocumentWithDeepSeek(file: File): Promise<{
     kind: extracted.documentKind,
     extractedText: JSON.stringify({ summary: extracted.redactedExtractedText, citations: extracted.citedFacts }),
     extractedFacts: {
-      expectedAmountMinor: extracted.expectedAmountMinor ?? undefined,
+      expectedAmountMinor: expectedAmountMinor ?? undefined,
       dueDate: extracted.dueDate ?? undefined,
     },
   };

@@ -18,7 +18,7 @@ export function SiteNav({ active }: { active?: "market" | "issue" | "track" }) {
       </a>
       <div className="product-links" aria-label="Primary">
         <a className={active === "market" ? "active" : ""} href="/marketplace">Invest</a>
-        <a className={active === "issue" ? "active" : ""} href="/app">Report rent</a>
+        <a className={active === "issue" ? "active" : ""} href="/app">Report income</a>
         <a className={active === "track" ? "active" : ""} href="/app?mode=track">Track a claim</a>
       </div>
       <div className="nav-right">

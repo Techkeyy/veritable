@@ -2,7 +2,7 @@ import { formatUnits } from "viem";
 
 export const RULE_COPY: Record<string, string> = {
   AI_EXTRACTION_PRESENT: "The document was readable",
-  AI_TERMS_MATCH: "The lease matches the rent you registered",
+  AI_TERMS_MATCH: "The document matches the income you registered",
   SOURCE_PROOF_VALID: "The payment proof checked out",
   SOURCE_RECORD_FRESH: "The payment record is still valid",
   PAYMENT_PRESENT: "A payment was found",
@@ -17,6 +17,24 @@ export function currentPeriodKey(now = new Date()) {
 
 export function firstOfPeriod(periodKey: string) {
   return /^\d{4}-(0[1-9]|1[0-2])$/.test(periodKey) ? `${periodKey}-01` : "";
+}
+
+const MINOR_UNITS = 1_000_000n;
+
+export function parseExtractedAmountMinor(raw: unknown): string | null {
+  if (raw === null || raw === undefined || raw === "") return null;
+  const text = String(raw).replace(/[^0-9.]/g, "");
+  if (!text || text.toLowerCase() === "null") return null;
+  if (/^\d+$/.test(text)) {
+    const value = BigInt(text);
+    return value < MINOR_UNITS ? (value * MINOR_UNITS).toString() : value.toString();
+  }
+  if (!/^\d+\.\d{1,8}$/.test(text)) {
+    throw new Error("DeepSeek returned an invalid amount");
+  }
+  const [whole, fraction = ""] = text.split(".");
+  const minor = BigInt(whole) * MINOR_UNITS + BigInt((fraction + "000000").slice(0, 6));
+  return minor.toString();
 }
 
 export function formatAmount(value: bigint | string, decimals = 6) {
@@ -47,7 +65,7 @@ export function compactId(value?: string) {
 
 export function outcomeCopy(outcome: "VERIFIED" | "BLOCKED" | "INCONCLUSIVE") {
   if (outcome === "VERIFIED") {
-    return "This month’s rent is approved. Investors can claim after the challenge window.";
+    return "This period’s income is approved. Investors can claim after the challenge window.";
   }
   if (outcome === "BLOCKED") {
     return "The evidence did not support this claim. No yield will be paid.";
@@ -62,21 +80,21 @@ export function formatCountdown(totalSeconds: number) {
   return `${minutes}:${String(remainder).padStart(2, "0")}`;
 }
 
-export function sampleLeaseText(input: {
+export function sampleIncomeText(input: {
   propertyName: string;
   amount: string;
   periodKey: string;
   dueDate: string;
 }) {
   return [
-    "LEASE AGREEMENT",
-    `Property: ${input.propertyName || "Demo rental property"}`,
-    `Monthly rent: ${input.amount || "2000"} USD`,
+    "INCOME STATEMENT",
+    `Property: ${input.propertyName || "Demo income property"}`,
+    `Period income: ${input.amount || "2000"} USD`,
     `Due date: ${input.dueDate || firstOfPeriod(input.periodKey) || "the 1st of the month"}`,
     `Period: ${periodLabel(input.periodKey || currentPeriodKey())}`,
-    "Tenant reference: redacted",
+    "Payer reference: redacted",
     "",
     "This is a sandbox document for Veritable Testnet verification.",
-    "It is not a legal lease and does not represent a real tenant or bank payment.",
+    "It is not a legal agreement and does not represent a real counterparty or bank payment.",
   ].join("\n");
 }

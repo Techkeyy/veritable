@@ -51,7 +51,7 @@ import {
   outcomeCopy,
   periodLabel,
   RULE_COPY,
-  sampleLeaseText,
+  sampleIncomeText,
   symbolFromName,
 } from "../../lib/format";
 import { loadSession, recallEvidence, rememberEvidence, saveSession, type WorkspaceSession } from "../../lib/session";
@@ -111,7 +111,7 @@ export default function AppPage() {
 
   const [mode, setMode] = useState<Mode>("issue");
   const [session, setSession] = useState<WorkspaceSession>(() => loadSession());
-  const [status, setStatus] = useState("Connect a wallet to report this month’s rent.");
+  const [status, setStatus] = useState("Connect a wallet to report this month’s income.");
   const [propertyName, setPropertyName] = useState("");
   const [periodKey, setPeriodKey] = useState(currentPeriodKey());
   const [expectedAmount, setExpectedAmount] = useState("2000");
@@ -212,7 +212,7 @@ export default function AppPage() {
   async function sendTestPayment() {
     if (!address || !publicClient || !contracts.settlement) return;
     const amount = parseUnits(expectedAmount || "0", 6);
-    if (amount <= 0n) throw new Error("Enter the rent amount first");
+    if (amount <= 0n) throw new Error("Enter the income amount first");
     const balance = await publicClient.readContract({
       address: contracts.settlement,
       abi: erc20Abi,
@@ -243,20 +243,20 @@ export default function AppPage() {
     setStatus(`Payment recorded. Transaction ${compactId(hash)} will be used as proof.`);
   }
 
-  function useSampleLease() {
+  function useSampleDocument() {
     const file = new File(
-      [sampleLeaseText({ propertyName, amount: expectedAmount, periodKey, dueDate })],
-      "sample-lease.txt",
+      [sampleIncomeText({ propertyName, amount: expectedAmount, periodKey, dueDate })],
+      "sample-income.txt",
       { type: "text/plain" },
     );
     setLeaseFile(file);
-    setStatus("Sample lease attached. You can still replace it with your own file.");
+    setStatus("Sample income document attached. You can still replace it with your own file.");
   }
 
   async function createPayerRequest() {
     if (!address) throw new Error("Connect the issuer wallet first");
     const file = leaseFile;
-    if (!file) throw new Error("Attach the lease first");
+    if (!file) throw new Error("Attach the income document first");
     if (!isAddress(payerWallet)) throw new Error("Enter the payer’s wallet address");
     const documentHash = keccak256(new Uint8Array(await file.arrayBuffer()));
     const amountMinor = parseUnits(expectedAmount, 6).toString();
@@ -312,9 +312,9 @@ export default function AppPage() {
     const name = propertyName.trim();
     if (!name) throw new Error("Name the property");
     const file = leaseFile;
-    if (!file) throw new Error("Attach a lease, or use the sample");
+    if (!file) throw new Error("Attach an income document, or use the sample");
     const amount = parseUnits(expectedAmount, 6);
-    if (amount <= 0n) throw new Error("Enter a rent amount");
+    if (amount <= 0n) throw new Error("Enter an income amount");
     if (proofMethod === "BOT_TRANSACTION" && !(isHex(paymentTxHash) && paymentTxHash.length === 66)) {
       throw new Error("Send a test payment or paste a TestUSDT transaction hash");
     }
@@ -354,7 +354,7 @@ export default function AppPage() {
     payload.set("periodKey", periodKey);
     payload.set("paymentProof", JSON.stringify(paymentProof));
     payload.set("assetTerms", JSON.stringify(assetTerms));
-    setStatus("Reading the lease and checking the payment proof…");
+    setStatus("Reading the document and checking the payment proof…");
     const prepared = await fetch("/v1/evidence/prepare", { method: "POST", body: payload });
     const preparedBody = await prepared.json() as { evidenceBundle?: unknown; error?: string };
     if (!prepared.ok || !preparedBody.evidenceBundle) {
@@ -396,7 +396,7 @@ export default function AppPage() {
         args: [assetId],
       });
       if (registeredTerms.toLowerCase() !== termsHash.toLowerCase()) {
-        throw new Error("This property is already registered with different rent terms");
+        throw new Error("This property is already registered with different income terms");
       }
     }
 
@@ -578,7 +578,7 @@ export default function AppPage() {
       functionName: "shareTokenOf",
       args: [assetId],
     });
-    if (shareToken === zeroAddress) throw new Error("Report rent first so the property exists");
+    if (shareToken === zeroAddress) throw new Error("Report income first so the property exists");
     setStatus("Approving the marketplace to escrow shares…");
     const approval = await writeContractAsync({
       address: shareToken,
@@ -630,12 +630,12 @@ export default function AppPage() {
       <section className="product-shell shell">
         <div className="product-heading">
           <div>
-            <p className="kicker">{mode === "track" ? "Track a claim" : "Report this month’s rent"}</p>
-            <h1>{mode === "track" ? "See the verdict." : "Prove the rent, then get paid."}</h1>
+            <p className="kicker">{mode === "track" ? "Track a claim" : "Report this month’s income"}</p>
+            <h1>{mode === "track" ? "See the verdict." : "Prove the yield, then get paid."}</h1>
             <p className="hero-copy">
               {mode === "track"
                 ? "A deterministic report, a challenge window, and the next money action. No console."
-                : "You declare the rent. The document is extracted separately. A payment proof has to match, or nothing is distributed."}
+                : "You declare the income. The document is extracted separately. A payment proof has to match, or nothing is distributed."}
             </p>
           </div>
           <div className="mode-switch" role="tablist" aria-label="Workspace">
@@ -690,7 +690,7 @@ export default function AppPage() {
         {mode === "issue" ? (
           <form className="report-form" onSubmit={(event) => void safelyRun(() => reportRent(event))}>
             <div className="field-grid">
-              <label>Property name<input value={propertyName} onChange={(event) => setPropertyName(event.target.value)} placeholder="Lekki rental" required /></label>
+              <label>Property name<input value={propertyName} onChange={(event) => setPropertyName(event.target.value)} placeholder="Lekki income property" required /></label>
               <label>Period<input type="month" value={periodKey} onChange={(event) => {
                 const next = event.target.value;
                 setPeriodKey(next);
@@ -699,12 +699,12 @@ export default function AppPage() {
               }} required /></label>
             </div>
             <div className="field-grid">
-              <label>Rent amount <span>USDT</span><input type="number" min="0.000001" step="0.000001" value={expectedAmount} onChange={(event) => setExpectedAmount(event.target.value)} required /></label>
+              <label>Income amount <span>USDT</span><input type="number" min="0.000001" step="0.000001" value={expectedAmount} onChange={(event) => setExpectedAmount(event.target.value)} required /></label>
               <label>Due date<input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} required /></label>
             </div>
 
             <div className="lease-block">
-              <label>Lease or rent document
+              <label>Income document
                 <input
                   type="file"
                   accept="application/pdf,text/plain"
@@ -712,21 +712,21 @@ export default function AppPage() {
                 />
               </label>
               <div className="sample-actions">
-                <button type="button" className="secondary-action" onClick={useSampleLease}><FileText size={15} /> Use sample lease</button>
+                <button type="button" className="secondary-action" onClick={useSampleDocument}><FileText size={15} /> Use sample document</button>
                 <button
                   type="button"
                   className="secondary-action"
-                  onClick={() => downloadText("sample-lease.txt", sampleLeaseText({ propertyName, amount: expectedAmount, periodKey, dueDate }))}
+                  onClick={() => downloadText("sample-income.txt", sampleIncomeText({ propertyName, amount: expectedAmount, periodKey, dueDate }))}
                 >
                   Download sample
                 </button>
                 {leaseFile && <small>{leaseFile.name}</small>}
               </div>
-              <p className="bond-note">You declare the rent above. The document is read separately. If they disagree, the claim fails.</p>
+              <p className="bond-note">You declare the income above. The document is read separately. If they disagree, the claim fails.</p>
             </div>
 
             <fieldset className="proof-methods">
-              <legend>How was the rent paid?</legend>
+              <legend>How was this income paid?</legend>
               <button type="button" aria-pressed={proofMethod === "BOT_TRANSACTION"} className={proofMethod === "BOT_TRANSACTION" ? "active" : ""} onClick={() => setProofMethod("BOT_TRANSACTION")}>
                 <Fingerprint /><span><strong>Testnet payment</strong><small>Send or paste a TestUSDT transfer</small></span>
               </button>
@@ -781,7 +781,7 @@ export default function AppPage() {
             </label>
             <button className="submit" disabled={!canWrite || isPending || (proofMethod === "COUNTERPARTY_SIGNATURE" && confirmationStatus !== "CONFIRMED")}>
               {isPending ? <LoaderCircle className="spin" /> : <Fingerprint />}
-              Report this month’s rent
+              Report this month’s income
             </button>
           </form>
         ) : (
@@ -858,8 +858,8 @@ export default function AppPage() {
               </article>
             ) : (
               <div className="empty-track">
-                <p>No report loaded yet. Report this month’s rent, or paste a claim ID above.</p>
-                <button type="button" className="secondary-action" onClick={() => setMode("issue")}>Report rent</button>
+                <p>No report loaded yet. Report this month’s income, or paste a claim ID above.</p>
+                <button type="button" className="secondary-action" onClick={() => setMode("issue")}>Report income</button>
               </div>
             )}
 
