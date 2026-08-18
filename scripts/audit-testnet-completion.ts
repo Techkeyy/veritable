@@ -5,7 +5,7 @@ import { createPublicClient, defineChain, getAddress, http, type Address, type H
 
 const root = process.cwd();
 const site = "https://veritable-web-sigma.vercel.app";
-const canonicalClaim = "0xd4cf42cb6f65510f1500ffdad7e41a23fac339c509f0e0527bc49f47eaff00e3";
+const canonicalClaim = "0x1b547def2d1d6be5c508e357650fdd7366bd21b1b44ceb11c4e503b6d7a69c1a";
 const chain = defineChain({
   id: 968,
   name: "BOT Chain Testnet",
@@ -55,7 +55,7 @@ const manifest = JSON.parse(await readFile(resolve(root, "deployments/bot-testne
 const acceptance = JSON.parse(await readFile(resolve(root, "deployments/bot-testnet/acceptance.json"), "utf8")) as Acceptance;
 const fresh = JSON.parse(await readFile(resolve(root, "deployments/bot-testnet/fresh-wallet-production.json"), "utf8")) as Fresh;
 const marketplaceAcceptance = JSON.parse(await readFile(resolve(root, "deployments/bot-testnet/marketplace-acceptance.json"), "utf8")) as MarketplaceAcceptance;
-const reportSite = fresh.site ?? "https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site";
+const reportSite = site;
 const checks: Array<{ requirement: string; ok: boolean; evidence: string }> = [];
 const check = (requirement: string, ok: boolean, evidence: string) => checks.push({ requirement, ok, evidence });
 
@@ -135,7 +135,7 @@ const [newFactoryAuthorized, legacyFactoryAuthorized, demoMinter, demoAdmin] = a
   client.readContract({ address: manifest.contracts.revenueShareToken, abi: tokenRoleAbi, functionName: "hasRole", args: [minterRole, manifest.deployer] }),
   client.readContract({ address: manifest.contracts.revenueShareToken, abi: tokenRoleAbi, functionName: "hasRole", args: [adminRole, manifest.deployer] }),
 ]);
-check("Public offering remains live onchain", listingCount >= 1n && listing.active && listing.availableShares === 19n * 10n ** 18n, `listings=${listingCount}; available=${listing.availableShares}`);
+check("Public offering remains live onchain", listingCount >= 1n && listing.active && listing.availableShares > 0n, `listings=${listingCount}; available=${listing.availableShares}`);
 check("Only fixed-supply factory remains authorized", newFactoryAuthorized && !legacyFactoryAuthorized, `new=${newFactoryAuthorized}; legacy=${legacyFactoryAuthorized}`);
 check("Seed share supply is permanently locked", !demoMinter && !demoAdmin, `minter=${demoMinter}; admin=${demoAdmin}`);
 
@@ -146,7 +146,7 @@ const marketplacePage = await fetch(`${site}/marketplace`);
 const marketplaceHtml = await marketplacePage.text();
 check(
   "Public marketplace UI is reachable",
-  marketplacePage.status === 200 && marketplaceHtml.includes("Property offerings") && marketplaceHtml.includes("Your investor portfolio"),
+  marketplacePage.status === 200 && marketplaceHtml.includes("Property offerings") && marketplaceHtml.includes("Your holdings"),
   `${site}/marketplace -> ${marketplacePage.status}`,
 );
 let reportResponse = await fetch(`${reportSite}/v1/reports/${canonicalClaim}`, {
@@ -158,7 +158,7 @@ if (reportResponse.status === 405) reportResponse = await fetch(`${reportSite}/v
 const publicReport = await reportResponse.json() as { report?: { outcome?: string; ruleResults?: unknown[] }; reportHash?: string };
 check(
   "Public deterministic report is auditable",
-  reportResponse.status === 200 && publicReport.report?.outcome === "VERIFIED" && publicReport.report.ruleResults?.length === 6,
+  reportResponse.status === 200 && publicReport.report?.outcome === "VERIFIED" && publicReport.report.ruleResults?.length === 8,
   `status=${reportResponse.status}; outcome=${publicReport.report?.outcome}; rules=${publicReport.report?.ruleResults?.length ?? 0}`,
 );
 const missingAuthorization = await fetch(`${site}/v1/process/${canonicalClaim}`, {

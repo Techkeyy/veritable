@@ -1,0 +1,282 @@
+// One-off operator script: produce a genuine real-evidence canonical claim on the
+// live Vercel deployment so /v1/reports/<claimId> resolves from durable storage.
+//
+// Flow: real TestUSDT payment on chain -> hosted DeepSeek extraction (/v1/evidence/prepare)
+// -> asset creation with the returned terms -> escrow + submitClaim -> hosted verifier
+// (/v1/process) which persists the bundle and attests -> settle -> holders claim.
+
+import { readFile, writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
+import dotenv from "dotenv";
+import { hashCanonical } from "../packages/policy/dist/index.js";
+import {
+  createPublicClient, createWalletClient, http, keccak256, parseEther, parseUnits,
+  stringToHex, getAddress, zeroHash,
+} from "viem";
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+
+const ROOT = process.cwd();
+dotenv.config({ path: resolve(ROOT, ".env"), quiet: true });
+
+const SITE = process.env.HOSTED_TEST_BASE_URL || "https://veritable-web-sigma.vercel.app";
+const RPC = process.env.BOT_TESTNET_RPC_URL || "https://rpc.bohr.life";
+const EXPLORER = "https://scan.bohr.life";
+const PERIOD = "2026-08";
+const AMOUNT = parseUnits("2000", 6);
+const AMOUNT_MINOR = AMOUNT.toString();
+
+const chain = {
+  id: 968, name: "BOT Chain Testnet",
+  nativeCurrency: { name: "Test BOT", symbol: "tBOT", decimals: 18 },
+  rpcUrls: { default: { http: [RPC] } },
+  blockExplorers: { default: { name: "BOTScan Testnet", url: EXPLORER } },
+  testnet: true,
+};
+
+const manifest = JSON.parse(await readFile(resolve(ROOT, "deployments/bot-testnet/manifest.json"), "utf8"));
+if (manifest.chainId !== 968) throw new Error("Wrong-chain manifest");
+
+const tokenAbi = [
+  { type: "function", name: "mint", stateMutability: "nonpayable", inputs: [{ name: "to", type: "address" }, { name: "amount", type: "uint256" }], outputs: [] },
+  { type: "function", name: "transfer", stateMutability: "nonpayable", inputs: [{ name: "to", type: "address" }, { name: "amount", type: "uint256" }], outputs: [{ type: "bool" }] },
+  { type: "function", name: "approve", stateMutability: "nonpayable", inputs: [{ name: "spender", type: "address" }, { name: "amount", type: "uint256" }], outputs: [{ type: "bool" }] },
+  { type: "function", name: "balanceOf", stateMutability: "view", inputs: [{ name: "account", type: "address" }], outputs: [{ type: "uint256" }] },
+];
+const factoryAbi = [{
+  type: "function", name: "createAsset", stateMutability: "nonpayable",
+  inputs: [
+    { name: "assetId", type: "bytes32" }, { name: "name", type: "string" }, { name: "symbol", type: "string" },
+    { name: "policyHash", type: "bytes32" }, { name: "termsHash", type: "bytes32" },
+    { name: "holders", type: "address[]" }, { name: "shares", type: "uint256[]" },
+  ], outputs: [{ name: "shareToken", type: "address" }],
+}];
+const vaultAbi = [
+  { type: "function", name: "submitClaim", stateMutability: "nonpayable", inputs: [{ name: "assetId", type: "bytes32" }, { name: "periodKey", type: "bytes32" }, { name: "amount", type: "uint256" }, { name: "evidenceRoot", type: "bytes32" }], outputs: [{ type: "bytes32" }] },
+  { type: "function", name: "periodClaims", stateMutability: "view", inputs: [{ name: "assetId", type: "bytes32" }, { name: "periodKey", type: "bytes32" }], outputs: [{ type: "bytes32" }] },
+  { type: "function", name: "claimYield", stateMutability: "nonpayable", inputs: [{ name: "claimId", type: "bytes32" }], outputs: [] },
+  { type: "function", name: "getClaim", stateMutability: "view", inputs: [{ name: "claimId", type: "bytes32" }], outputs: [{ name: "claim", type: "tuple", components: [{ name: "assetId", type: "bytes32" }, { name: "periodKey", type: "bytes32" }, { name: "evidenceRoot", type: "bytes32" }, { name: "issuer", type: "address" }, { name: "shareToken", type: "address" }, { name: "escrowedAmount", type: "uint256" }, { name: "verifiedAmount", type: "uint256" }, { name: "snapshotId", type: "uint256" }, { name: "totalShares", type: "uint256" }, { name: "resolvedAt", type: "uint64" }, { name: "status", type: "uint8" }] }] },
+];
+const registryAbi = [
+  { type: "function", name: "claimAttestations", stateMutability: "view", inputs: [{ name: "claimId", type: "bytes32" }], outputs: [{ type: "bytes32" }] },
+  { type: "function", name: "getAttestation", stateMutability: "view", inputs: [{ name: "attestationId", type: "bytes32" }], outputs: [{ name: "attestation", type: "tuple", components: [{ name: "data", type: "tuple", components: [{ name: "claimId", type: "bytes32" }, { name: "assetId", type: "bytes32" }, { name: "periodKey", type: "bytes32" }, { name: "claimedAmount", type: "uint256" }, { name: "verifiedAmount", type: "uint256" }, { name: "outcome", type: "uint8" }, { name: "evidenceRoot", type: "bytes32" }, { name: "reportHash", type: "bytes32" }, { name: "policyHash", type: "bytes32" }, { name: "termsHash", type: "bytes32" }, { name: "modelRunHash", type: "bytes32" }, { name: "nonce", type: "uint256" }, { name: "deadline", type: "uint256" }] }, { name: "verifier", type: "address" }, { name: "challenger", type: "address" }, { name: "counterEvidenceRoot", type: "bytes32" }, { name: "challengeDeadline", type: "uint64" }, { name: "status", type: "uint8" }] }] },
+  { type: "function", name: "settle", stateMutability: "nonpayable", inputs: [{ name: "attestationId", type: "bytes32" }], outputs: [] },
+];
+
+const stakingAbi = [
+  { type: "function", name: "stake", stateMutability: "payable", inputs: [], outputs: [] },
+  { type: "function", name: "freeStake", stateMutability: "view", inputs: [{ name: "verifier", type: "address" }], outputs: [{ type: "uint256" }] },
+];
+
+const publicClient = createPublicClient({ chain, transport: http(RPC) });
+const payer = privateKeyToAccount(process.env.DEPLOYER_PRIVATE_KEY);
+const issuerKey = generatePrivateKey();
+const issuer = privateKeyToAccount(issuerKey);
+const payerClient = createWalletClient({ chain, transport: http(RPC), account: payer });
+const issuerClient = createWalletClient({ chain, transport: http(RPC), account: issuer });
+const transactions = {};
+
+const log = (m) => process.stdout.write(`${m}\n`);
+async function confirm(name, hash) {
+  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  if (receipt.status !== "success") throw new Error(`${name} reverted`);
+  transactions[name] = { hash, explorerUrl: `${EXPLORER}/tx/${hash}` };
+  log(`  ${name}: ${EXPLORER}/tx/${hash}`);
+  return receipt;
+}
+
+log(`Site:   ${SITE}`);
+log(`Payer:  ${payer.address}`);
+log(`Issuer: ${issuer.address} (fresh)\n`);
+
+// 0. The bonded verifier must hold enough free stake to lock a new bond.
+log("0. Checking verifier free stake");
+const verifier = privateKeyToAccount(process.env.VERIFIER_PRIVATE_KEY);
+const verifierClient = createWalletClient({ chain, transport: http(RPC), account: verifier });
+const requiredBond = BigInt(manifest.parameters.verifierBondWei);
+const freeStake = await publicClient.readContract({ address: manifest.contracts.verifierStaking, abi: stakingAbi, functionName: "freeStake", args: [verifier.address] });
+log(`  free stake ${freeStake} wei, bond requires ${requiredBond} wei`);
+if (freeStake < requiredBond) {
+  const topUp = requiredBond * 2n - freeStake;
+  log(`  topping up ${topUp} wei`);
+  await confirm("verifierStakeTopUp", await verifierClient.writeContract({ address: manifest.contracts.verifierStaking, abi: stakingAbi, functionName: "stake", value: topUp }));
+}
+
+// 1. Fund the fresh issuer with gas.
+log("1. Funding fresh issuer wallet");
+await confirm("fundIssuer", await payerClient.sendTransaction({ to: issuer.address, value: parseEther("0.12") }));
+
+// 2. Real TestUSDT payment from payer to issuer. This is the income event.
+log("2. Real TestUSDT income payment (payer -> issuer)");
+await confirm("mintPayerFunds", await payerClient.writeContract({ address: manifest.contracts.settlementToken, abi: tokenAbi, functionName: "mint", args: [payer.address, AMOUNT] }));
+const paymentReceipt = await confirm("incomePayment", await payerClient.writeContract({ address: manifest.contracts.settlementToken, abi: tokenAbi, functionName: "transfer", args: [issuer.address, AMOUNT] }));
+const paymentTxHash = paymentReceipt.transactionHash;
+const paymentBlock = await publicClient.getBlock({ blockNumber: paymentReceipt.blockNumber });
+const paidAt = new Date(Number(paymentBlock.timestamp) * 1000).toISOString().slice(0, 10);
+log(`  paidAt: ${paidAt}`);
+
+// 3. Evidence document. Terms are stated explicitly so extraction is unambiguous.
+const documentText = [
+  "LEASE INCOME STATEMENT",
+  "",
+  "Property: Unit 4B, 118 Harbour Road",
+  "Landlord reference: VERITABLE-DEMO-4B",
+  `Billing period: ${PERIOD}`,
+  "",
+  "Amount due: 2000.00 USDT",
+  `Due date: ${paidAt}`,
+  "Payment method: BOT Chain Testnet USDT transfer",
+  "",
+  "This statement records the monthly rental income for the billing period",
+  "shown above. The amount due is two thousand USDT (2000.00 USDT).",
+  `The payment due date is ${paidAt}.`,
+].join("\n");
+const documentBytes = new TextEncoder().encode(documentText);
+const documentHash = keccak256(documentBytes);
+
+const assetTerms = {
+  expectedAmountMinor: AMOUNT_MINOR,
+  dueDate: paidAt,
+  windowDays: 5,
+  amountToleranceMinor: "0",
+  payerReferenceHash: keccak256(stringToHex(getAddress(payer.address).toLowerCase())),
+};
+
+// 4. Hosted evidence preparation: live DeepSeek extraction + private storage.
+log("3. Hosted evidence preparation (live DeepSeek + Vercel Blob)");
+const proofReference = `BOT_TRANSACTION:${paymentTxHash.toLowerCase()}`;
+const prepMessage = [
+  "Veritable evidence preparation",
+  `Requester: ${getAddress(issuer.address)}`,
+  `Period: ${PERIOD}`,
+  `Payment proof: ${proofReference}`,
+  `Document hash: ${documentHash}`,
+  `Chain ID: 968`,
+].join("\n");
+const prepSignature = await issuer.signMessage({ message: prepMessage });
+
+const form = new FormData();
+form.set("document", new File([documentBytes], "lease-income-statement.txt", { type: "text/plain" }));
+form.set("requester", issuer.address);
+form.set("signature", prepSignature);
+form.set("periodKey", PERIOD);
+form.set("assetTerms", JSON.stringify(assetTerms));
+form.set("paymentProof", JSON.stringify({ kind: "BOT_TRANSACTION", txHash: paymentTxHash }));
+
+const prepResponse = await fetch(`${SITE}/v1/evidence/prepare`, { method: "POST", body: form });
+const prepResult = await prepResponse.json();
+if (prepResponse.status !== 200) throw new Error(`prepare failed ${prepResponse.status}: ${JSON.stringify(prepResult)}`);
+const bundle = prepResult.evidenceBundle;
+log(`  providerRunId: ${prepResult.providerRunId}`);
+log(`  modelRunHash:  ${bundle.modelRunHash}`);
+log(`  documents:     ${bundle.documents.map((d) => d.id).join(", ")}`);
+const evidenceRoot = hashCanonical(bundle);
+const termsHash = hashCanonical(bundle.assetTerms);
+log(`  evidenceRoot:  ${evidenceRoot}`);
+// Keep the prepared bundle locally so a later on-chain failure stays resumable.
+await writeFile(resolve(ROOT, ".verifi/last-prepared-bundle.json"), `${JSON.stringify({ bundle, providerRunId: prepResult.providerRunId, paymentTxHash, issuerKey }, null, 2)}\n`, "utf8");
+
+// 5. Create the asset with the exact prepared terms.
+log("4. Creating asset with the prepared terms");
+const assetLabel = `asset:veritable-canonical-${issuer.address.slice(2, 10).toLowerCase()}`;
+const assetId = keccak256(stringToHex(assetLabel));
+const periodKeyHash = keccak256(stringToHex(PERIOD));
+const policyHash = keccak256(stringToHex("policy-v1"));
+await confirm("createAsset", await issuerClient.writeContract({
+  address: manifest.contracts.assetFactory, abi: factoryAbi, functionName: "createAsset",
+  args: [assetId, "Veritable Canonical Income Asset", "vCANON", policyHash, termsHash,
+    [issuer.address, payer.address], [parseUnits("60", 18), parseUnits("40", 18)]],
+}));
+
+// 6. Escrow the received income and commit the evidence hash.
+log("5. Escrowing income and submitting the claim");
+await confirm("approveEscrow", await issuerClient.writeContract({ address: manifest.contracts.settlementToken, abi: tokenAbi, functionName: "approve", args: [manifest.contracts.yieldVault, AMOUNT] }));
+await confirm("submitClaim", await issuerClient.writeContract({ address: manifest.contracts.yieldVault, abi: vaultAbi, functionName: "submitClaim", args: [assetId, periodKeyHash, AMOUNT, evidenceRoot] }));
+const claimId = await publicClient.readContract({ address: manifest.contracts.yieldVault, abi: vaultAbi, functionName: "periodClaims", args: [assetId, periodKeyHash] });
+if (claimId === zeroHash) throw new Error("Claim was not created");
+log(`  claimId: ${claimId}`);
+
+// 7. Hosted verifier: persists the bundle durably, then attests.
+log("6. Hosted verifier attestation");
+const attestMessage = [
+  "Veritable BOT Testnet attestation request",
+  `Claim: ${claimId}`,
+  "Chain: 968",
+  "Purpose: authorize the bonded verifier to inspect this claim's committed evidence.",
+].join("\n");
+const attestSignature = await issuer.signMessage({ message: attestMessage });
+const processResponse = await fetch(`${SITE}/v1/process/${claimId}`, {
+  method: "POST", headers: { "content-type": "application/json" },
+  body: JSON.stringify({ requester: issuer.address, signature: attestSignature, evidenceBundle: bundle }),
+});
+const processResult = await processResponse.json();
+log(`  status:  ${processResponse.status} ${processResult.status || processResult.error || ""}`);
+log(`  outcome: ${processResult.outcome}`);
+if (processResult.report?.ruleResults) {
+  for (const rule of processResult.report.ruleResults) log(`    ${rule.status.padEnd(7)} ${rule.id}`);
+}
+if (processResponse.status !== 200) throw new Error(`verifier failed: ${JSON.stringify(processResult)}`);
+if (processResult.transactionHash) {
+  transactions.hostedAttestation = { hash: processResult.transactionHash, explorerUrl: `${EXPLORER}/tx/${processResult.transactionHash}` };
+  log(`  hostedAttestation: ${EXPLORER}/tx/${processResult.transactionHash}`);
+}
+
+// 8. Confirm the durable report now resolves on this deployment.
+log("7. Verifying durable report resolution");
+const reportResponse = await fetch(`${SITE}/v1/reports/${claimId}`, {
+  method: "POST", headers: { "content-type": "application/json" }, body: "{}",
+});
+const reportResult = await reportResponse.json();
+log(`  GET-from-storage status: ${reportResponse.status}`);
+log(`  outcome: ${reportResult.report?.outcome}  rules: ${reportResult.report?.ruleResults?.length}`);
+if (reportResponse.status !== 200) throw new Error("Durable report did not resolve; storage was not persisted");
+
+// 9. Settle after the challenge window, then both holders claim.
+log("8. Settling after the challenge window");
+const attestationId = await publicClient.readContract({ address: manifest.contracts.attestationRegistry, abi: registryAbi, functionName: "claimAttestations", args: [claimId] });
+const attestation = await publicClient.readContract({ address: manifest.contracts.attestationRegistry, abi: registryAbi, functionName: "getAttestation", args: [attestationId] });
+while ((await publicClient.getBlock()).timestamp < attestation.challengeDeadline) {
+  await new Promise((done) => setTimeout(done, 3000));
+}
+await confirm("settle", await issuerClient.writeContract({ address: manifest.contracts.attestationRegistry, abi: registryAbi, functionName: "settle", args: [attestationId] }));
+
+log("9. Holder withdrawals");
+const issuerBefore = await publicClient.readContract({ address: manifest.contracts.settlementToken, abi: tokenAbi, functionName: "balanceOf", args: [issuer.address] });
+await confirm("claimHolder60", await issuerClient.writeContract({ address: manifest.contracts.yieldVault, abi: vaultAbi, functionName: "claimYield", args: [claimId] }));
+const issuerAfter = await publicClient.readContract({ address: manifest.contracts.settlementToken, abi: tokenAbi, functionName: "balanceOf", args: [issuer.address] });
+const payerBefore = await publicClient.readContract({ address: manifest.contracts.settlementToken, abi: tokenAbi, functionName: "balanceOf", args: [payer.address] });
+await confirm("claimHolder40", await payerClient.writeContract({ address: manifest.contracts.yieldVault, abi: vaultAbi, functionName: "claimYield", args: [claimId] }));
+const payerAfter = await publicClient.readContract({ address: manifest.contracts.settlementToken, abi: tokenAbi, functionName: "balanceOf", args: [payer.address] });
+log(`  holder60 received: ${(issuerAfter - issuerBefore).toString()}`);
+log(`  holder40 received: ${(payerAfter - payerBefore).toString()}`);
+
+const claim = await publicClient.readContract({ address: manifest.contracts.yieldVault, abi: vaultAbi, functionName: "getClaim", args: [claimId] });
+log(`  claim status: ${claim.status} (2 = RELEASED)`);
+
+const artifact = {
+  schemaVersion: 1,
+  network: "bot-testnet",
+  chainId: 968,
+  site: SITE,
+  evidenceRail: "LIVE_DEEPSEEK_EXTRACTION_PLUS_ONCHAIN_PAYMENT_PROOF",
+  period: PERIOD,
+  assetLabel,
+  assetId,
+  claimId,
+  attestationId,
+  evidenceRoot,
+  termsHash,
+  modelRunHash: bundle.modelRunHash,
+  providerRunId: prepResult.providerRunId,
+  paymentProof: { kind: "BOT_CHAIN_TX", txHash: paymentTxHash, payer: payer.address, paidAt },
+  issuer: issuer.address,
+  amountMinor: AMOUNT_MINOR,
+  outcome: reportResult.report?.outcome,
+  ruleResults: reportResult.report?.ruleResults?.map((r) => ({ id: r.id, status: r.status })),
+  distribution: { holder60: (issuerAfter - issuerBefore).toString(), holder40: (payerAfter - payerBefore).toString() },
+  reportEndpoint: `${SITE}/v1/reports/${claimId}`,
+  secretsIncluded: false,
+  transactions,
+};
+await writeFile(resolve(ROOT, "deployments/bot-testnet/canonical-claim.json"), `${JSON.stringify(artifact, null, 2)}\n`, "utf8");
+log(`\nWrote deployments/bot-testnet/canonical-claim.json`);
+log(`Report: ${SITE}/v1/reports/${claimId}`);

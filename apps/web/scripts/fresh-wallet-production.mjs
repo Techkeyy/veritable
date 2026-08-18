@@ -26,7 +26,7 @@ const chain = {
   testnet: true,
 };
 const RPC = process.env.BOT_TESTNET_RPC_URL || "https://rpc.bohr.life";
-const SITE = process.env.HOSTED_TEST_BASE_URL || "https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site";
+const SITE = process.env.HOSTED_TEST_BASE_URL || "https://veritable-web-sigma.vercel.app";
 const EXPLORER = "https://scan.bohr.life";
 const PERIOD = "2026-08";
 const AMOUNT = parseUnits("2000", 6);

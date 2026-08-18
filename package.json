@@ -16,6 +16,7 @@
     "doctor": "pnpm --filter @veritable/doctor start",
     "preflight:mainnet": "tsx scripts/preflight-mainnet.ts",
     "audit:testnet": "tsx scripts/audit-testnet-completion.ts",
+    "canonical:testnet": "node scripts/canonical-claim.mjs",
     "evidence:sign": "pnpm --filter @veritable/schemas build && pnpm --filter @veritable/policy build && tsx scripts/sign-evidence.ts",
     "dev:web": "pnpm --filter @veritable/web dev",
     "dev:api": "pnpm --filter @veritable/api start",

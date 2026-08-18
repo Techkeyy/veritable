@@ -9,7 +9,7 @@
 | False approval challenge, slash, and refund | `deployments/bot-testnet/acceptance.json` | Passed |
 | Hosted verifier attestation and idempotency | `deployments/bot-testnet/public-demo.json` | Passed |
 | Native and Cloudflare-compatible production builds | build output plus CI | Passed locally |
-| Public website | https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site | Passed |
+| Public website | https://veritable-web-sigma.vercel.app | Passed |
 | Reviewable source repository | Private Sites source is pushed; judging repository URL/access still required | Partial |
 | Fresh external wallet stranger test | `deployments/bot-testnet/fresh-wallet-production.json` | Passed |
 | BOT Mainnet deployment | Deferred by user | Out of current build scope |
@@ -22,10 +22,11 @@ The Veritable Testnet product is complete. Hackathon submission eligibility is a
 ### Read-only proof in under one minute
 
 1. Open the deployed site and choose **Inspect report**.
-2. The canonical claim ID is prefilled: `0xd4cf42cb6f65510f1500ffdad7e41a23fac339c509f0e0527bc49f47eaff00e3`.
-3. Load the report and inspect six deterministic rules, the full claim ID, attestation ID, and report hash.
-4. Verify the attestation transaction on BOTScan: https://scan.bohr.life/tx/0x1cfacabc40c22afabeb1b5aa424b53e41341bfd23e8a203a105e5d31a1338e68
-5. Verify permissionless settlement: https://scan.bohr.life/tx/0x2366cefe6fa245f7d6d998bf9e37c3b3eaeb9c368e58858990a976624d631430
+2. The canonical claim ID is `0x1b547def2d1d6be5c508e357650fdd7366bd21b1b44ceb11c4e503b6d7a69c1a`.
+3. Load the report and inspect eight deterministic rules, the full claim ID, attestation ID, and report hash. Two of those rules cover the live DeepSeek extraction; the remaining six cover the onchain payment proof.
+4. Verify the attestation transaction on BOTScan: https://scan.bohr.life/tx/0x3512484dc5615a98147a9403d6ad520ea3e7ada8ae0b863c77cc324d68598224
+5. Verify permissionless settlement: https://scan.bohr.life/tx/0x8b79c17993c6b7db401bd2275934134b5eebb2e2bd1217fd058a0e46e1afb96d
+6. Verify the underlying income payment the report reconciles against: https://scan.bohr.life/tx/0x559cb6f46a80411165bb3cfc2d61bd666b4121d6879a4a773c54819bf5a5eced
 
 ### Fresh-wallet path
 
@@ -109,7 +110,7 @@ The challenge environment uses a clearly labeled signed sandbox payment rail and
 
 ### Required final links
 
-- Product: https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site
+- Product: https://veritable-web-sigma.vercel.app
 - Source: `[REVIEWABLE_REPOSITORY_URL]`
 - BOT Mainnet deployment: `[MAINNET_MANIFEST_OR_BOTSCAN_LINKS]`
 - Demo video: `[VIDEO_URL]`

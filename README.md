@@ -88,7 +88,13 @@ Never commit `.env` or private keys. The doctor enforces separate deployer and v
 
 The [live product](https://veritable-web-sigma.vercel.app) runs the complete loop on BOT Chain Testnet. Browsing the marketplace and inspecting offerings needs no wallet.
 
-Report inspection resolves against durable evidence storage, so a claim is readable only on the deployment that holds its stored bundle. The canonical `2026-08` demo report predates the current deployment and is not yet re-stored on it. Submit a claim through the runbook below to produce a report you can inspect end to end.
+The canonical claim is readable without any setup. It returns the full deterministic report, every rule with its own reason and evidence hash:
+
+```bash
+curl -X POST -H "content-type: application/json" -d '{}' https://veritable-web-sigma.vercel.app/v1/reports/0x1b547def2d1d6be5c508e357650fdd7366bd21b1b44ceb11c4e503b6d7a69c1a
+```
+
+That claim is not a fixture. A real Testnet USDT payment was made on chain, DeepSeek extracted the amount and due date from the uploaded statement, deterministic policy passed all eight rules, the bonded verifier attested on chain, and holders withdrew 1,200 and 800 USDT against the immutable snapshot. Reproduce the whole path with `pnpm canonical:testnet`, or follow [docs/12-real-evidence-runbook.md](docs/12-real-evidence-runbook.md) to submit your own through the UI.
 
 To submit a real claim end to end, follow [docs/12-real-evidence-runbook.md](docs/12-real-evidence-runbook.md). The evidence path accepts no preset scenarios: the model extracts from the document you supply, and payment is proven by a BOT transaction or a counterparty wallet signature.
 

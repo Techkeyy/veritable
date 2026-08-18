@@ -27,7 +27,7 @@ Do not submit while a required bracketed publication value remains. Mainnet is i
 ## Judge proof path
 
 1. Open the public product and browse the live marketplace offerings without a wallet.
-2. Submit a claim through the real-evidence runbook to produce an inspectable deterministic report. The historical `2026-08` canonical report is held in the previous deployment's evidence storage and must be regenerated on the current deployment before it can be cited as a judge proof step.
+2. Inspect the canonical claim `0x1b547def2d1d6be5c508e357650fdd7366bd21b1b44ceb11c4e503b6d7a69c1a` and its eight deterministic rules, either in the product or directly against `/v1/reports/<claimId>`. Its evidence rail is a real onchain USDT payment plus a live DeepSeek extraction, recorded in `deployments/bot-testnet/canonical-claim.json`.
 3. Verify the hosted attestation and settlement links on BOTScan.
 4. Review `deployments/bot-testnet/fresh-wallet-production.json` for an independent full public write path.
 5. Review `deployments/bot-testnet/acceptance.json` for the 60/40 verified distribution and challenged false-approval slash/refund path.

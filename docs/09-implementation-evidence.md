@@ -41,7 +41,7 @@ Last validated: **2026-08-12 (WAT)**
 - Deployment manifest: `deployments/bot-testnet/manifest.json`
 - Acceptance bundle: `deployments/bot-testnet/acceptance.json`
 - Hosted-verifier demo bundle: `deployments/bot-testnet/public-demo.json`
-- Public Sites release: https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site
+- Public Sites release: https://veritable-web-sigma.vercel.app
 - Public release checks: `deployments/bot-testnet/public-site.json`
 - Public release version 3 is built from source commit `ddc44dc62b76906fdf180f99bb52a0da688e08c3` and renders the Veritable brand.
 - Live Testnet completion audit: `deployments/bot-testnet/completion-audit.json` — 36/36 checks passed.

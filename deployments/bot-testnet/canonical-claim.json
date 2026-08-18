@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "network": "bot-testnet",
+  "chainId": 968,
+  "site": "https://veritable-web-sigma.vercel.app",
+  "evidenceRail": "LIVE_DEEPSEEK_EXTRACTION_PLUS_ONCHAIN_PAYMENT_PROOF",
+  "period": "2026-08",
+  "assetLabel": "asset:veritable-canonical-07343791",
+  "assetId": "0x5fc92d54a9b15d55a56568e6fd114844ef73899c29b403d49f843a1ba87d5382",
+  "claimId": "0x1b547def2d1d6be5c508e357650fdd7366bd21b1b44ceb11c4e503b6d7a69c1a",
+  "attestationId": "0x8a59e1164054eb7a90d8f208cf97833fe179f4e36cf7d46077b4afa1e814e0fd",
+  "evidenceRoot": "0xc31352e7a31bfa745410ca4e77f8469975facbc97689683ee6684f277c76bc32",
+  "termsHash": "0x762d05c366661fedaf4fd4ac013ff4a713aa510f881d05e84ba57aa717020b52",
+  "modelRunHash": "0x6843cae383a1eea25a321263fe4eb2623a57b8dd09b4685d3d6c2ffa59eddb84",
+  "providerRunId": "225f8070-c374-4289-80ad-705b0ee40f2d",
+  "paymentProof": {
+    "kind": "BOT_CHAIN_TX",
+    "txHash": "0x559cb6f46a80411165bb3cfc2d61bd666b4121d6879a4a773c54819bf5a5eced",
+    "payer": "0x74Ff8F64d441E10aEDa9Ef83cf2495847606622A",
+    "paidAt": "2026-08-18"
+  },
+  "issuer": "0x0734379147B9ca23dC4301E818114D233bCd2f49",
+  "amountMinor": "2000000000",
+  "outcome": "VERIFIED",
+  "ruleResults": [
+    {
+      "status": "PASS"
+    },
+    {
+      "status": "PASS"
+    },
+    {
+      "status": "PASS"
+    },
+    {
+      "status": "PASS"
+    },
+    {
+      "status": "PASS"
+    },
+    {
+      "status": "PASS"
+    },
+    {
+      "status": "PASS"
+    },
+    {
+      "status": "PASS"
+    }
+  ],
+  "distribution": {
+    "holder60": "1200000000",
+    "holder40": "800000000"
+  },
+  "reportEndpoint": "https://veritable-web-sigma.vercel.app/v1/reports/0x1b547def2d1d6be5c508e357650fdd7366bd21b1b44ceb11c4e503b6d7a69c1a",
+  "secretsIncluded": false,
+  "transactions": {
+    "verifierStakeTopUp": {
+      "hash": "0xfe427e800cd77a9fe90045909ed8377161f4515bfeb64feaf0d47285bed54cb8",
+      "explorerUrl": "https://scan.bohr.life/tx/0xfe427e800cd77a9fe90045909ed8377161f4515bfeb64feaf0d47285bed54cb8"
+    },
+    "fundIssuer": {
+      "hash": "0xba9d36b9868b74b7607efe4d491da86b8394629c56a2e1349c0b5b2741441864",
+      "explorerUrl": "https://scan.bohr.life/tx/0xba9d36b9868b74b7607efe4d491da86b8394629c56a2e1349c0b5b2741441864"
+    },
+    "mintPayerFunds": {
+      "hash": "0xc5272219feec0b684a7f1ce184e7d9756940f368e9d1b1352e55f4ef67d75e29",
+      "explorerUrl": "https://scan.bohr.life/tx/0xc5272219feec0b684a7f1ce184e7d9756940f368e9d1b1352e55f4ef67d75e29"
+    },
+    "incomePayment": {
+      "hash": "0x559cb6f46a80411165bb3cfc2d61bd666b4121d6879a4a773c54819bf5a5eced",
+      "explorerUrl": "https://scan.bohr.life/tx/0x559cb6f46a80411165bb3cfc2d61bd666b4121d6879a4a773c54819bf5a5eced"
+    },
+    "createAsset": {
+      "hash": "0x6bf67b316c4d80efd0b7493cf4e51c806cdd0b6c2463d66c7192a201d0059619",
+      "explorerUrl": "https://scan.bohr.life/tx/0x6bf67b316c4d80efd0b7493cf4e51c806cdd0b6c2463d66c7192a201d0059619"
+    },
+    "approveEscrow": {
+      "hash": "0x2bf52fbe924214e6dedc2bc8d7b08e19f4c0ba0f7e797cbdce0edb874bb896a5",
+      "explorerUrl": "https://scan.bohr.life/tx/0x2bf52fbe924214e6dedc2bc8d7b08e19f4c0ba0f7e797cbdce0edb874bb896a5"
+    },
+    "submitClaim": {
+      "hash": "0x3b5599832a854fb425488aa7a756f50189c68c87fb0867b8d8442dff3593bca2",
+      "explorerUrl": "https://scan.bohr.life/tx/0x3b5599832a854fb425488aa7a756f50189c68c87fb0867b8d8442dff3593bca2"
+    },
+    "hostedAttestation": {
+      "hash": "0x3512484dc5615a98147a9403d6ad520ea3e7ada8ae0b863c77cc324d68598224",
+      "explorerUrl": "https://scan.bohr.life/tx/0x3512484dc5615a98147a9403d6ad520ea3e7ada8ae0b863c77cc324d68598224"
+    },
+    "settle": {
+      "hash": "0x8b79c17993c6b7db401bd2275934134b5eebb2e2bd1217fd058a0e46e1afb96d",
+      "explorerUrl": "https://scan.bohr.life/tx/0x8b79c17993c6b7db401bd2275934134b5eebb2e2bd1217fd058a0e46e1afb96d"
+    },
+    "claimHolder60": {
+      "hash": "0x97b0061f62f41dd402331517e541cdafa82cf5ccebeddc6ba5bf3281d21dcfa1",
+      "explorerUrl": "https://scan.bohr.life/tx/0x97b0061f62f41dd402331517e541cdafa82cf5ccebeddc6ba5bf3281d21dcfa1"
+    },
+    "claimHolder40": {
+      "hash": "0xdcbacbd61be3b7a23b0991348a4d125dcc53e4aa583ee616ac8a5fa50cbe9837",
+      "explorerUrl": "https://scan.bohr.life/tx/0xdcbacbd61be3b7a23b0991348a4d125dcc53e4aa583ee616ac8a5fa50cbe9837"
+    }
+  }
+}

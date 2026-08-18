@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-14T04:00:33.227Z",
+  "generatedAt": "2026-08-18T12:54:54.123Z",
   "scope": "BOT_TESTNET_PRODUCT_COMPLETION",
   "product": "Veritable",
   "site": "https://veritable-web-sigma.vercel.app",
   "chainId": 968,
-  "latestBlock": "19793011",
+  "latestBlock": "20296536",
   "complete": true,
   "checksPassed": 46,
   "checksTotal": 46,
@@ -18,7 +18,7 @@
     {
       "requirement": "BOT Testnet RPC is live",
       "ok": true,
-      "evidence": "block 19793011"
+      "evidence": "block 20296536"
     },
     {
       "requirement": "Deployed bytecode: settlementToken",
@@ -208,7 +208,7 @@
     {
       "requirement": "Public offering remains live onchain",
       "ok": true,
-      "evidence": "listings=1; available=19000000000000000000"
+      "evidence": "listings=2; available=15000000000000000000"
     },
     {
       "requirement": "Only fixed-supply factory remains authorized",
@@ -233,7 +233,7 @@
     {
       "requirement": "Public deterministic report is auditable",
       "ok": true,
-      "evidence": "status=200; outcome=VERIFIED; rules=6"
+      "evidence": "status=200; outcome=VERIFIED; rules=8"
     },
     {
       "requirement": "Hosted verifier rejects missing issuer authorization",
