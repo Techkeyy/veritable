@@ -143,7 +143,6 @@ export default function AppPage() {
   const windowOpen = Boolean(session.attestationId) && remainingSeconds > 0 && !session.settled;
   const windowClosed = Boolean(session.attestationId) && remainingSeconds === 0;
 
-  const setupReady = canWrite;
   const signingSteps = useMemo(() => [
     "Approve the TestUSDT escrow",
     "Submit this month’s claim",
@@ -671,18 +670,6 @@ export default function AppPage() {
             <div className="guard warning">
               <ShieldCheck size={18} />
               <span><strong>Writes locked</strong>This build is read-only until Mainnet writes are enabled.</span>
-            </div>
-          )}
-          {isConnected && networkReady && (
-            <div className="setup-actions">
-              <a className="secondary-link" href="https://faucet.botchain.ai/basic/" target="_blank" rel="noreferrer">
-                Get {nativeTokenLabel} <ArrowUpRight size={14} />
-              </a>
-              {!isMainnet && (
-                <button className="secondary-link" type="button" disabled={!setupReady || isPending} onClick={() => void safelyRun(mintTestUsdt)}>
-                  <CircleDollarSign size={15} /> Get TestUSDT
-                </button>
-              )}
             </div>
           )}
         </div>
