@@ -29,7 +29,7 @@ Do not submit while a required bracketed publication value remains. Mainnet is i
 1. Open the public product and browse the live marketplace offerings without a wallet.
 2. Inspect the canonical claim `0x1b547def2d1d6be5c508e357650fdd7366bd21b1b44ceb11c4e503b6d7a69c1a` and its eight deterministic rules, either in the product or directly against `/v1/reports/<claimId>`. Its evidence rail is a real onchain USDT payment plus a live DeepSeek extraction, recorded in `deployments/bot-testnet/canonical-claim.json`.
 3. Verify the hosted attestation and settlement links on BOTScan.
-4. Review `deployments/bot-testnet/fresh-wallet-production.json` for an independent full public write path.
+4. Review `deployments/bot-testnet/fresh-wallet-production.json` for an independent full public write path by a disposable wallet. That record was produced against an earlier host which is now retired; its `siteStatus` field says so, and its BOTScan transactions verify independently of any host.
 5. Review `deployments/bot-testnet/acceptance.json` for the 60/40 verified distribution and challenged false-approval slash/refund path.
 6. Review the Mainnet evidence ledger once migration is authorized and completed.
 

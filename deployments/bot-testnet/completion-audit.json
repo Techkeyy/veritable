@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-18T12:54:54.123Z",
+  "generatedAt": "2026-08-18T17:25:10.175Z",
   "scope": "BOT_TESTNET_PRODUCT_COMPLETION",
   "product": "Veritable",
   "site": "https://veritable-web-sigma.vercel.app",
   "chainId": 968,
-  "latestBlock": "20296536",
+  "latestBlock": "20318155",
   "complete": true,
   "checksPassed": 46,
   "checksTotal": 46,
@@ -18,7 +18,7 @@
     {
       "requirement": "BOT Testnet RPC is live",
       "ok": true,
-      "evidence": "block 20296536"
+      "evidence": "block 20318155"
     },
     {
       "requirement": "Deployed bytecode: settlementToken",

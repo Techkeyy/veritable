@@ -3,6 +3,7 @@
   "network": "bot-testnet",
   "chainId": 968,
   "site": "https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site",
+  "siteStatus": "RETIRED_HOST. This run genuinely executed against that host on the date recorded below. That deployment is retired and must not be treated as the live product. The current product is https://veritable-web-sigma.vercel.app. The onchain transactions below remain independently verifiable on BOTScan regardless of host.",
   "wallet": "0x83Ff68c125e39565797E951fEAe0f9C34e9EA61e",
   "privateKeyIncluded": false,
   "assetLabel": "asset:issuer-83ff68c1",

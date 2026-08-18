@@ -3,6 +3,7 @@
   "network": "bot-testnet",
   "chainId": 968,
   "url": "https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site",
+  "urlStatus": "RETIRED_HOST. This is a point-in-time validation record for the commit named below, not a pointer to the live product. The current product is https://veritable-web-sigma.vercel.app, validated continuously by deployments/bot-testnet/completion-audit.json.",
   "access": "public",
   "versionNumber": 3,
   "sourceCommit": "ddc44dc62b76906fdf180f99bb52a0da688e08c3",
