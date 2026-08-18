@@ -1,76 +1,204 @@
 # Veritable
 
-Repository name: **veritable**  
-Product name: **Veritable**
-Tagline: **Proof of income before distribution.**
+**Proof of income before distribution.** A yield firewall for tokenized real-world assets.
 
-The accepted Testnet deployment retains the legacy EIP-712 domain string `VeriFi Attestation Registry`. That value is a cryptographic compatibility identifier, not the current product name; changing it would invalidate signatures for the deployed registry. New Mainnet deployments use `Veritable Attestation Registry`.
+**[Live product](https://veritable-web-sigma.vercel.app)** · **[Slash proof on BOTScan](https://scan.bohr.life/tx/0x82318cab75659f149e73b575848befc7c65ff2954a3ac67f0b966d7b699afb56)** · [Acceptance evidence](deployments/bot-testnet/acceptance.json) · [Completion audit](deployments/bot-testnet/completion-audit.json)
 
-Veritable is an economically accountable verification layer for real-world-asset income. An issuer escrows a yield claim, an evidence-constrained AI agent extracts and reconciles the supporting records, deterministic policy produces a verdict, and a bonded on-chain attestation gates release to token holders. Incorrect attestations can be challenged and slashed.
+RWA platforms can prove a token exists. They still ask investors to take the issuer's word for what the asset actually earned. Veritable puts a programmable firewall between the claim and the payout: an issuer escrows a yield claim, an evidence-constrained model extracts the supporting records, a deterministic rule engine produces the verdict, and a bonded on-chain attestation gates release. Get the attestation wrong and you lose stake.
 
-## Product thesis
+> *"The dashboard says the rent came in. Did it?"*
 
-RWA tokenization can prove that a token exists, while still asking investors to trust the issuer's account of what the underlying asset earned. Veritable inserts a programmable yield firewall between an issuer's claim and investor distribution.
+Built for the BOT Chain AI x RWA Builder Challenge. Primary track: RWA Applications, with AI as a core on-chain decision participant.
 
-The product does **not** claim that an LLM creates truth. It creates an auditable decision from evidence, deterministic policy, explicit trust assumptions, and financial accountability.
+---
 
-## Competition objective
+## Why this exists
 
-Phase 1 ships a publicly accessible, wallet-connected, reproducible product whose complete critical loop runs on BOT Chain Testnet. Mainnet is a separate, locked migration after the acceptance gate:
+Tokenization solved custody and supply. It did not solve income truth. Platforms like RealT and Lofty distribute rental yield to holders daily, and the amount distributed is whatever the issuer reports. Chainlink Proof of Reserve answers "does the collateral exist," which is a different question from "did this month's income actually arrive, from the right payer, in the right window."
 
-`register asset -> list fixed-supply shares -> public TestUSDT purchase -> escrow yield -> verify evidence -> challenge/settle -> investor claim`
+That leaves a gap where the money moves:
 
-The primary submission lane is **RWA Applications**, with AI as a core on-chain decision participant.
+```
+   ISSUER CLAIM                    WHAT TOKENIZATION ALREADY PROVES
+   "August income: 2,000 USDT"  -> the token exists, supply is fixed
+            |
+            |     nothing in this gap checks that the money arrived
+            v
+   INVESTOR DISTRIBUTION           paid out on the issuer's word alone
+```
 
-## Planning documents
+Veritable fills that gap. The verdict is not a model's opinion and not the issuer's assertion: it is a deterministic function of signed evidence, and the verifier that signs it is financially liable for being wrong.
 
-- [Product and scope](docs/00-product-scope.md)
-- [BOT Chain execution notes](docs/01-bot-chain-research.md)
-- [System architecture](docs/02-system-architecture.md)
-- [Smart-contract design](docs/03-smart-contract-design.md)
-- [AI verification and evidence design](docs/04-agent-and-data-design.md)
-- [Security and threat model](docs/05-security-threat-model.md)
-- [Risk-first build plan](docs/06-build-plan.md)
-- [Testing, deployment, and submission](docs/07-verification-deployment-submission.md)
-- [Decision log and open questions](docs/08-decisions.md)
-- [Current implementation evidence](docs/09-implementation-evidence.md)
-- [Judge runbook and submission draft](docs/10-judge-and-submission-runbook.md)
-- [Demo production sheet](docs/11-demo-production-sheet.md)
-- [Submission dossier](SUBMISSION.md)
+**The product does not claim that a language model creates truth.** It creates an auditable decision from evidence, deterministic policy, explicit trust assumptions, and financial accountability.
 
-## Non-negotiable acceptance test
+---
 
-The Testnet build is not demo-ready until a fresh wallet completes the complete valid-claim path through the public UI and the deployed protocol produces explorer-verifiable BOT Testnet transactions for all three cases:
+## What it does
 
-1. A valid income claim settles and a holder claims the correct USDT share.
-2. A mismatched or unsupported claim fails closed and distributes nothing.
-3. A deliberately incorrect verifier attestation is challenged, reversed, and slashed according to the published rule.
-4. A fresh investor wallet purchases escrowed shares from a public Testnet offering before a later yield snapshot.
+1. **Registers** an asset and mints a fixed-supply revenue-share token (`AssetFactory`, `RevenueShareToken`). Supply is permanently locked at creation.
+2. **Lists** issuer inventory in a public fixed-price offering, so any wallet can buy in with TestUSDT and the issuer is paid directly (`PrimaryOfferingMarketplace`).
+3. **Escrows** the issuer's income claim in the vault before anything is distributed (`YieldVault`).
+4. **Extracts** structured facts from the submitted evidence with a live DeepSeek call, producing an amount and a due date, never a verdict.
+5. **Decides** with eight deterministic rules over the extraction and an independently signed payment proof. Same input, same verdict, every run.
+6. **Attests** on-chain via EIP-712, backed by a locked verifier bond (`AttestationRegistry`, `VerifierStaking`).
+7. **Settles or blocks.** A `VERIFIED` attestation releases exactly the claimed amount against an immutable holder snapshot. Anything else releases nothing.
+8. **Challenges and slashes.** A false attestation can be challenged inside the window, overturned by the resolver, and the verifier's stake is cut.
 
-The malicious-verifier case intentionally uses the adversarial acceptance runner rather than the honest hosted verifier; otherwise the demo would require compromising the production verifier to manufacture a false result.
+Step 4 is the only nondeterministic step, and it cannot decide anything. It supplies typed facts that step 5 either matches against registered terms or rejects.
 
-## Current status
+---
 
-The BOT Testnet protocol, public primary marketplace, and real-evidence application path are implemented. Issuers create fixed-supply revenue-share tokens, escrow inventory in a public fixed-price listing, and receive TestUSDT directly when any wallet invests. Investors can browse without connecting, purchase onchain, inspect holdings, and later claim verified yield from the immutable claim snapshot. The evidence path accepts no preset scenarios: live DeepSeek extracts typed facts while a BOT transaction or counterparty wallet signature independently proves payment. No bank, regulated payment processor, KYC/AML, legal securities offering, or secondary market is claimed; those remain disclosed production requirements.
+## Quickstart
 
-Every push and pull request runs the pinned install, complete regression suite, all-workspace type-check, production build, and production dependency audit in CI on the repository's pinned Node.js runtime.
+```bash
+pnpm install --frozen-lockfile
+pnpm test          # 60 tests
+pnpm typecheck
+```
 
-The complete contract system is live on BOT Testnet at deployment block `19536921`. Automated live acceptance proved the 2,000 USDT release and 60/40 withdrawal path, then challenged and overturned a false approval, slashed the verifier from 5 to 3 tBOT free stake, and refunded the blocked 1,500 USDT escrow. The hosted-verifier integration also created, verified, idempotently reprocessed, and settled a canonical 2026-08 public demo claim. Public evidence is stored in `deployments/bot-testnet/manifest.json`, `deployments/bot-testnet/acceptance.json`, and `deployments/bot-testnet/public-demo.json`.
+Deploy your own testnet instance:
 
-The public Testnet product is live at https://veritable-web-sigma.vercel.app. Historical acceptance transactions used labeled fixture evidence and the deployed Testnet settlement token; those records remain useful protocol proofs but are not presented as bank-connected production data. New claims use the real-evidence path documented in `docs/12-real-evidence-runbook.md`. Mainnet execution remains deliberately disabled pending separate authorization. Any future README claim must remain backed by a command, test, transaction, deployment, or visible product behavior.
+```bash
+pnpm init:testnet-env     # creates testnet-only identities, prints public addresses only
+# fund the deployer and verifier from the BOT Testnet faucet, then:
+pnpm run doctor -- --network bot-testnet --wallets
+pnpm deploy:testnet       # requires chain 968, writes deployments/bot-testnet/manifest.json
+pnpm acceptance:testnet   # writes transaction-backed acceptance.json
+```
 
-`pnpm audit:testnet` independently rechecks the live chain, all deployed bytecode, every recorded acceptance transaction, marketplace inventory and purchase conservation, fixed-supply authorization, verified 60/40 distribution, false-approval slash/refund, fresh-wallet payout, public UI, report, and authorization boundary. Its latest 46/46 result is stored in `deployments/bot-testnet/completion-audit.json`.
+Run the app locally against the deployed contracts:
 
-Mainnet integration is explicitly deferred by the user and is not part of this completion claim. Production bank connectivity, durable multi-operator database/object storage, KYC/AML, multisig governance, and independent audit remain disclosed production roadmap work rather than hackathon-Testnet features.
+```bash
+pnpm dev:api
+pnpm dev:agent
+pnpm dev:web
+```
 
-## Testnet quick start
+Re-verify the live deployment against the chain at any time:
 
-1. Run `pnpm init:testnet-env`. It creates dedicated testnet-only deployer, verifier, and evidence-signing identities in the ignored `.env`, and prints only their public addresses.
-2. Fund the deployer and verifier from the official BOT Testnet faucet, then run `pnpm install --frozen-lockfile`, `pnpm test`, `pnpm typecheck`, and `pnpm run doctor -- --network bot-testnet --wallets`. The doctor requires separate roles, at least 6 tBOT for the verifier's 5 tBOT demo stake plus gas, and a matching evidence signer address.
-3. Run `pnpm deploy:testnet`. The wrong-chain kill switch requires chain ID `968` and writes `deployments/bot-testnet/manifest.json`, `web.env`, and `agent.env`.
-4. Run `pnpm acceptance:testnet`. It waits through the one-minute testnet gates and writes a secret-free `deployments/bot-testnet/acceptance.json` containing the transaction-backed release/distribution and challenge/slash/refund results.
-5. Prepare and externally sign a real evidence bundle using `docs/12-real-evidence-runbook.md`. Start the evidence API, agent, and web app with `pnpm dev:api`, `pnpm dev:agent`, and `pnpm dev:web`, then submit that exact bundle through the UI.
-6. Run `pnpm run doctor -- --network bot-testnet --require-deployment --wallets` to verify live bytecode, wiring, role separation, funding, verifier authorization, and available stake.
-7. Run `pnpm --filter @veritable/web acceptance:fresh-production` to generate an in-memory disposable wallet and exercise the public hosted write path. Only its public address, proof IDs, and explorer links are written to `deployments/bot-testnet/fresh-wallet-production.json`.
+```bash
+pnpm audit:testnet        # 46 independent checks against live state
+```
 
-Never commit `.env`, private keys, or agent state. `bot-mainnet` is not a deployment target in the contract configuration during Phase 1.
+Never commit `.env` or private keys. The doctor enforces separate deployer and verifier roles and at least 6 tBOT for the verifier's 5 tBOT demo stake plus gas.
+
+---
+
+## Try the deployed system
+
+The [live product](https://veritable-web-sigma.vercel.app) runs the complete loop on BOT Chain Testnet. Browsing needs no wallet. Select **Inspect report** to read the canonical claim and the six rules it evaluated, each with its own pass reason and evidence hash.
+
+To submit a real claim end to end, follow [docs/12-real-evidence-runbook.md](docs/12-real-evidence-runbook.md). The evidence path accepts no preset scenarios: the model extracts from the document you supply, and payment is proven by a BOT transaction or a counterparty wallet signature.
+
+---
+
+## Architecture
+
+| Module | Job |
+|---|---|
+| `packages/schemas` | Typed evidence, claim, and report shapes shared by every layer |
+| `packages/policy` | Deterministic rule engine, emits verdict plus verified amount |
+| `packages/config` | Network, chain, and contract address resolution |
+| `packages/contracts` | Seven Solidity contracts and the protocol test suite |
+| `packages/doctor` | Preflight health check for wiring, roles, funding, and stake |
+| `apps/api` | Evidence intake, payment oracle, public deterministic reports |
+| `apps/agent` | Watches vault events, runs extraction and policy, signs attestations |
+| `apps/web` | Public marketplace, issuer console, investor holdings and claims |
+
+Contracts: `AssetRegistry`, `AssetFactory`, `RevenueShareToken`, `PrimaryOfferingMarketplace`, `YieldVault`, `AttestationRegistry`, `VerifierStaking`.
+
+---
+
+## Why economic accountability matters
+
+Plenty of systems will let a model label a document. Almost none make the labeller pay for being wrong. Veritable's verifier posts a bond before it can attest, the bond stays locked through the challenge window, and a successful challenge slashes it.
+
+This is not theoretical. On BOT Testnet a deliberately false approval was submitted, challenged, overturned, and the verifier's free stake went from 5 tBOT to 3 tBOT while the blocked escrow was returned to the issuer in full. Every step is a transaction anyone can open:
+
+- [False approval challenged](https://scan.bohr.life/tx/0x275cf40d0ffba0a2ee6bfd5a1e489276516bdcb5f1c14ddc66136e14bd77d73a)
+- [Resolver overturn and slash](https://scan.bohr.life/tx/0x82318cab75659f149e73b575848befc7c65ff2954a3ac67f0b966d7b699afb56)
+- [Blocked escrow refunded, 1,500 USDT](https://scan.bohr.life/tx/0x32f1a7afffacd1b55ad67bfe1c67f5f57af6f170422cf5b9d4917514f33264b1)
+
+An attestation that costs nothing to get wrong is worth what it costs.
+
+---
+
+## How I tried to break it
+
+Every row below is exercised by a test in the suite or by a recorded testnet transaction.
+
+| Input | Result |
+|---|---|
+| Happy path: evidence matches registered terms | `VERIFIED`, 2,000 USDT released, holders paid 1,200 and 800 on the 60/40 snapshot |
+| Detected amount differs from the claim | `BLOCKED`, nothing released |
+| Payment from an unregistered payer reference | `BLOCKED`, nothing released |
+| Payment dated outside the configured window | `BLOCKED`, nothing released |
+| Payment source unavailable | `INCONCLUSIVE`, never `VERIFIED` |
+| Payment record expired | `INCONCLUSIVE`, never `VERIFIED` |
+| Model extraction missing or incomplete | `INCONCLUSIVE`, never `VERIFIED` |
+| Verifier signs a false `VERIFIED` | Challenged, overturned, stake slashed 5 to 3 tBOT, escrow refunded |
+| Same attestation replayed for one claim | Rejected on chain |
+| Attestation using the wrong policy hash | Rejected on chain |
+| Attestation whose terms differ from the registered commitment | Rejected on chain |
+| Partial `VERIFIED` amount | Rejected, so escrow cannot be stranded |
+| Settlement attempted before the challenge window closes | Rejected |
+| Challenge mined exactly at the deadline | Rejected |
+| Holder withdraws twice for one claim | Rejected |
+| Verifier withdraws stake while a bond is locked | Rejected |
+| Protocol paused after release | New risk stops, an already-released holder can still withdraw |
+
+**Key invariant: any unknown or failed rule can never produce `VERIFIED`, and a non-`VERIFIED` outcome sets the releasable amount to zero.** Unknown evidence blocks the money rather than guessing at it.
+
+**Trust architecture:** the model extracts, the rules decide, the bond makes the decision expensive to get wrong.
+
+---
+
+## Verification status
+
+| Property | Evidence |
+|---|---|
+| Automated tests | 60 passing (`pnpm test`) |
+| Live completion audit | 46 of 46 checks (`pnpm audit:testnet`) |
+| Chain | BOT Testnet, chain ID 968, deployment block 19536921 |
+| Contracts | Eight addresses in [manifest.json](deployments/bot-testnet/manifest.json), all carrying live bytecode |
+| CI | Pinned install, full suite, all-workspace type-check, production build, and production dependency audit on every push |
+
+The Testnet registry keeps the legacy EIP-712 domain string `VeriFi Attestation Registry`. That value is a cryptographic compatibility identifier rather than a product name, and changing it would invalidate signatures for the deployed registry. Deployments on any other chain, including Mainnet, use `Veritable Attestation Registry`.
+
+---
+
+## BOT Chain integration
+
+The protocol targets BOT Chain directly rather than treating it as a generic EVM endpoint. Deployment carries a wrong-chain kill switch that refuses to broadcast unless the RPC reports chain ID 968, the web and agent runtimes are configured from the generated manifest rather than hand-copied addresses, and the EIP-712 domain is derived from `block.chainid` inside `AttestationRegistry` so contract, agent, and web signer can never disagree about the signing domain.
+
+`pnpm preflight:mainnet` is a read-only check that confirms chain ID 677, the official USDT code, symbol and decimals, and the compiled bytecode hashes, all without broadcasting a transaction.
+
+---
+
+## Status and honest limits
+
+**Mainnet is not deployed.** Only the read-only preflight has been run. `deployments/bot-mainnet/` contains `readiness.json` and no manifest, and the deployer address has a nonce of zero on chain 677. Mainnet must not be represented as live.
+
+Not built, and not claimed:
+
+- No bank or regulated payment-processor connectivity. Payment proof is a BOT transaction or a counterparty wallet signature.
+- No KYC, AML, or legal securities offering. Nothing here is a compliant sale of a security.
+- No secondary market. The marketplace is a primary offering only.
+- No legal title verification, no universal fraud detection.
+- Single verifier. Multi-agent consensus is design work, not shipped code.
+- Dispute resolution uses a single resolver role rather than decentralized governance.
+- Durable multi-operator storage, multisig governance, and an independent security audit are production requirements that remain open.
+
+Historical acceptance transactions used labeled fixture evidence with the deployed Testnet settlement token. Those records are valid protocol proofs and are not presented as bank-connected production data.
+
+Any claim in this file must stay backed by a command, a test, a transaction, a deployment, or visible product behavior.
+
+---
+
+## Documentation
+
+[Product scope](docs/00-product-scope.md) · [BOT Chain notes](docs/01-bot-chain-research.md) · [Architecture](docs/02-system-architecture.md) · [Contract design](docs/03-smart-contract-design.md) · [Agent and evidence](docs/04-agent-and-data-design.md) · [Threat model](docs/05-security-threat-model.md) · [Build plan](docs/06-build-plan.md) · [Deployment and submission](docs/07-verification-deployment-submission.md) · [Decisions](docs/08-decisions.md) · [Implementation evidence](docs/09-implementation-evidence.md) · [Judge runbook](docs/10-judge-and-submission-runbook.md) · [Demo sheet](docs/11-demo-production-sheet.md) · [Real evidence runbook](docs/12-real-evidence-runbook.md) · [Submission dossier](SUBMISSION.md)
+
+---
+
+Original work built for the BOT Chain AI x RWA Builder Challenge. Third-party dependencies are listed in `pnpm-lock.yaml` and retain their own licenses.

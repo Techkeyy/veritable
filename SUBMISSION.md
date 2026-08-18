@@ -1,6 +1,6 @@
 # Veritable submission dossier
 
-Status timestamp: **2026-08-12 (WAT)**
+Status timestamp: **2026-08-18 (WAT)**
 
 ## Project declaration
 
@@ -15,10 +15,10 @@ The live Testnet registry's EIP-712 signing domain uses the legacy compatibility
 | Project | Veritable — Proof of income before distribution | Ready |
 | Primary track | RWA Applications | Ready |
 | AI capability | Evidence extraction/reconciliation feeding deterministic policy and a slashable verifier attestation | Ready |
-| Public product | https://verifi-bot-chain.cheery-bowl-9509.chatgpt.site | Live |
+| Public product | https://veritable-web-sigma.vercel.app | Live |
 | Testnet contracts/evidence | `deployments/bot-testnet/manifest.json` and evidence bundles | Proven |
-| Testnet completion audit | `deployments/bot-testnet/completion-audit.json` | 36/36 passed |
-| Public source | `[PUBLIC_GITHUB_URL]` | Requires publication approval |
+| Testnet completion audit | `deployments/bot-testnet/completion-audit.json` | 46/46 passed |
+| Public source | https://github.com/Techkeyy/veritable | Public |
 | BOT Mainnet contracts | Deferred by user | Out of current scope |
 | Demo video | `[PUBLIC_DEMO_VIDEO_URL]` | Requires recording and upload |
 
@@ -35,7 +35,7 @@ Do not submit while a required bracketed publication value remains. Mainnet is i
 
 ## Evidence-backed claims
 
-- 45 automated tests cover policy, API, agent recovery, contract state transitions, and cross-layer behavior.
+- 60 automated tests cover policy, API, agent recovery, contract state transitions, and cross-layer behavior.
 - A fresh in-memory wallet completed asset creation, escrow, hosted verification, settlement, and exact withdrawal through the public product.
 - A deliberately false approval was challenged, overturned, and financially slashed on BOT Testnet.
 - The public verifier endpoint authenticates the on-chain issuer and is idempotent.
