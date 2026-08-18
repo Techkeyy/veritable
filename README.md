@@ -86,7 +86,9 @@ Never commit `.env` or private keys. The doctor enforces separate deployer and v
 
 ## Try the deployed system
 
-The [live product](https://veritable-web-sigma.vercel.app) runs the complete loop on BOT Chain Testnet. Browsing needs no wallet. Select **Inspect report** to read the canonical claim and the six rules it evaluated, each with its own pass reason and evidence hash.
+The [live product](https://veritable-web-sigma.vercel.app) runs the complete loop on BOT Chain Testnet. Browsing the marketplace and inspecting offerings needs no wallet.
+
+Report inspection resolves against durable evidence storage, so a claim is readable only on the deployment that holds its stored bundle. The canonical `2026-08` demo report predates the current deployment and is not yet re-stored on it. Submit a claim through the runbook below to produce a report you can inspect end to end.
 
 To submit a real claim end to end, follow [docs/12-real-evidence-runbook.md](docs/12-real-evidence-runbook.md). The evidence path accepts no preset scenarios: the model extracts from the document you supply, and payment is proven by a BOT transaction or a counterparty wallet signature.
 
