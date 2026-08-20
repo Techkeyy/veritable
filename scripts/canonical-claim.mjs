@@ -11,7 +11,7 @@ import dotenv from "dotenv";
 import { hashCanonical } from "../packages/policy/dist/index.js";
 import {
   createPublicClient, createWalletClient, http, keccak256, parseEther, parseUnits,
-  stringToHex, getAddress, zeroHash,
+  stringToHex, getAddress, zeroHash, formatUnits,
 } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 
@@ -43,6 +43,13 @@ const PERIOD = process.env.CANONICAL_PERIOD || "2026-08";
 // amount must be small and the payer must already hold it.
 const AMOUNT = parseUnits(process.env.CANONICAL_AMOUNT || (MAINNET ? "1" : "2000"), 6);
 const AMOUNT_MINOR = AMOUNT.toString();
+// The evidence document must state the same amount the terms register, or the
+// AI_TERMS_MATCH rule fails and the claim is BLOCKED.
+const AMOUNT_DECIMAL = Number(formatUnits(AMOUNT, 6)).toFixed(2);
+// A 60/40 snapshot split must divide without dust.
+if (AMOUNT % 5n !== 0n) {
+  throw new Error(`CANONICAL_AMOUNT ${AMOUNT_DECIMAL} does not split 60/40 without rounding dust. Use a value whose minor units divide by 5.`);
+}
 
 const chain = {
   id: NET.id, name: NET.label,
@@ -153,12 +160,12 @@ const documentText = [
   "Landlord reference: VERITABLE-DEMO-4B",
   `Billing period: ${PERIOD}`,
   "",
-  "Amount due: 2000.00 USDT",
+  `Amount due: ${AMOUNT_DECIMAL} USDT`,
   `Due date: ${paidAt}`,
-  "Payment method: BOT Chain Testnet USDT transfer",
+  `Payment method: ${NET.label} USDT transfer`,
   "",
   "This statement records the monthly rental income for the billing period",
-  "shown above. The amount due is two thousand USDT (2000.00 USDT).",
+  `shown above. The amount due is ${AMOUNT_DECIMAL} USDT.`,
   `The payment due date is ${paidAt}.`,
 ].join("\n");
 const documentBytes = new TextEncoder().encode(documentText);
