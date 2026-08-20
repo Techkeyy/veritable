@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "network": "bot-mainnet",
+  "chainId": 677,
+  "rpcUrl": "https://rpc.botchain.ai",
+  "explorer": "https://scan.botchain.ai",
+  "deployedAt": "2026-08-20T06:45:38.291Z",
+  "deploymentBlock": "20300480",
+  "sourceCommit": "UNSET",
+  "deployer": "0xcc67779f8edb2c80dc665775c5597657c512fe1a",
+  "deployerBalanceBeforeWei": "1000000000000000000",
+  "roles": {
+    "admin": "0x3A3DFC22820d1B0d6d0aD4D7438720c0D3d4dD07",
+    "guardian": "0x53040E561033b1cDA5D4BF0567991a6D3B915922",
+    "resolver": "0x585AEc1C5FE1d044986B74FcD36F1ea55c506E52",
+    "verifier": "0x2EDc775221FE928c252bc570FEcfd6E1a1F135AC",
+    "treasury": "0xBbE9aCeCbD279E71D965bF80efB9E06755bd4757"
+  },
+  "parameters": {
+    "verifierBondWei": "200000000000000000",
+    "challengerBondWei": "20000000000000000",
+    "challengeWindowSeconds": "600",
+    "unstakeCooldownSeconds": "86400",
+    "blockedRefundDelaySeconds": "600"
+  },
+  "contracts": {
+    "settlementToken": "0xaBabc7Ddc03e501d190C676BF3d92ef0e6e87a3C",
+    "assetRegistry": "0xfc9dbf0a8468aa56799b4e23b1ebe936426ee30b",
+    "assetFactory": "0xdd3366c1aecec5f439f58d824f446c794d54b089",
+    "marketplace": "0xf2d77abff2d699f370a83a067b643642a4f5ee77",
+    "verifierStaking": "0xafa7bd24051a4336da9560c7929a3d103c52bcb2",
+    "yieldVault": "0x97205b095ac6ebe0e932a9a36e5955b92b165ca1",
+    "attestationRegistry": "0x8dea0de1e273d3b2f8a221f96ba464c27af23240"
+  },
+  "transactions": {
+    "grantFactoryAssetManagerRole": "0x60bed1bd53f820a84cb631189d13ec27a60067f734d341c15dd33333a71472b0",
+    "grantVaultRegistryRole": "0x890f22630f18377c45ddabc00e5363d300b3e5c2ba23924cb5e89eeca92c1939",
+    "grantStakingRegistryRole": "0xb44f8b0f89e2e7be1d3481dd7871ca60bccd36efe27d0af70d65225534f9ec8f",
+    "grantVerifierRole": "0x02c115a5f0e1b868573d642e341d421acc7dc7dfa97ea10ed40dacae8c339b14",
+    "grantAdmin:0": "0x014be90a1e18e71e0a618ed602c2957032e5a0943c4a72eb7f2886686c62f9a4",
+    "grantAdmin:1": "0xc16b4d5bffdc091440d324bc830d8e4bde1fa26d65a791ee5b1661be98a93d15",
+    "grantAdmin:2": "0x62b46174436f11d9d9d6050c17691e6151495e8e1ce04e391609e075574e9fa1",
+    "grantAdmin:3": "0x68f6f622d8dee12a84ce668298dc4104aaa614234e9b05dbca781f43a6b57632",
+    "grantVaultGuardian": "0x36ece1b3f5c6e82935197ff2e72e53ba80ba412afe453dcafc83397a6a9fa3a9",
+    "grantRegistryGuardian": "0x712c3c5500a043848d1db1732934f940e867aa41a5486590c210e35c5cbb71cc",
+    "grantResolver": "0x7e7218cdf277180771bf539228f9d2c11e1baa85d5534b6cc2b2eca7fc45ee6a",
+    "revokeDeployerAssetManager": "0xcf3dbb0ee8ae4b25ec503698b3d7180cad044c6a830aa93c3532b21b65b43997",
+    "revokeDeployerVaultGuardian": "0x1543190974a55bf902551e89741fd8cb96506626b692acfdcfa51a3558a102eb",
+    "revokeDeployerRegistryGuardian": "0xbb3110a8449bfe26ccd4d7f4f633fb46fb0fc6e94811c2cd3b229f2bfce58d5a",
+    "revokeDeployerResolver": "0xb31b483baf4a5241781f3d1ec77078fc0934cafd653949d3a75b3bf6208a8214",
+    "renounceDeployerAdmin:0": "0xb48261c4a4de8bf34b9d2f18288aa9e9317225e27121f992adee13c3bd853955",
+    "renounceDeployerAdmin:1": "0x1b3655d9a68860de9dd82098e5d0eabcfe4e166277116583b696a0efc922c59f",
+    "renounceDeployerAdmin:2": "0x3967533050a8614a8cad01fddac0ed512bb91cfa17e17fba8ad3c47772989a14",
+    "renounceDeployerAdmin:3": "0x1aba5c9a0530f4304a873780ccefb3e10b6dbc3ebc4696b759565a2613c758d8"
+  },
+  "notes": [
+    "No MockUSDT or seeded demo asset was deployed.",
+    "Temporary deployer operational and admin roles were removed after setup.",
+    "Deployer balance before deployment: 1 BOT."
+  ]
+}

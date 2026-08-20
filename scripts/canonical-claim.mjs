@@ -18,23 +18,42 @@ import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 const ROOT = process.cwd();
 dotenv.config({ path: resolve(ROOT, ".env"), quiet: true });
 
+// Network is selected by CHAIN_ENV; defaults to testnet so an accidental run
+// can never touch Mainnet or spend real USDT.
+const MAINNET = process.env.CHAIN_ENV === "bot-mainnet";
+const NET = MAINNET
+  ? {
+    dir: "bot-mainnet", id: 677, label: "BOT Chain",
+    rpc: process.env.BOT_MAINNET_RPC_URL || "https://rpc.botchain.ai",
+    explorer: "https://scan.botchain.ai",
+    symbol: "BOT", testnet: false,
+  }
+  : {
+    dir: "bot-testnet", id: 968, label: "BOT Chain Testnet",
+    rpc: process.env.BOT_TESTNET_RPC_URL || "https://rpc.bohr.life",
+    explorer: "https://scan.bohr.life",
+    symbol: "tBOT", testnet: true,
+  };
+
 const SITE = process.env.HOSTED_TEST_BASE_URL || "https://veritable-web-sigma.vercel.app";
-const RPC = process.env.BOT_TESTNET_RPC_URL || "https://rpc.bohr.life";
-const EXPLORER = "https://scan.bohr.life";
-const PERIOD = "2026-08";
-const AMOUNT = parseUnits("2000", 6);
+const RPC = NET.rpc;
+const EXPLORER = NET.explorer;
+const PERIOD = process.env.CANONICAL_PERIOD || "2026-08";
+// On Mainnet the settlement token is official USDT and cannot be minted, so the
+// amount must be small and the payer must already hold it.
+const AMOUNT = parseUnits(process.env.CANONICAL_AMOUNT || (MAINNET ? "1" : "2000"), 6);
 const AMOUNT_MINOR = AMOUNT.toString();
 
 const chain = {
-  id: 968, name: "BOT Chain Testnet",
-  nativeCurrency: { name: "Test BOT", symbol: "tBOT", decimals: 18 },
+  id: NET.id, name: NET.label,
+  nativeCurrency: { name: NET.symbol, symbol: NET.symbol, decimals: 18 },
   rpcUrls: { default: { http: [RPC] } },
-  blockExplorers: { default: { name: "BOTScan Testnet", url: EXPLORER } },
-  testnet: true,
+  blockExplorers: { default: { name: "BOTScan", url: EXPLORER } },
+  testnet: NET.testnet,
 };
 
-const manifest = JSON.parse(await readFile(resolve(ROOT, "deployments/bot-testnet/manifest.json"), "utf8"));
-if (manifest.chainId !== 968) throw new Error("Wrong-chain manifest");
+const manifest = JSON.parse(await readFile(resolve(ROOT, `deployments/${NET.dir}/manifest.json`), "utf8"));
+if (manifest.chainId !== NET.id) throw new Error(`Wrong-chain manifest for ${NET.dir}`);
 
 const tokenAbi = [
   { type: "function", name: "mint", stateMutability: "nonpayable", inputs: [{ name: "to", type: "address" }, { name: "amount", type: "uint256" }], outputs: [] },
@@ -68,7 +87,9 @@ const stakingAbi = [
 ];
 
 const publicClient = createPublicClient({ chain, transport: http(RPC) });
-const payer = privateKeyToAccount(process.env.DEPLOYER_PRIVATE_KEY);
+const payer = privateKeyToAccount(
+  MAINNET ? process.env.MAINNET_DEPLOYER_PRIVATE_KEY : process.env.DEPLOYER_PRIVATE_KEY,
+);
 const issuerKey = generatePrivateKey();
 const issuer = privateKeyToAccount(issuerKey);
 const payerClient = createWalletClient({ chain, transport: http(RPC), account: payer });
@@ -90,7 +111,9 @@ log(`Issuer: ${issuer.address} (fresh)\n`);
 
 // 0. The bonded verifier must hold enough free stake to lock a new bond.
 log("0. Checking verifier free stake");
-const verifier = privateKeyToAccount(process.env.VERIFIER_PRIVATE_KEY);
+const verifier = privateKeyToAccount(
+  MAINNET ? process.env.MAINNET_VERIFIER_PRIVATE_KEY : process.env.VERIFIER_PRIVATE_KEY,
+);
 const verifierClient = createWalletClient({ chain, transport: http(RPC), account: verifier });
 const requiredBond = BigInt(manifest.parameters.verifierBondWei);
 const freeStake = await publicClient.readContract({ address: manifest.contracts.verifierStaking, abi: stakingAbi, functionName: "freeStake", args: [verifier.address] });
@@ -106,8 +129,16 @@ log("1. Funding fresh issuer wallet");
 await confirm("fundIssuer", await payerClient.sendTransaction({ to: issuer.address, value: parseEther("0.12") }));
 
 // 2. Real TestUSDT payment from payer to issuer. This is the income event.
-log("2. Real TestUSDT income payment (payer -> issuer)");
-await confirm("mintPayerFunds", await payerClient.writeContract({ address: manifest.contracts.settlementToken, abi: tokenAbi, functionName: "mint", args: [payer.address, AMOUNT] }));
+log(`2. Real ${MAINNET ? "USDT" : "TestUSDT"} income payment (payer -> issuer)`);
+if (MAINNET) {
+  // Official USDT has no public mint. The payer must already hold the amount.
+  const held = await publicClient.readContract({ address: manifest.contracts.settlementToken, abi: tokenAbi, functionName: "balanceOf", args: [payer.address] });
+  if (held < AMOUNT) {
+    throw new Error(`Payer holds ${held} USDT minor units, needs ${AMOUNT_MINOR}. Acquire real USDT on BOT Chain before running the Mainnet canonical claim.`);
+  }
+} else {
+  await confirm("mintPayerFunds", await payerClient.writeContract({ address: manifest.contracts.settlementToken, abi: tokenAbi, functionName: "mint", args: [payer.address, AMOUNT] }));
+}
 const paymentReceipt = await confirm("incomePayment", await payerClient.writeContract({ address: manifest.contracts.settlementToken, abi: tokenAbi, functionName: "transfer", args: [issuer.address, AMOUNT] }));
 const paymentTxHash = paymentReceipt.transactionHash;
 const paymentBlock = await publicClient.getBlock({ blockNumber: paymentReceipt.blockNumber });
@@ -254,8 +285,8 @@ log(`  claim status: ${claim.status} (2 = RELEASED)`);
 
 const artifact = {
   schemaVersion: 1,
-  network: "bot-testnet",
-  chainId: 968,
+  network: NET.dir,
+  chainId: NET.id,
   site: SITE,
   evidenceRail: "LIVE_DEEPSEEK_EXTRACTION_PLUS_ONCHAIN_PAYMENT_PROOF",
   period: PERIOD,
@@ -277,6 +308,6 @@ const artifact = {
   secretsIncluded: false,
   transactions,
 };
-await writeFile(resolve(ROOT, "deployments/bot-testnet/canonical-claim.json"), `${JSON.stringify(artifact, null, 2)}\n`, "utf8");
+await writeFile(resolve(ROOT, `deployments/${NET.dir}/canonical-claim.json`), `${JSON.stringify(artifact, null, 2)}\n`, "utf8");
 log(`\nWrote deployments/bot-testnet/canonical-claim.json`);
 log(`Report: ${SITE}/v1/reports/${claimId}`);

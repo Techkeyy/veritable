@@ -185,7 +185,9 @@ The protocol targets BOT Chain directly rather than treating it as a generic EVM
 
 ## Status and honest limits
 
-**Mainnet is not deployed.** Only the read-only preflight has been run. `deployments/bot-mainnet/` contains `readiness.json` and no manifest, and the deployer address has a nonce of zero on chain 677. Mainnet must not be represented as live.
+**Mainnet contracts are deployed; the Mainnet product is not yet live.** The protocol is on chain 677 from block 20300480, with role separation verified on chain: the temporary deployer holds `DEFAULT_ADMIN_ROLE` on nothing, and admin, guardian, resolver and verifier sit on four separate addresses. The bonded verifier holds 0.6 BOT of free stake against a 0.2 BOT bond.
+
+What is not done yet: the public frontend still serves BOT Testnet, and no income claim has been settled on Mainnet. Until both are true, treat Mainnet as deployed infrastructure rather than a running product, and use the Testnet deployment for the working end-to-end loop.
 
 Not built, and not claimed:
 

@@ -19,7 +19,7 @@ The live Testnet registry's EIP-712 signing domain uses the legacy compatibility
 | Testnet contracts/evidence | `deployments/bot-testnet/manifest.json` and evidence bundles | Proven |
 | Testnet completion audit | `deployments/bot-testnet/completion-audit.json` | 46/46 passed |
 | Public source | https://github.com/Techkeyy/veritable | Public |
-| BOT Mainnet contracts | Deferred by user | Out of current scope |
+| BOT Mainnet contracts | `deployments/bot-mainnet/manifest.json`, chain 677, block 20300480 | Deployed |
 | Demo video | `[PUBLIC_DEMO_VIDEO_URL]` | Requires recording and upload |
 
 Do not submit while a required bracketed publication value remains. Mainnet is intentionally deferred and must not be represented as deployed.
