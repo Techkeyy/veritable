@@ -30,6 +30,93 @@ Everything else in the product exists to make that sentence true.
 
 ---
 
+## Scene staging
+
+Open these tabs before recording, in this order, and leave them loaded. Switching tabs on camera is fine. Waiting for a page to load is not.
+
+| Tab | URL | Pre-state |
+|---|---|---|
+| A | `/` | Logged out, scrolled to top |
+| B | `/marketplace` | **Loaded and showing a real offering**, not "No listings yet" |
+| C | `/app` | Wallet connected, on the **Report** job |
+| D | `/app` | Second window, on the **Track** job, canonical claim already loaded |
+| E | BOTScan | Challenge tx `0x275cf40d...` |
+| F | BOTScan | Overturn and slash tx `0x82318cab...` |
+| G | BOTScan | Refund tx `0x32f1a7af...` |
+| H | BOTScan Mainnet | `scan.botchain.ai` attestationRegistry `0x8dea0de1...` |
+| I | GitHub | Repository root |
+
+---
+
+### Scene 1 (0:00–0:22) — Tab A, the landing page
+
+Start on the hero with `VERITABLE` visible. Scroll slowly through the three section headings, roughly seven seconds each: **Bring the proof**, **Make truth contestable**, **Release verified yield**.
+
+Those three headings are the pitch in miniature. Time the narration so "Veritable makes that income prove itself" lands as *Bring the proof* enters frame.
+
+No wallet connected in this scene. It shows the product is public.
+
+### Scene 2 (0:22–0:45) — Tab B, the marketplace
+
+Show **Property offerings** with at least one live offering card. Scroll it into the middle of frame and hover once so the viewer registers it is interactive. Let **Your holdings** appear at the bottom of the scroll.
+
+**Verify before recording:** the offering must be rendered. Listings load client side, and the server-rendered state says "No listings yet". If that placeholder is on camera, the demo looks broken. Load the tab, confirm the card is there, then start.
+
+### Scene 3 (0:45–1:20) — Tab C, the Report job
+
+Header reads **Prove the yield, then get paid.**
+
+1. Click **Download sample** and show the file landing. This is the evidence document, and using the shipped sample keeps the demo honest and repeatable.
+2. Upload that same file into the evidence field.
+3. Fill the period and amount. Type it, do not paste. Typing reads as real.
+4. Advance to escrow and show the wallet prompt. **Let the wallet popup be visible for two seconds.** That single frame proves wallet interaction, which is a hard submission requirement.
+5. Cut before the transaction confirms. The narration is already moving on.
+
+### Scene 4 (1:20–1:55) — Tab D, the Track job
+
+The canonical claim should already be loaded so no typing is needed here.
+
+Claim `0x1b547def2d1d6be5c508e357650fdd7366bd21b1b44ceb11c4e503b6d7a69c1a`.
+
+Expand the rule list and **hold still on all eight**. Do not scroll while speaking. Let the viewer read three or four rule names themselves. The two AI rules at the top matter most:
+
+```
+PASS  AI_EXTRACTION_PRESENT
+PASS  AI_TERMS_MATCH
+PASS  SOURCE_PROOF_VALID
+PASS  SOURCE_RECORD_FRESH
+PASS  PAYMENT_PRESENT
+PASS  AMOUNT_MATCHES
+PASS  PAYER_MATCHES
+PASS  DATE_IN_WINDOW
+```
+
+Finish on the VERIFIED outcome and the released amount.
+
+### Scene 5 (1:55–2:30) — Tabs E, F, G, the climax
+
+Move through three BOTScan tabs, roughly ten seconds each.
+
+1. **Tab E, the challenge.** Say a challenger disputed the attestation.
+2. **Tab F, the overturn and slash.** This is the moment. Stop moving the mouse. Say the line: *"The verifier lost its own money for being wrong."* Then stay silent for a full second.
+3. **Tab G, the refund.** 1,500 USDT returning to the issuer, and note that investors received nothing.
+
+Say the word "intentional" at least once. This must read as an adversarial test the team ran, never as a live failure.
+
+### Scene 6 (2:30–2:50) — Tab H, Mainnet
+
+Show `scan.botchain.ai` with the attestation registry contract loaded, so the viewer sees a real mainnet address with bytecode.
+
+Then cut to `deployments/bot-mainnet/manifest.json` in your editor or on GitHub, scrolled to the `roles` block. Five distinct addresses on screen at once makes the separation point instantly, with no contract calls to fumble on camera.
+
+Deliver the honesty line here: *"The walkthrough you just saw runs on Testnet, where the full evidence history lives. The protocol itself is deployed on Mainnet."*
+
+### Scene 7 (2:50–3:00) — Tab I, close
+
+Repository root, then cut to the live URL. End on the tagline. Do not add an outro card, music sting, or thank-you slide. Stop recording on the last word.
+
+---
+
 ## Capture checklist
 
 - Fresh browser profile or logged out window for the opening two shots.
