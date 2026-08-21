@@ -9,8 +9,8 @@
   "packageManager": "pnpm@11.16.0",
   "scripts": {
     "build": "pnpm -r build",
-    "test": "pnpm test:canonical-safety && pnpm --filter @veritable/schemas build && pnpm --filter @veritable/policy build && pnpm --filter @veritable/policy test && pnpm --filter @veritable/config test && pnpm --filter @veritable/agent test && pnpm --filter @veritable/api test && pnpm --filter @veritable/web test && pnpm --filter @veritable/contracts test && pnpm --filter @veritable/doctor test",
-    "test:canonical-safety": "tsx --test scripts/canonical-claim-safety.test.ts",
+    "test": "pnpm test:canonical-safety && pnpm --filter @veritable/policy test && pnpm --filter @veritable/config test && pnpm --filter @veritable/agent test && pnpm --filter @veritable/api test && pnpm --filter @veritable/web test && pnpm --filter @veritable/contracts test && pnpm --filter @veritable/doctor test",
+    "test:canonical-safety": "pnpm --filter @veritable/schemas build && pnpm --filter @veritable/policy build && tsx --test scripts/canonical-claim-safety.test.ts",
     "test:unit": "pnpm --filter @veritable/schemas build && pnpm --filter @veritable/policy test",
     "test:contracts": "pnpm --filter @veritable/contracts test",
     "typecheck": "pnpm --filter @veritable/schemas build && pnpm --filter @veritable/config build && pnpm --filter @veritable/policy build && pnpm -r typecheck",
@@ -27,7 +27,7 @@
     "acceptance:testnet": "pnpm --filter @veritable/contracts acceptance:testnet",
     "acceptance:marketplace:testnet": "tsx scripts/accept-marketplace-testnet.ts",
     "init:testnet-env": "tsx scripts/init-testnet-env.ts",
-    "clean": "pnpm -r clean"
+    "clean": "pnpm -r run clean"
   },
   "devDependencies": {
     "@types/node": "26.2.0",
