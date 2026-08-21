@@ -2,7 +2,7 @@
 
 **Proof of income before distribution.** A yield firewall for tokenized real-world assets.
 
-**[Live product](https://veritable-web-sigma.vercel.app)** · **[Slash proof on BOTScan](https://scan.bohr.life/tx/0x82318cab75659f149e73b575848befc7c65ff2954a3ac67f0b966d7b699afb56)** · [Acceptance evidence](deployments/bot-testnet/acceptance.json) · [Completion audit](deployments/bot-testnet/completion-audit.json)
+**[Mainnet product](https://veritable-mainnet.vercel.app)** · **[Verified Mainnet report](https://veritable-mainnet.vercel.app/v1/reports/0xfbe58b8e43f82b0ffb77a61185b592aa58b9c1686705b54842ea553ec9faebd8)** · **[Testnet slash proof](https://scan.bohr.life/tx/0x82318cab75659f149e73b575848befc7c65ff2954a3ac67f0b966d7b699afb56)** · [Mainnet evidence](deployments/bot-mainnet/canonical-claim.json)
 
 RWA platforms can prove a token exists. They still ask investors to take the issuer's word for what the asset actually earned. Veritable puts a programmable firewall between the claim and the payout: an issuer escrows a yield claim, an evidence-constrained model extracts the supporting records, a deterministic rule engine produces the verdict, and a bonded on-chain attestation gates release. Get the attestation wrong and you lose stake.
 
@@ -36,7 +36,7 @@ Veritable fills that gap. The verdict is not a model's opinion and not the issue
 ## What it does
 
 1. **Registers** an asset and mints a fixed-supply revenue-share token (`AssetFactory`, `RevenueShareToken`). Supply is permanently locked at creation.
-2. **Lists** issuer inventory in a public fixed-price offering, so any wallet can buy in with TestUSDT and the issuer is paid directly (`PrimaryOfferingMarketplace`).
+2. **Lists** issuer inventory in a public fixed-price offering, so any wallet can buy in with USDT and the issuer is paid directly (`PrimaryOfferingMarketplace`). Testnet uses TestUSDT.
 3. **Escrows** the issuer's income claim in the vault before anything is distributed (`YieldVault`).
 4. **Extracts** structured facts from the submitted evidence with a live DeepSeek call, producing an amount and a due date, never a verdict.
 5. **Decides** with eight deterministic rules over the extraction and an independently signed payment proof. Same input, same verdict, every run.
@@ -52,7 +52,7 @@ Step 4 is the only nondeterministic step, and it cannot decide anything. It supp
 
 ```bash
 pnpm install --frozen-lockfile
-pnpm test          # 60 tests
+pnpm test          # 91 tests
 pnpm typecheck
 ```
 
@@ -84,14 +84,30 @@ Never commit `.env` or private keys. The doctor enforces separate deployer and v
 
 ---
 
-## Try the deployed system
+## Verify the deployed system
 
-The [live product](https://veritable-web-sigma.vercel.app) runs the complete loop on BOT Chain Testnet. Browsing the marketplace and inspecting offerings needs no wallet.
+The [Mainnet product](https://veritable-mainnet.vercel.app) runs on BOT Chain Mainnet, chain 677, against official six-decimal USDT. Its completed canonical claim used `0.010000 USDT`, passed all eight deterministic rules, settled after the 600-second challenge window, and distributed exactly `0.006000` plus `0.004000 USDT` with no dust.
+
+[Open the public Mainnet report](https://veritable-mainnet.vercel.app/v1/reports/0xfbe58b8e43f82b0ffb77a61185b592aa58b9c1686705b54842ea553ec9faebd8), or inspect the transaction-backed artifact at [deployments/bot-mainnet/canonical-claim.json](deployments/bot-mainnet/canonical-claim.json).
+
+Mainnet proof:
+
+- [Income payment](https://scan.botchain.ai/tx/0x4cb04a9b2cb9e2c99e4ca31e59729187fa850f6bcf7214b60a709eb1094d7056)
+- [Bonded attestation](https://scan.botchain.ai/tx/0x6494c68dce64e62e214226dfa0488a7c4d79232cec24e679fce24f6ed0ff44dc)
+- [Settlement](https://scan.botchain.ai/tx/0x30bda9d8b5701c3f1e1a45b22376a85d9c7caf302fa2a0209b33b0877a45ce28)
+- [60% withdrawal](https://scan.botchain.ai/tx/0x2c52ec0a60ce029f9d6d9f0cf7d32f9b01a42397811e43ddf91984c4c0e85a7e)
+- [40% withdrawal](https://scan.botchain.ai/tx/0x6ac4083304867ce5ef9605ba145b7d9a91cf9b91e02e0738da1ad16faed87d81)
+
+The first Mainnet attempt, claim `0x87f90afb0a867b87905670146055017dab7e6efb610a45398c633c1f6ef05beb`, remains immutable historical evidence of fail-closed `INCONCLUSIVE` behavior. It was not altered or retried.
+
+## Testnet adversarial evidence
+
+The [protected Testnet product](https://veritable-web-sigma.vercel.app) preserves the complete challenge, slash, refund, marketplace, and larger-value demonstration history. Browsing the marketplace and inspecting offerings needs no wallet.
 
 The canonical claim is readable without any setup. It returns the full deterministic report, every rule with its own reason and evidence hash:
 
 ```bash
-curl -X POST -H "content-type: application/json" -d '{}' https://veritable-web-sigma.vercel.app/v1/reports/0x1b547def2d1d6be5c508e357650fdd7366bd21b1b44ceb11c4e503b6d7a69c1a
+curl https://veritable-web-sigma.vercel.app/v1/reports/0x1b547def2d1d6be5c508e357650fdd7366bd21b1b44ceb11c4e503b6d7a69c1a
 ```
 
 That claim is not a fixture. A real Testnet USDT payment was made on chain, DeepSeek extracted the amount and due date from the uploaded statement, deterministic policy passed all eight rules, the bonded verifier attested on chain, and holders withdrew 1,200 and 800 USDT against the immutable snapshot. Reproduce the whole path with `pnpm canonical:testnet`, or follow [docs/12-real-evidence-runbook.md](docs/12-real-evidence-runbook.md) to submit your own through the UI.
@@ -165,10 +181,11 @@ Every row below is exercised by a test in the suite or by a recorded testnet tra
 
 | Property | Evidence |
 |---|---|
-| Automated tests | 60 passing (`pnpm test`) |
+| Automated tests | 91 passing (`pnpm test`) |
 | Live completion audit | 46 of 46 checks (`pnpm audit:testnet`) |
-| Chain | BOT Testnet, chain ID 968, deployment block 19536921 |
-| Contracts | Eight addresses in [manifest.json](deployments/bot-testnet/manifest.json), all carrying live bytecode |
+| Mainnet | BOT Chain 677, official USDT, VERIFIED 10,000-minor-unit claim, settled 60/40 |
+| Mainnet contracts | Seven addresses in [manifest.json](deployments/bot-mainnet/manifest.json), all carrying live bytecode |
+| Testnet | BOT Testnet 968, challenge/slash/refund and marketplace evidence preserved |
 | CI | Pinned install, full suite, all-workspace type-check, production build, and production dependency audit on every push |
 
 The Testnet registry keeps the legacy EIP-712 domain string `VeriFi Attestation Registry`. That value is a cryptographic compatibility identifier rather than a product name, and changing it would invalidate signatures for the deployed registry. Deployments on any other chain, including Mainnet, use `Veritable Attestation Registry`.
@@ -177,7 +194,7 @@ The Testnet registry keeps the legacy EIP-712 domain string `VeriFi Attestation 
 
 ## BOT Chain integration
 
-The protocol targets BOT Chain directly rather than treating it as a generic EVM endpoint. Deployment carries a wrong-chain kill switch that refuses to broadcast unless the RPC reports chain ID 968, the web and agent runtimes are configured from the generated manifest rather than hand-copied addresses, and the EIP-712 domain is derived from `block.chainid` inside `AttestationRegistry` so contract, agent, and web signer can never disagree about the signing domain.
+The protocol targets BOT Chain directly rather than treating it as a generic EVM endpoint. Every runner validates its selected chain, manifest, contract bytecode, official token, wallet identities, stake, gas, and balances before spending. The web and agent runtimes are configured from deployment manifests, and the EIP-712 domain is derived from `block.chainid` inside `AttestationRegistry` so contract, agent, and web signer cannot disagree about the signing domain.
 
 `pnpm preflight:mainnet` is a read-only check that confirms chain ID 677, the official USDT code, symbol and decimals, and the compiled bytecode hashes, all without broadcasting a transaction.
 
@@ -185,9 +202,7 @@ The protocol targets BOT Chain directly rather than treating it as a generic EVM
 
 ## Status and honest limits
 
-**Mainnet contracts are deployed; the Mainnet product is not yet live.** The protocol is on chain 677 from block 20300480, with role separation verified on chain: the temporary deployer holds `DEFAULT_ADMIN_ROLE` on nothing, and admin, guardian, resolver and verifier sit on four separate addresses. The bonded verifier holds 0.6 BOT of free stake against a 0.2 BOT bond.
-
-What is not done yet: the public frontend still serves BOT Testnet, and no income claim has been settled on Mainnet. Until both are true, treat Mainnet as deployed infrastructure rather than a running product, and use the Testnet deployment for the working end-to-end loop.
+**The Mainnet product and canonical flow are live.** The protocol is on chain 677 from block 20300480. The temporary deployer holds `DEFAULT_ADMIN_ROLE` on none of the core contracts, and admin, guardian, resolver, verifier, and treasury use separated addresses. A bonded verifier attested the `0.010000 USDT` canonical claim, the 600-second challenge window elapsed without challenge, settlement released the claim, and holders withdrew the exact 60/40 allocation.
 
 Not built, and not claimed:
 

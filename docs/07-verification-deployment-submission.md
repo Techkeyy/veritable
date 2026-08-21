@@ -110,23 +110,23 @@ The README and submission must source counts/links from this ledger rather than 
 
 ## 6. Demo video storyboard
 
-### 0:00–0:25 — Problem
+### 0:00-0:25: Problem
 
 “A token can exist on-chain while its reported income remains an issuer promise. Veritable requires proof of income before distribution.”
 
-### 0:25–1:10 — Valid income
+### 0:25-1:10: Valid income
 
 Show the lease terms, 2,000 USDT claim, AI evidence reconciliation, BOT bond, final attestation, BOTScan proof, and investor USDT claim.
 
-### 1:10–1:55 — The money shot
+### 1:10-1:55: The money shot
 
 Submit a 2,000 claim against a signed 1,200 payment record. Pause on the mismatch report and show that the vault releases zero.
 
-### 1:55–2:35 — Economic accountability
+### 1:55-2:35: Economic accountability
 
 Show a deliberately incorrect verifier approval, challenge it, resolve against the verifier, and show its BOT stake decrease plus the blocked vault.
 
-### 2:35–2:55 — Product/trust
+### 2:35-2:55: Product/trust
 
 Show verification history, limitations, verified Mainnet contracts, and the long-term path from sandbox source to bank/property APIs and decentralized resolvers.
 
@@ -134,23 +134,23 @@ No code walkthrough unless needed to prove one technical detail.
 
 ## 7. Submission checklist
 
-This checklist tracks final hackathon publication, not Testnet product completion. Mainnet is explicitly deferred by the user; unchecked external publication items do not imply missing Testnet protocol behavior.
+This checklist tracks final hackathon publication. Engineering and Mainnet execution are complete; video recording and submission-form delivery remain human-only.
 
-- [ ] BOT Chain Mainnet deployment
-- [ ] Public website/online demo
-- [ ] Wallet connection and complete core workflow
-- [ ] Accessible GitHub repository/reviewer access
-- [ ] Original project declaration
-- [ ] Verified contract links
+- [x] BOT Chain Mainnet deployment
+- [x] Public website/online demo
+- [x] Wallet connection and complete core workflow
+- [x] Accessible GitHub repository/reviewer access
+- [x] Original project declaration
+- [x] Verified contract links
 - [ ] Demo video
-- [ ] Primary track and accurate technology tags
-- [ ] Business logic/value loop description
-- [ ] AI core-capability explanation
-- [ ] RWA authenticity and compliance-feasibility disclosure
-- [ ] Long-term roadmap and BOT Chain ecosystem contribution
-- [ ] Test/reproduction instructions
-- [ ] Limitations and trust model
-- [ ] All submission fields populated
+- [x] Primary track and accurate technology tags
+- [x] Business logic/value loop description
+- [x] AI core-capability explanation
+- [x] RWA authenticity and compliance-feasibility disclosure
+- [x] Long-term roadmap and BOT Chain ecosystem contribution
+- [x] Test/reproduction instructions
+- [x] Limitations and trust model
+- [x] All engineering submission fields populated
 - [ ] Submission completed by Aug 21, leaving Aug 22 as buffer
 
 ## 8. Final five-minute audit

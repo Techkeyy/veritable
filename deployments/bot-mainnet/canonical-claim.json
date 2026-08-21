@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "network": "bot-mainnet",
+  "chainId": 677,
+  "site": "https://veritable-mainnet.vercel.app",
+  "evidenceRail": "LIVE_DEEPSEEK_EXTRACTION_PLUS_ONCHAIN_PAYMENT_PROOF",
+  "period": "2026-08",
+  "runLabel": "mainnet-r2-20260821",
+  "propertyName": "Unit 4B, 118 Harbour Road [mainnet-r2-20260821]",
+  "assetLabel": "property:Unit 4B, 118 Harbour Road [mainnet-r2-20260821]",
+  "assetId": "0x74198af012fc9ed1ff013f1962bdd8e42bd7dde6f95c8b87c16d957a0b90f790",
+  "claimId": "0xfbe58b8e43f82b0ffb77a61185b592aa58b9c1686705b54842ea553ec9faebd8",
+  "attestationId": "0x5faaad3d5391aded4a9baa7c43c0102fbf4971021f3ee8ba8aed105bc839d24d",
+  "evidenceRoot": "0x92257c0682536690811a62b426804dd5e5e5c025c0a39c79283eb52aae0116f0",
+  "termsHash": "0x1826aebb7c31257580f0888acb54da292e7c7f41eb8c513ad6dd864fd24ef168",
+  "modelRunHash": "0xb84b50e40c86d305c2f70ee9603fe79a5235d2f47daa2607a8ce0213fccb7a86",
+  "providerRunId": "68579132-c454-414c-be85-a1d4fc4a4e28",
+  "paymentProof": {
+    "kind": "BOT_CHAIN_TX",
+    "txHash": "0x4cb04a9b2cb9e2c99e4ca31e59729187fa850f6bcf7214b60a709eb1094d7056",
+    "payer": "0xCc67779F8eDb2C80DC665775C5597657C512FE1A",
+    "paidAt": "2026-08-21"
+  },
+  "issuer": "0x5ab212f71022F98A32CAeAe88016B002594C62e4",
+  "amountMinor": "10000",
+  "distributionMinor": {
+    "holder60": "6000",
+    "holder40": "4000"
+  },
+  "outcome": "VERIFIED",
+  "ruleResults": [
+    {
+      "ruleId": "AI_EXTRACTION_PRESENT",
+      "status": "PASS"
+    },
+    {
+      "ruleId": "AI_TERMS_MATCH",
+      "status": "PASS"
+    },
+    {
+      "ruleId": "SOURCE_PROOF_VALID",
+      "status": "PASS"
+    },
+    {
+      "ruleId": "SOURCE_RECORD_FRESH",
+      "status": "PASS"
+    },
+    {
+      "ruleId": "PAYMENT_PRESENT",
+      "status": "PASS"
+    },
+    {
+      "ruleId": "AMOUNT_MATCHES",
+      "status": "PASS"
+    },
+    {
+      "ruleId": "PAYER_MATCHES",
+      "status": "PASS"
+    },
+    {
+      "ruleId": "DATE_IN_WINDOW",
+      "status": "PASS"
+    }
+  ],
+  "distribution": {
+    "holder60": "6000",
+    "holder40": "4000"
+  },
+  "reportEndpoint": "https://veritable-mainnet.vercel.app/v1/reports/0xfbe58b8e43f82b0ffb77a61185b592aa58b9c1686705b54842ea553ec9faebd8",
+  "secretsIncluded": false,
+  "transactions": {
+    "fundIssuer": {
+      "hash": "0xd42c3fdf3730a40d6d4f58d874fe797e2a8e8a96845b982746c12080c60850fb",
+      "explorerUrl": "https://scan.botchain.ai/tx/0xd42c3fdf3730a40d6d4f58d874fe797e2a8e8a96845b982746c12080c60850fb"
+    },
+    "incomePayment": {
+      "hash": "0x4cb04a9b2cb9e2c99e4ca31e59729187fa850f6bcf7214b60a709eb1094d7056",
+      "explorerUrl": "https://scan.botchain.ai/tx/0x4cb04a9b2cb9e2c99e4ca31e59729187fa850f6bcf7214b60a709eb1094d7056"
+    },
+    "createAsset": {
+      "hash": "0xcd1380d11fffec6634ca94b05aa6699aba241ee8b80479e88a64d6fb75f1039e",
+      "explorerUrl": "https://scan.botchain.ai/tx/0xcd1380d11fffec6634ca94b05aa6699aba241ee8b80479e88a64d6fb75f1039e"
+    },
+    "approveEscrow": {
+      "hash": "0x86f1a04c76b15db499db5f2730b30ce041177c96ed11e2aba97eb8991ced2724",
+      "explorerUrl": "https://scan.botchain.ai/tx/0x86f1a04c76b15db499db5f2730b30ce041177c96ed11e2aba97eb8991ced2724"
+    },
+    "submitClaim": {
+      "hash": "0x83a08dc22f0516f733233357b79cdb44e7ccf08ab1a01609777f133ae9ff01ff",
+      "explorerUrl": "https://scan.botchain.ai/tx/0x83a08dc22f0516f733233357b79cdb44e7ccf08ab1a01609777f133ae9ff01ff"
+    },
+    "hostedAttestation": {
+      "hash": "0x6494c68dce64e62e214226dfa0488a7c4d79232cec24e679fce24f6ed0ff44dc",
+      "explorerUrl": "https://scan.botchain.ai/tx/0x6494c68dce64e62e214226dfa0488a7c4d79232cec24e679fce24f6ed0ff44dc"
+    },
+    "settle": {
+      "hash": "0x30bda9d8b5701c3f1e1a45b22376a85d9c7caf302fa2a0209b33b0877a45ce28",
+      "explorerUrl": "https://scan.botchain.ai/tx/0x30bda9d8b5701c3f1e1a45b22376a85d9c7caf302fa2a0209b33b0877a45ce28"
+    },
+    "claimHolder60": {
+      "hash": "0x2c52ec0a60ce029f9d6d9f0cf7d32f9b01a42397811e43ddf91984c4c0e85a7e",
+      "explorerUrl": "https://scan.botchain.ai/tx/0x2c52ec0a60ce029f9d6d9f0cf7d32f9b01a42397811e43ddf91984c4c0e85a7e"
+    },
+    "claimHolder40": {
+      "hash": "0x6ac4083304867ce5ef9605ba145b7d9a91cf9b91e02e0738da1ad16faed87d81",
+      "explorerUrl": "https://scan.botchain.ai/tx/0x6ac4083304867ce5ef9605ba145b7d9a91cf9b91e02e0738da1ad16faed87d81"
+    }
+  }
+}

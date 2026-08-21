@@ -264,3 +264,12 @@ test("recovery persistence and Mainnet guards precede every transaction-capable 
   const ignore = await readFile(resolve(process.cwd(), ".gitignore"), "utf8");
   assert.match(ignore, /^\.verifi\/$/m, "recovery files remain inside the established gitignored boundary");
 });
+
+test("durable public reports support browser GET and preserve rule identifiers", async () => {
+  const runner = await readFile(resolve(process.cwd(), "scripts/canonical-claim.mjs"), "utf8");
+  const route = await readFile(resolve(process.cwd(), "apps/web/src/app/v1/reports/[claimId]/route.ts"), "utf8");
+  assert.match(route, /export async function GET\(/, "the public report URL is browser-readable");
+  assert.match(runner, /method: "GET"/, "the canonical runner verifies the browser-readable report path");
+  assert.match(runner, /ruleId: r\.ruleId/, "the public artifact retains each policy rule identifier");
+  assert.doesNotMatch(runner, /ruleId: r\.id/, "the obsolete rule field is not used");
+});

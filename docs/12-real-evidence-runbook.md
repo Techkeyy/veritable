@@ -11,7 +11,7 @@ The public product now prepares provider-backed evidence directly:
 5. The issuer registers the exact DeepSeek-extracted terms and hashed payer reference, then escrows Testnet USDT and commits the bundle hash on BOT Chain.
 6. Before attesting, the verifier independently rechecks the BOT transaction or payer signature. Deterministic policy then checks the extracted amount/date against registered terms and the verified payment proof against the claim.
 
-USD amounts are represented as six-decimal nominal settlement units: one USD is `1_000_000` units. On Testnet, the issuer escrows the same nominal amount of Testnet USDT. This does not assert an FX guarantee and must become an explicit treasury/conversion policy before Mainnet.
+USD amounts are represented as six-decimal nominal settlement units: one USD is `1_000_000` units. Mainnet uses official BOT Chain USDT; Testnet uses TestUSDT with the same decimals. This does not assert an FX guarantee, and a production treasury still needs an explicit conversion and redemption policy.
 
 Required hosted secrets are `DEEPSEEK_API_KEY` and `BLOB_READ_WRITE_TOKEN`. `DEEPSEEK_MODEL` defaults to `deepseek-v4-pro`. Never expose these values with a `NEXT_PUBLIC_` prefix.
 

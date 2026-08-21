@@ -1,49 +1,58 @@
 # Veritable submission dossier
 
-Status timestamp: **2026-08-18 (WAT)**
+Status timestamp: **2026-08-21 (WAT)**
 
 ## Project declaration
 
-Veritable is an original hackathon build created for the BOT Chain AI × RWA Builder Challenge. It combines an evidence-constrained verification agent with a bonded, challengeable on-chain attestation that gates RWA-income distribution. Third-party dependencies are listed in the lockfile and retain their own licenses; no third-party product is represented as original work.
-
-The live Testnet registry's EIP-712 signing domain uses the legacy compatibility identifier `VeriFi Attestation Registry`. Public branding is Veritable; the fixed domain is disclosed because changing it would invalidate deployed-contract signatures.
+Veritable is an original build for the BOT Chain AI x RWA Builder Challenge. It combines evidence-constrained AI extraction with deterministic policy and a bonded, challengeable on-chain attestation that gates RWA-income distribution. Third-party dependencies are listed in the lockfile and retain their own licenses.
 
 ## Final submission fields
 
 | Field | Value | State |
 |---|---|---|
-| Project | Veritable — Proof of income before distribution | Ready |
+| Project | Veritable: Proof of income before distribution | Ready |
 | Primary track | RWA Applications | Ready |
-| AI capability | Evidence extraction/reconciliation feeding deterministic policy and a slashable verifier attestation | Ready |
-| Public product | https://veritable-web-sigma.vercel.app | Live |
-| Testnet contracts/evidence | `deployments/bot-testnet/manifest.json` and evidence bundles | Proven |
-| Testnet completion audit | `deployments/bot-testnet/completion-audit.json` | 46/46 passed |
+| AI capability | DeepSeek extracts evidence facts; deterministic policy decides; a bonded verifier attests | Ready |
+| Mainnet product | https://veritable-mainnet.vercel.app | Live |
+| Mainnet report | https://veritable-mainnet.vercel.app/v1/reports/0xfbe58b8e43f82b0ffb77a61185b592aa58b9c1686705b54842ea553ec9faebd8 | VERIFIED |
+| Mainnet contracts | `deployments/bot-mainnet/manifest.json`, chain 677, block 20300480 | Deployed |
+| Mainnet canonical evidence | `deployments/bot-mainnet/canonical-claim.json` | Settled 60/40 |
+| Protected Testnet | https://veritable-web-sigma.vercel.app | Live |
+| Testnet audit | `deployments/bot-testnet/completion-audit.json` | 46/46 passed |
 | Public source | https://github.com/Techkeyy/veritable | Public |
-| BOT Mainnet contracts | `deployments/bot-mainnet/manifest.json`, chain 677, block 20300480 | Deployed |
-| Demo video | `[PUBLIC_DEMO_VIDEO_URL]` | Requires recording and upload |
+| Demo video | Human must record, upload, and paste the final public URL into the submission form | Human-only |
 
-Do not submit while a required bracketed publication value remains. Mainnet is intentionally deferred and must not be represented as deployed.
+## Mainnet judge path
 
-## Judge proof path
+1. Open the Mainnet product and its public report.
+2. Confirm claim `0xfbe58b8e43f82b0ffb77a61185b592aa58b9c1686705b54842ea553ec9faebd8` is `VERIFIED` with eight PASS rules.
+3. Verify the [0.010000 USDT income payment](https://scan.botchain.ai/tx/0x4cb04a9b2cb9e2c99e4ca31e59729187fa850f6bcf7214b60a709eb1094d7056).
+4. Verify the [bonded attestation](https://scan.botchain.ai/tx/0x6494c68dce64e62e214226dfa0488a7c4d79232cec24e679fce24f6ed0ff44dc).
+5. Verify [settlement](https://scan.botchain.ai/tx/0x30bda9d8b5701c3f1e1a45b22376a85d9c7caf302fa2a0209b33b0877a45ce28) after the 600-second challenge window.
+6. Verify the [0.006000 USDT issuer withdrawal](https://scan.botchain.ai/tx/0x2c52ec0a60ce029f9d6d9f0cf7d32f9b01a42397811e43ddf91984c4c0e85a7e) and [0.004000 USDT payer withdrawal](https://scan.botchain.ai/tx/0x6ac4083304867ce5ef9605ba145b7d9a91cf9b91e02e0738da1ad16faed87d81).
 
-1. Open the public product and browse the live marketplace offerings without a wallet.
-2. Inspect the canonical claim `0x1b547def2d1d6be5c508e357650fdd7366bd21b1b44ceb11c4e503b6d7a69c1a` and its eight deterministic rules, either in the product or directly against `/v1/reports/<claimId>`. Its evidence rail is a real onchain USDT payment plus a live DeepSeek extraction, recorded in `deployments/bot-testnet/canonical-claim.json`.
-3. Verify the hosted attestation and settlement links on BOTScan.
-4. Review `deployments/bot-testnet/fresh-wallet-production.json` for an independent full public write path by a disposable wallet. That record was produced against an earlier host which is now retired; its `siteStatus` field says so, and its BOTScan transactions verify independently of any host.
-5. Review `deployments/bot-testnet/acceptance.json` for the 60/40 verified distribution and challenged false-approval slash/refund path.
-6. Review the Mainnet evidence ledger once migration is authorized and completed.
+The first Mainnet claim, `0x87f90afb0a867b87905670146055017dab7e6efb610a45398c633c1f6ef05beb`, remains historical evidence of fail-closed `INCONCLUSIVE` handling. It was not modified, repaired, or hidden.
+
+## Testnet adversarial proof
+
+- `pnpm audit:testnet` passes 46 of 46 read-only checks.
+- A deliberately false approval was challenged, overturned, slashed, and refunded.
+- The protected Testnet marketplace and complete VERIFIED canonical flow remain available.
+- Evidence is recorded in `deployments/bot-testnet/acceptance.json` and `deployments/bot-testnet/canonical-claim.json`.
 
 ## Evidence-backed claims
 
-- 60 automated tests cover policy, API, agent recovery, contract state transitions, and cross-layer behavior.
-- A fresh in-memory wallet completed asset creation, escrow, hosted verification, settlement, and exact withdrawal through the public product.
-- A deliberately false approval was challenged, overturned, and financially slashed on BOT Testnet.
-- The public verifier endpoint authenticates the on-chain issuer and is idempotent.
-- BOT Mainnet preflight checks chain 677, official USDT code/symbol/decimals, compiled bytecode hashes, and required operational separation without broadcasting.
+- The Mainnet settlement token is official six-decimal USDT.
+- The Mainnet canonical claim escrowed and verified exactly 10,000 minor units.
+- All eight deterministic rules passed.
+- The bonded attestation waited through the on-chain 600-second challenge window.
+- On-chain transfer logs prove exact 6,000 and 4,000 minor-unit withdrawals with no dust.
+- The public verifier fails closed on incomplete extraction and permits at most two extraction attempts.
+- The full automated suite, typecheck, production build, dependency audit, and Testnet audit pass.
 
 ## Honest limitations
 
-The current evidence rail is a signed sandbox fixture, not production banking connectivity. Veritable does not claim legal title verification, KYC/AML coverage, universal fraud detection, or decentralized dispute governance. A production launch requires regulated data providers, private storage controls, independent audits, multisig governance, and jurisdiction-specific legal review.
+The current evidence rail proves a BOT Chain payment plus a live model extraction. It does not provide production bank connectivity, legal title verification, KYC or AML coverage, universal fraud detection, or decentralized dispute governance. Production rollout still requires regulated data providers, stronger private-storage controls, multisig operations, independent audits, and jurisdiction-specific legal review.
 
 ## Reproduction
 
@@ -51,11 +60,9 @@ The current evidence rail is a signed sandbox fixture, not production banking co
 pnpm install --frozen-lockfile
 pnpm test
 pnpm typecheck
-pnpm --filter @veritable/web build
-pnpm --filter @veritable/web build:sites
-pnpm audit --prod
-pnpm run doctor -- --network bot-testnet --require-deployment
-pnpm preflight:mainnet
+pnpm build
+pnpm audit --prod --audit-level high
+pnpm audit:testnet
 ```
 
-The Mainnet deployment command is deliberately locked and must not be run without separate authorization, dedicated Mainnet identities, explicit parameters, and a green readiness report.
+No additional Mainnet transaction is required for submission.

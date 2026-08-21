@@ -404,7 +404,7 @@ const processResult = await processResponse.json();
 log(`  status:  ${processResponse.status} ${processResult.status || processResult.error || ""}`);
 log(`  outcome: ${processResult.outcome}`);
 if (processResult.report?.ruleResults) {
-  for (const rule of processResult.report.ruleResults) log(`    ${rule.status.padEnd(7)} ${rule.id}`);
+  for (const rule of processResult.report.ruleResults) log(`    ${rule.status.padEnd(7)} ${rule.ruleId}`);
 }
 if (processResponse.status !== 200) throw new Error(`verifier failed: ${JSON.stringify(processResult)}`);
 if (processResult.transactionHash) {
@@ -415,7 +415,7 @@ if (processResult.transactionHash) {
 // 8. Confirm the durable report now resolves on this deployment.
 log("7. Verifying durable report resolution");
 const reportResponse = await fetch(`${SITE}/v1/reports/${claimId}`, {
-  method: "POST", headers: { "content-type": "application/json" }, body: "{}",
+  method: "GET",
 });
 const reportResult = await reportResponse.json();
 log(`  GET-from-storage status: ${reportResponse.status}`);
@@ -469,7 +469,7 @@ const artifact = {
     holder40: distribution.holder40Minor.toString(),
   },
   outcome: reportResult.report?.outcome,
-  ruleResults: reportResult.report?.ruleResults?.map((r) => ({ id: r.id, status: r.status })),
+  ruleResults: reportResult.report?.ruleResults?.map((r) => ({ ruleId: r.ruleId, status: r.status })),
   distribution: { holder60: (issuerAfter - issuerBefore).toString(), holder40: (payerAfter - payerBefore).toString() },
   reportEndpoint: `${SITE}/v1/reports/${claimId}`,
   secretsIncluded: false,

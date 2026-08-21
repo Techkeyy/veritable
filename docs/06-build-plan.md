@@ -1,10 +1,10 @@
 # Risk-first build plan
 
-> **Execution status (2026-08-12):** Phases 0–5 and the Testnet portions of Phases 7–8 are complete and evidenced by `deployments/bot-testnet/completion-audit.json` (36/36 live checks), 45 automated tests, both production builds, and the public Veritable site. Phase 6/Mainnet is explicitly deferred by the user. The video, public GitHub URL, and submission-form delivery are publication tasks, not missing Testnet product behavior.
+> **Execution status (2026-08-21):** Mainnet and Testnet engineering are complete. The Mainnet product is live on chain 677 with official USDT and a settled eight-PASS canonical claim. The automated suite has 91 tests, and the Testnet completion audit passes 46/46 checks. Video recording and submission-form delivery remain human-only.
 
 Target submission deadline from the supplied rules: **2026-08-22 23:59 UTC+8 = 2026-08-22 16:59 WAT**. Submit a valid draft early; improve it afterward.
 
-## Phase 0 — Foundation and pipeline map
+## Phase 0: Foundation and pipeline map
 
 Deliverables:
 
@@ -17,7 +17,7 @@ Deliverables:
 
 Exit gate: one command starts the local dependencies and the fixture bundle validates.
 
-## Phase 1 — Prove the risky core first
+## Phase 1: Prove the risky core first
 
 Build no marketplace polish yet.
 
@@ -46,7 +46,7 @@ false approval -> challenge -> slash -> block
 
 All must run locally from a repeatable command. If this phase fails, redesign before building UI.
 
-## Phase 2 — Harden contracts and tests
+## Phase 2: Harden contracts and tests
 
 Deliverables:
 
@@ -59,7 +59,7 @@ Deliverables:
 
 Exit gate: every invariant in the contract design has an automated test and all three critical scenarios pass.
 
-## Phase 3 — Evidence/API/agent service
+## Phase 3: Evidence/API/agent service
 
 Deliverables:
 
@@ -74,7 +74,7 @@ Deliverables:
 
 Exit gate: service restart and duplicate event delivery produce exactly one on-chain attestation.
 
-## Phase 4 — Critical product UI
+## Phase 4: Critical product UI
 
 Build screens in workflow order:
 
@@ -90,7 +90,7 @@ Build screens in workflow order:
 
 Exit gate: a fresh browser/wallet completes the full flow without CLI intervention.
 
-## Phase 5 — BOT testnet rehearsal
+## Phase 5: BOT testnet rehearsal
 
 Deliverables:
 
@@ -104,7 +104,7 @@ Deliverables:
 
 Exit gate: another person follows the runbook successfully.
 
-## Phase 6 — Mainnet deployment early
+## Phase 6: Mainnet deployment early
 
 Deploy the minimum complete contracts to chain 677 before final polish. Use official USDT and small values.
 
@@ -119,13 +119,13 @@ Deliverables:
 
 Exit gate: public site and explorer independently prove the core business loop.
 
-## Phase 7 — Adversarial and reliability pass
+## Phase 7: Adversarial and reliability pass
 
 Run the threat-model corpus, disconnect RPC/model/storage, restart the agent, change wallets/networks, double-click actions, replay signatures, and test deadline boundaries.
 
 Exit gate: failures degrade to pending/inconclusive/blocked, never automatic release.
 
-## Phase 8 — Product edge and submission
+## Phase 8: Product edge and submission
 
 Deliverables:
 
@@ -134,11 +134,11 @@ Deliverables:
 - limitations/trust disclosure;
 - rubric evidence matrix;
 - clean README and one-command setup;
-- 2.5–3 minute demo video with pre-mapped screens;
+- 2.5-3 minute demo video with pre-mapped screens;
 - submitted form with all fields complete;
 - backup offline fixture demo.
 
-Exit gate: a five-minute stranger test—understand, try, and verify without author explanation.
+Exit gate: a five-minute stranger test: understand, try, and verify without author explanation.
 
 ## Calendar
 
@@ -172,7 +172,7 @@ Never cut challenge/slash, Mainnet integration, exact USDT distribution, evidenc
 
 ## Definition of done
 
-The original competition definition below includes Mainnet. For the current user-authorized scope, the Testnet definition of done is: public wallet-connected product, all three critical protocol outcomes proven on chain, fresh-wallet public path, tests/typechecks/builds/audit green, secret-free artifacts, reproducible runbook, and limitations disclosed. That scoped definition is satisfied; Mainnet is excluded rather than represented as complete.
+The engineering definition of done is satisfied: a public Mainnet product, official-USDT canonical settlement, exact distribution, Testnet adversarial evidence, green tests/typechecks/builds/audits, secret-free artifacts, a reproducible runbook, and truthful limitations.
 
 - public Mainnet product and source repository;
 - wallet connects and completes core business loop;

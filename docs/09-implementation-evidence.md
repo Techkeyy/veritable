@@ -1,6 +1,6 @@
 # Implementation evidence
 
-Last validated: **2026-08-12 (WAT)**
+Last validated: **2026-08-21 (WAT)**
 
 ## Completed locally
 
@@ -23,7 +23,7 @@ Last validated: **2026-08-12 (WAT)**
 
 | Evidence | Result |
 |---|---|
-| `pnpm test` | 45 passed: policy 11, config 3, agent 11, API 4, contracts/cross-layer 16 |
+| `pnpm test` | 91 passed across canonical safety, policy, config, agent, API, web, and contracts |
 | `pnpm typecheck` | All nine workspaces passed |
 | `pnpm --filter @veritable/web build` | Production build passed |
 | `pnpm audit --prod` | No known vulnerabilities |
@@ -44,7 +44,7 @@ Last validated: **2026-08-12 (WAT)**
 - Public Sites release: https://veritable-web-sigma.vercel.app
 - Public release checks: `deployments/bot-testnet/public-site.json`
 - Public release version 3 is built from source commit `ddc44dc62b76906fdf180f99bb52a0da688e08c3` and renders the Veritable brand.
-- Live Testnet completion audit: `deployments/bot-testnet/completion-audit.json` — 36/36 checks passed.
+- Live Testnet completion audit: `deployments/bot-testnet/completion-audit.json`, 46/46 checks passed.
 - Fresh-wallet production bundle: `deployments/bot-testnet/fresh-wallet-production.json`
 - Read-only Mainnet readiness ledger: `deployments/bot-mainnet/readiness.json`
 - Asset Registry: `0xa5728e7aab1373d2af4b39d58ee1010167123560`
@@ -65,15 +65,26 @@ Last validated: **2026-08-12 (WAT)**
 
 The strict wallet doctor now passes both pre-deployment and phase-aware post-deployment checks. No private values are printed, pasted into chat, or committed.
 
-## Optional publication and deferred production work
+## Live BOT Mainnet evidence
 
-The Testnet product itself is complete. These items are intentionally outside that completion claim:
+- Product: https://veritable-mainnet.vercel.app
+- Deployment manifest: `deployments/bot-mainnet/manifest.json`
+- Canonical evidence: `deployments/bot-mainnet/canonical-claim.json`
+- Asset: `0x74198af012fc9ed1ff013f1962bdd8e42bd7dde6f95c8b87c16d957a0b90f790`
+- Claim: `0xfbe58b8e43f82b0ffb77a61185b592aa58b9c1686705b54842ea553ec9faebd8`
+- Provider run: `68579132-c454-414c-be85-a1d4fc4a4e28`
+- Income payment: https://scan.botchain.ai/tx/0x4cb04a9b2cb9e2c99e4ca31e59729187fa850f6bcf7214b60a709eb1094d7056
+- Bonded attestation: https://scan.botchain.ai/tx/0x6494c68dce64e62e214226dfa0488a7c4d79232cec24e679fce24f6ed0ff44dc
+- Challenge deadline: `2026-08-21T19:51:10.000Z`
+- Settlement: https://scan.botchain.ai/tx/0x30bda9d8b5701c3f1e1a45b22376a85d9c7caf302fa2a0209b33b0877a45ce28
+- Issuer 60% withdrawal: https://scan.botchain.ai/tx/0x2c52ec0a60ce029f9d6d9f0cf7d32f9b01a42397811e43ddf91984c4c0e85a7e
+- Payer 40% withdrawal: https://scan.botchain.ai/tx/0x6ac4083304867ce5ef9605ba145b7d9a91cf9b91e02e0738da1ad16faed87d81
+- On-chain conservation: `6000 + 4000 = 10000` official-USDT minor units.
 
-1. Record/upload the demo video and replace the submission runbook's video placeholder.
-2. Publish or grant judges access to a reviewable repository URL.
-3. Mainnet migration, explicitly deferred by the user.
-4. Production bank/data-provider integrations, durable database/object storage, multisig operations, KYC/AML, and independent security review.
+The first Mainnet claim, `0x87f90afb0a867b87905670146055017dab7e6efb610a45398c633c1f6ef05beb`, is retained as fail-closed `INCONCLUSIVE` history. The successful replacement used a fresh asset identity and did not alter the failed claim or its evidence.
 
-The read-only Mainnet preflight currently passes chain ID 677, live block, official USDT bytecode/symbol/6 decimals, compiled protocol bytecode, and Testnet evidence checks. It remains deliberately not ready to deploy because dedicated Mainnet identities, economic parameters, static-analysis review, funding, and explicit authorization are not yet present.
+## Remaining production and publication work
 
-Mainnet code paths remain locked behind explicit confirmation values and are not part of the active product release.
+1. Human records and uploads the demo video, then submits the public URL.
+2. Human completes the challenge submission form.
+3. Production bank/data-provider integrations, multisig operations, KYC or AML controls, and independent security review remain future work.
