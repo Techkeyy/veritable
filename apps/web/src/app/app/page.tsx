@@ -30,6 +30,7 @@ import {
 import { SiteNav } from "../../components/site-nav";
 import { assetFactoryAbi, assetRegistryAbi, attestationAbi, erc20Abi, marketplaceAbi, stakingAbi, vaultAbi } from "../../lib/abis";
 import { attestationRequestMessage } from "../../lib/attestationRequest";
+import { describeContractError, explainFailedTransaction } from "../../lib/contractErrors";
 import {
   activeChain,
   challengeBondBot,
@@ -190,7 +191,11 @@ export default function AppPage() {
   async function waitForTx(hash: `0x${string}`, label: string) {
     if (!publicClient) throw new Error(`${networkLabel} RPC client is unavailable`);
     const next = await publicClient.waitForTransactionReceipt({ hash });
-    if (next.status !== "success") throw new Error(`${label} reverted`);
+    if (next.status !== "success") {
+      // A failed receipt carries no reason, so recover it by replaying the call.
+      const reason = await explainFailedTransaction(publicClient, hash);
+      throw new Error(reason ?? `${label} reverted`);
+    }
     return next;
   }
 
@@ -618,6 +623,13 @@ export default function AppPage() {
     try {
       await action();
     } catch (error) {
+      // Simulation failures arrive as viem errors carrying the custom error, so
+      // prefer the decoded protocol reason over the raw message.
+      const decoded = describeContractError(error);
+      if (decoded) {
+        setStatus(decoded);
+        return;
+      }
       setStatus(error instanceof Error ? error.message.split("\n")[0] : "The action could not be completed.");
     }
   }
