@@ -7,6 +7,7 @@ import { useAccount, useBalance, usePublicClient, useReadContract, useWriteContr
 import { erc20Abi } from "../lib/abis";
 import { activeChain, contracts, isMainnet, nativeTokenLabel, writesEnabled } from "../lib/chain";
 import { formatAmount } from "../lib/format";
+import { requireTestUsdtMint, testnetFundingControlsAvailable } from "../lib/networkUi";
 
 const FAUCET_URL = "https://faucet.botchain.ai/basic/";
 const LOW_GAS = parseEther("0.02");
@@ -34,11 +35,13 @@ export function FundNotice() {
   });
 
   const needsGas = onNetwork && gas.data !== undefined && gas.data.value < LOW_GAS;
-  const needsUsdt = onNetwork && !isMainnet && usdt.data !== undefined && usdt.data < LOW_USDT;
+  const needsUsdt = onNetwork && usdt.data !== undefined && usdt.data < LOW_USDT;
+  const showTestnetFundingControls = testnetFundingControlsAvailable(isMainnet);
   if (!needsGas && !needsUsdt) return null;
 
   async function mintTestUsdt() {
-    if (!address || !publicClient || !contracts.settlement || isMainnet) return;
+    if (!address || !publicClient || !contracts.settlement) return;
+    requireTestUsdtMint(isMainnet);
     try {
       setMintError("");
       const hash = await writeContractAsync({
@@ -66,35 +69,43 @@ export function FundNotice() {
             <strong>You need {nativeTokenLabel} for gas</strong>
             <p>
               This wallet has {gas.data ? formatAmount(gas.data.value, 18) : "0"} {nativeTokenLabel}.
-              Open the official faucet, request test tokens, then come back. Every on-chain action needs gas.
+              {isMainnet
+                ? ` Add BOT on BOT Mainnet before continuing. Every on-chain action needs gas.`
+                : " Open the official faucet, request test tokens, then come back. Every on-chain action needs gas."}
             </p>
           </div>
-          <a className="fund-action" href={FAUCET_URL} target="_blank" rel="noreferrer">
-            Get {nativeTokenLabel} <ArrowUpRight size={14} />
-          </a>
+          {showTestnetFundingControls && (
+            <a className="fund-action" href={FAUCET_URL} target="_blank" rel="noreferrer">
+              Get {nativeTokenLabel} <ArrowUpRight size={14} />
+            </a>
+          )}
         </div>
       )}
       {needsUsdt && (
         <div className="fund-card usdt">
           <CircleDollarSign size={18} />
           <div>
-            <strong>You need TestUSDT</strong>
+            <strong>{isMainnet ? "You need USDT on BOT Mainnet" : "You need TestUSDT"}</strong>
             <p>
-              {needsGas
-                ? `Get ${nativeTokenLabel} first, then mint TestUSDT here. You will use it to escrow income or buy shares.`
-                : "Mint 10,000 TestUSDT to this wallet to escrow income or buy shares."}
+              {isMainnet
+                ? "Add USDT to this wallet before escrowing income or buying shares."
+                : needsGas
+                  ? `Get ${nativeTokenLabel} first, then mint TestUSDT here. You will use it to escrow income or buy shares.`
+                  : "Mint 10,000 TestUSDT to this wallet to escrow income or buy shares."}
             </p>
             {mintError && <p className="fund-error">{mintError}</p>}
           </div>
-          <button
-            type="button"
-            className="fund-action"
-            disabled={!writesEnabled || isPending || !contracts.settlement}
-            onClick={() => void mintTestUsdt()}
-          >
-            {isPending ? <LoaderCircle className="spin" size={15} /> : <CircleDollarSign size={15} />}
-            Get TestUSDT
-          </button>
+          {showTestnetFundingControls && (
+            <button
+              type="button"
+              className="fund-action"
+              disabled={!writesEnabled || isPending || !contracts.settlement}
+              onClick={() => void mintTestUsdt()}
+            >
+              {isPending ? <LoaderCircle className="spin" size={15} /> : <CircleDollarSign size={15} />}
+              Get TestUSDT
+            </button>
+          )}
         </div>
       )}
     </div>

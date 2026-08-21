@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseExtractedAmountMinor } from "./format";
+import { parseExtractedAmountMinor, sampleIncomeText } from "./format";
 
 describe("parseExtractedAmountMinor", () => {
   it("accepts dollar strings the model commonly returns", () => {
@@ -20,5 +20,19 @@ describe("parseExtractedAmountMinor", () => {
 
   it("treats non-numeric model output as a missing amount", () => {
     expect(parseExtractedAmountMinor("about two thousand")).toBeNull();
+  });
+});
+
+describe("sampleIncomeText", () => {
+  it("uses the selected network label", () => {
+    const document = sampleIncomeText({
+      propertyName: "Example",
+      amount: "1",
+      periodKey: "2026-08",
+      dueDate: "2026-08-01",
+      networkLabel: "BOT Mainnet",
+    });
+    expect(document).toContain("Veritable BOT Mainnet verification");
+    expect(document).not.toContain("Veritable Testnet verification");
   });
 });

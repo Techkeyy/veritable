@@ -55,6 +55,7 @@ import {
   sampleIncomeText,
   symbolFromName,
 } from "../../lib/format";
+import { networkUiCopy, requireTestUsdtMint, settlementFundingAction } from "../../lib/networkUi";
 import { loadSession, recallEvidence, rememberEvidence, saveSession, type WorkspaceSession } from "../../lib/session";
 import { hashCanonical } from "@veritable/policy";
 import { evidenceBundleSchema, type EvidenceBundle } from "@veritable/schemas";
@@ -109,6 +110,7 @@ export default function AppPage() {
   const publicClient = usePublicClient({ chainId: activeChain.id });
   const receipt = useWaitForTransactionReceipt({ hash: transactionHash });
   const connector = connectors[0];
+  const uiCopy = networkUiCopy(isMainnet);
 
   const [mode, setMode] = useState<Mode>("issue");
   const [session, setSession] = useState<WorkspaceSession>(() => loadSession());
@@ -145,10 +147,10 @@ export default function AppPage() {
   const windowClosed = Boolean(session.attestationId) && remainingSeconds === 0;
 
   const signingSteps = useMemo(() => [
-    "Approve the TestUSDT escrow",
+    `Approve the ${uiCopy.settlementToken} escrow`,
     "Submit this month’s claim",
     "Authorize the bonded verifier",
-  ], []);
+  ], [uiCopy.settlementToken]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -200,7 +202,8 @@ export default function AppPage() {
   }
 
   async function mintTestUsdt() {
-    if (!address || !contracts.settlement || isMainnet) return;
+    if (!address || !contracts.settlement) return;
+    requireTestUsdtMint(isMainnet);
     setStatus("Minting 10,000 TestUSDT…");
     const hash = await writeContractAsync({
       address: contracts.settlement,
@@ -223,7 +226,8 @@ export default function AppPage() {
       functionName: "balanceOf",
       args: [address],
     });
-    if (balance < amount) {
+    if (settlementFundingAction({ isMainnet, balance, required: amount }) === "MINT_TEST_USDT") {
+      requireTestUsdtMint(isMainnet);
       setStatus("Minting TestUSDT for the payment proof…");
       const mintHash = await writeContractAsync({
         address: contracts.settlement,
@@ -234,7 +238,7 @@ export default function AppPage() {
       });
       await waitForTx(mintHash, "TestUSDT mint");
     }
-    setStatus("Sending a TestUSDT payment to this wallet…");
+    setStatus(`Sending a ${uiCopy.settlementToken} payment to this wallet…`);
     const hash = await writeContractAsync({
       address: contracts.settlement,
       abi: erc20Abi,
@@ -249,7 +253,7 @@ export default function AppPage() {
 
   function useSampleDocument() {
     const file = new File(
-      [sampleIncomeText({ propertyName, amount: expectedAmount, periodKey, dueDate })],
+      [sampleIncomeText({ propertyName, amount: expectedAmount, periodKey, dueDate, networkLabel })],
       "sample-income.txt",
       { type: "text/plain" },
     );
@@ -311,7 +315,7 @@ export default function AppPage() {
   async function reportRent(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!address || !publicClient || !contracts.vault || !contracts.settlement || !contracts.assetFactory || !contracts.assetRegistry) {
-      throw new Error("The Testnet product is not configured yet");
+      throw new Error(`The ${networkLabel} product is not configured yet`);
     }
     const name = propertyName.trim();
     if (!name) throw new Error("Name the property");
@@ -320,7 +324,7 @@ export default function AppPage() {
     const amount = parseUnits(expectedAmount, 6);
     if (amount <= 0n) throw new Error("Enter an income amount");
     if (proofMethod === "BOT_TRANSACTION" && !(isHex(paymentTxHash) && paymentTxHash.length === 66)) {
-      throw new Error("Send a test payment or paste a TestUSDT transaction hash");
+      throw new Error(`Send a ${uiCopy.settlementToken} payment or paste a ${uiCopy.settlementToken} transaction hash`);
     }
     if (proofMethod === "COUNTERPARTY_SIGNATURE" && confirmationStatus !== "CONFIRMED") {
       throw new Error("The registered payer must confirm before you report");
@@ -410,10 +414,10 @@ export default function AppPage() {
       functionName: "balanceOf",
       args: [address],
     });
-    if (balance < amount) {
+    if (settlementFundingAction({ isMainnet, balance, required: amount }) === "MINT_TEST_USDT") {
       throw new Error("Not enough TestUSDT to escrow this claim. Use Get TestUSDT first.");
     }
-    setStatus("Approving the TestUSDT escrow…");
+    setStatus(`Approving the ${uiCopy.settlementToken} escrow…`);
     const approval = await writeContractAsync({
       address: contracts.settlement,
       abi: erc20Abi,
@@ -715,7 +719,7 @@ export default function AppPage() {
                 <button
                   type="button"
                   className="secondary-action"
-                  onClick={() => downloadText("sample-income.txt", sampleIncomeText({ propertyName, amount: expectedAmount, periodKey, dueDate }))}
+                  onClick={() => downloadText("sample-income.txt", sampleIncomeText({ propertyName, amount: expectedAmount, periodKey, dueDate, networkLabel }))}
                 >
                   Download sample
                 </button>
@@ -727,7 +731,7 @@ export default function AppPage() {
             <fieldset className="proof-methods">
               <legend>How was this income paid?</legend>
               <button type="button" aria-pressed={proofMethod === "BOT_TRANSACTION"} className={proofMethod === "BOT_TRANSACTION" ? "active" : ""} onClick={() => setProofMethod("BOT_TRANSACTION")}>
-                <Fingerprint /><span><strong>Testnet payment</strong><small>Send or paste a TestUSDT transfer</small></span>
+                <Fingerprint /><span><strong>{uiCopy.paymentMethod}</strong><small>{uiCopy.paymentDescription}</small></span>
               </button>
               <button type="button" aria-pressed={proofMethod === "COUNTERPARTY_SIGNATURE"} className={proofMethod === "COUNTERPARTY_SIGNATURE" ? "active" : ""} onClick={() => setProofMethod("COUNTERPARTY_SIGNATURE")}>
                 <Link2 /><span><strong>Payer confirmation</strong><small>Send a signature link</small></span>
@@ -737,9 +741,9 @@ export default function AppPage() {
             {proofMethod === "BOT_TRANSACTION" ? (
               <div className="payment-block">
                 <button type="button" className="secondary-action" disabled={!canWrite || isPending} onClick={() => void safelyRun(sendTestPayment)}>
-                  <CircleDollarSign size={16} /> Send a test payment
+                  <CircleDollarSign size={16} /> {uiCopy.sendPayment}
                 </button>
-                <label>Or paste a TestUSDT transaction
+                <label>{uiCopy.paymentTransaction}
                   <input value={paymentTxHash} onChange={(event) => setPaymentTxHash(event.target.value)} placeholder="0x… transfer to this wallet" />
                 </label>
               </div>
@@ -868,7 +872,7 @@ export default function AppPage() {
                 <p className="bond-note">Optional. List some of your 100 issuer shares on the public marketplace.</p>
                 <div className="field-grid">
                   <label>Shares to offer<input type="number" min="0.000001" step="0.000001" value={listShares} onChange={(event) => setListShares(event.target.value)} /></label>
-                  <label>Price per share <span>TestUSDT</span><input type="number" min="0.000001" step="0.000001" value={listPrice} onChange={(event) => setListPrice(event.target.value)} /></label>
+                  <label>Price per share <span>{uiCopy.settlementToken}</span><input type="number" min="0.000001" step="0.000001" value={listPrice} onChange={(event) => setListPrice(event.target.value)} /></label>
                 </div>
                 <button className="secondary-action" disabled={!canWrite || isPending} type="submit"><Store size={15} /> Publish offering</button>
               </form>

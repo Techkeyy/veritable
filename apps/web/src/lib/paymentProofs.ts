@@ -13,7 +13,7 @@ import {
   type Address,
   type Hex,
 } from "viem";
-import { activeChain, contracts } from "./chain";
+import { activeChain, contracts, networkLabel } from "./chain";
 import { loadPaymentRequest, type PaymentRequestRecord } from "./evidenceStorage";
 
 const transferAbi = [{
@@ -126,7 +126,7 @@ export async function envelopeFromBotTransaction(input: {
       // Ignore unrelated logs from the settlement-token transaction.
     }
   }
-  if (!matched) throw new Error("No matching Testnet USDT transfer to the connected issuer was found in that transaction");
+  if (!matched) throw new Error(`No matching USDT transfer to the connected issuer was found on ${networkLabel}`);
   const block = await client.getBlock({ blockNumber: receipt.blockNumber });
   const paidAtDate = new Date(Number(block.timestamp) * 1000);
   const issuedAt = paidAtDate.toISOString();

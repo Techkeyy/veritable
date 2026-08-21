@@ -85,6 +85,7 @@ export function sampleIncomeText(input: {
   amount: string;
   periodKey: string;
   dueDate: string;
+  networkLabel?: string;
 }) {
   return [
     "INCOME STATEMENT",
@@ -94,7 +95,7 @@ export function sampleIncomeText(input: {
     `Period: ${periodLabel(input.periodKey || currentPeriodKey())}`,
     "Payer reference: redacted",
     "",
-    "This is a sandbox document for Veritable Testnet verification.",
+    `This is a sandbox document for Veritable ${input.networkLabel ?? "BOT Testnet"} verification.`,
     "It is not a legal agreement and does not represent a real counterparty or bank payment.",
   ].join("\n");
 }

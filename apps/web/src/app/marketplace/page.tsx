@@ -8,6 +8,7 @@ import { SiteNav } from "../../components/site-nav";
 import { erc20Abi, marketplaceAbi } from "../../lib/abis";
 import { activeChain, contracts, isMainnet, networkLabel, writesEnabled } from "../../lib/chain";
 import { compactId, formatAmount, formatShares } from "../../lib/format";
+import { networkUiCopy, requireTestUsdtMint, settlementFundingAction, testnetFundingControlsAvailable } from "../../lib/networkUi";
 
 interface Offering {
   listingId: bigint;
@@ -37,6 +38,8 @@ export default function MarketplacePage() {
   const [quantities, setQuantities] = useState<Record<string, string>>({});
   const [status, setStatus] = useState("Loading public offerings…");
   const networkReady = chainId === activeChain.id;
+  const uiCopy = networkUiCopy(isMainnet);
+  const showTestnetFundingControls = testnetFundingControlsAvailable(isMainnet);
 
   const loadOfferings = useCallback(async () => {
     if (!publicClient || !contracts.marketplace) {
@@ -98,8 +101,10 @@ export default function MarketplacePage() {
         functionName: "balanceOf",
         args: [address],
       });
-      if (balance < cost) throw new Error(`You need ${formatAmount(cost)} TestUSDT. Get TestUSDT first.`);
-      setStatus(`Approving ${formatAmount(cost)} TestUSDT…`);
+      if (settlementFundingAction({ isMainnet, balance, required: cost }) === "MINT_TEST_USDT") {
+        throw new Error(`You need ${formatAmount(cost)} TestUSDT. Get TestUSDT first.`);
+      }
+      setStatus(`Approving ${formatAmount(cost)} ${uiCopy.settlementToken}…`);
       const approval = await writeContractAsync({
         address: contracts.settlement,
         abi: erc20Abi,
@@ -108,7 +113,7 @@ export default function MarketplacePage() {
         chainId: activeChain.id,
       });
       if ((await publicClient.waitForTransactionReceipt({ hash: approval })).status !== "success") {
-        throw new Error("TestUSDT approval reverted");
+        throw new Error(`${uiCopy.settlementToken} approval reverted`);
       }
       setStatus(`Buying ${formatShares(amount)} ${offering.symbol}…`);
       const purchase = await writeContractAsync({
@@ -129,7 +134,8 @@ export default function MarketplacePage() {
   }
 
   async function mintTestUsdt() {
-    if (!address || !publicClient || !contracts.settlement || isMainnet) return;
+    if (!address || !publicClient || !contracts.settlement) return;
+    requireTestUsdtMint(isMainnet);
     try {
       setStatus("Minting 10,000 public TestUSDT to your wallet…");
       const hash = await writeContractAsync({
@@ -153,9 +159,9 @@ export default function MarketplacePage() {
       <SiteNav active="market" />
 
       <section className="market-hero shell">
-        <div className="eyebrow"><Store size={15} /> Public Testnet marketplace</div>
+        <div className="eyebrow"><Store size={15} /> {uiCopy.marketplaceEyebrow}</div>
         <h1>Own the share.<br /><span>Verify the yield.</span></h1>
-        <p className="hero-copy">Buy revenue-share tokens with TestUSDT. You only collect yield after Veritable verifies the income.</p>
+        <p className="hero-copy">{uiCopy.marketplaceDescription}</p>
         <div className="market-toolbar">
           {!isConnected ? (
             <p className="hero-copy">Connect a wallet in the header to invest.</p>
@@ -163,14 +169,14 @@ export default function MarketplacePage() {
             <button className="primary-link" onClick={() => switchChain({ chainId: activeChain.id })}>
               {isSwitching ? "Switching…" : `Switch to ${networkLabel}`}
             </button>
-          ) : !isMainnet && (
+          ) : showTestnetFundingControls && (
             <button className="primary-link" disabled={isPending} onClick={() => void mintTestUsdt()}>
               {isPending ? <LoaderCircle className="spin" size={16} /> : <CircleDollarSign size={16} />} Get 10,000 TestUSDT
             </button>
           )}
           <button className="secondary-link" onClick={() => void loadOfferings()}><RefreshCw size={15} /> Refresh listings</button>
         </div>
-        <p className="market-disclaimer"><ShieldCheck size={14} /> Testnet sandbox only. These are public onchain primary issuances, not legal securities or a secondary market.</p>
+        <p className="market-disclaimer"><ShieldCheck size={14} /> {uiCopy.marketplaceDisclaimer}</p>
       </section>
 
       <section className="market-content shell">
@@ -184,7 +190,7 @@ export default function MarketplacePage() {
             let costLabel = "";
             try {
               const shares = parseUnits(quantities[key] || "0", 18);
-              if (shares > 0n) costLabel = `${formatShares(shares)} shares · ${formatAmount(listingCost(shares, offering.pricePerShareMinor))} TestUSDT`;
+              if (shares > 0n) costLabel = `${formatShares(shares)} shares · ${formatAmount(listingCost(shares, offering.pricePerShareMinor))} ${uiCopy.settlementToken}`;
             } catch {
               costLabel = "";
             }

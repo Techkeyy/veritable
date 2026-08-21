@@ -1,7 +1,10 @@
 import { ArrowUpRight, Bot, CircleDollarSign, Fingerprint, Gavel } from "lucide-react";
 import { ScrollReveal } from "../components/scroll-reveal";
+import { networkUiCopy } from "../lib/networkUi";
 
 export default function LandingPage() {
+  const isMainnetBuild = process.env.NEXT_PUBLIC_CHAIN_ENV === "bot-mainnet";
+  const uiCopy = networkUiCopy(isMainnetBuild);
   return (
     <main className="landing-page ballroom-landing">
       <section className="cinematic-hero" id="top">
@@ -30,7 +33,7 @@ export default function LandingPage() {
           <div className="cinematic-section-copy">
             <p className="cinematic-kicker">Choose a job</p>
             <ScrollReveal as="h2" className="cinematic-editorial-heading">One wallet. Every role. One verifiable rail.</ScrollReveal>
-            <p className="cinematic-body">Buy a share, report this month’s income, or read the verdict. Try it: sample document, send a test payment, wait the window, claim.</p>
+            <p className="cinematic-body">Buy a share, report this month’s income, or read the verdict. Try it: sample document, {uiCopy.sendPayment.toLowerCase()}, wait the window, claim.</p>
           </div>
 
           <div className="cinematic-entry-card">
@@ -41,7 +44,7 @@ export default function LandingPage() {
               <a href="/app"><span>Issuer</span><strong>Report this month’s income</strong><ArrowUpRight /></a>
               <a href="/app?mode=track"><span>Public</span><strong>Track a claim</strong><ArrowUpRight /></a>
             </div>
-            <p className="cinematic-card-note">One wallet identity · no custodial account · Testnet today</p>
+            <p className="cinematic-card-note">One wallet identity · no custodial account · {isMainnetBuild ? "BOT Mainnet" : "Testnet today"}</p>
           </div>
         </div>
       </section>
