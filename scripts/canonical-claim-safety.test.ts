@@ -7,15 +7,24 @@ import { resolve } from "node:path";
 import { attestationRequestMessage as appAttestationRequestMessage } from "../apps/web/src/lib/attestationRequest.ts";
 import { evidencePreparationMessage as appEvidencePreparationMessage } from "../apps/web/src/lib/evidenceAuthorization.ts";
 import {
+  FAILED_MAINNET_ASSET_ID,
+  MAINNET_DEPLOYER_GAS_UNITS,
+  MAINNET_ISSUER_GAS_UNITS,
   MAINNET_ISSUER_FUNDING_WEI,
+  MAINNET_ISSUER_RECOVERY_MARGIN_WEI,
   MAINNET_MAX_GAS_PRICE_WEI,
+  MAINNET_PAYER_SAFETY_MARGIN_WEI,
   TESTNET_ISSUER_FUNDING_WEI,
+  assertCanonicalAssetFresh,
   assertCanonicalExtractionMatches,
+  assertCanonicalMainnetAmount,
   assertMainnetGasPrice,
   assertMainnetPreSpendState,
+  assertRecoveryPersisted,
   assertSafeHostedBaseUrl,
   assertSelectedDeployment,
   attestationRequestMessage,
+  canonicalRunIdentity,
   evidencePreparationMessage,
   issuerFundingForNetwork,
   mainnetPayerReserve,
@@ -67,15 +76,57 @@ test("Mainnet refuses the protected Testnet host", () => {
 });
 
 test("issuer funding remains network-aware", () => {
-  assert.equal(issuerFundingForNetwork(true), 60_000_000_000_000_000n);
+  assert.equal(MAINNET_ISSUER_GAS_UNITS * MAINNET_MAX_GAS_PRICE_WEI, 55_889_650_000_000_000n);
+  assert.equal(MAINNET_ISSUER_RECOVERY_MARGIN_WEI, 1_500_000_000_000_000n);
+  assert.equal(issuerFundingForNetwork(true), 57_389_650_000_000_000n);
   assert.equal(issuerFundingForNetwork(true), MAINNET_ISSUER_FUNDING_WEI);
   assert.equal(issuerFundingForNetwork(false), 120_000_000_000_000_000n);
   assert.equal(issuerFundingForNetwork(false), TESTNET_ISSUER_FUNDING_WEI);
 });
 
 test("Mainnet payer reserve is derived from funding, measured gas, and margin", () => {
-  assert.equal(mainnetPayerReserve(), 74_083_000_000_000_000n);
-  assert.notEqual(mainnetPayerReserve(), 140_000_000_000_000_000n);
+  assert.equal(MAINNET_DEPLOYER_GAS_UNITS, 21_000n + 51_266n + 91_054n);
+  assert.equal(MAINNET_DEPLOYER_GAS_UNITS * MAINNET_MAX_GAS_PRICE_WEI, 4_083_000_000_000_000n);
+  assert.equal(MAINNET_PAYER_SAFETY_MARGIN_WEI, 1_500_000_000_000_000n);
+  assert.equal(mainnetPayerReserve(), 62_972_650_000_000_000n);
+  assert.notEqual(mainnetPayerReserve(), 74_083_000_000_000_000n);
+});
+
+test("Mainnet replacement identity is explicit, deterministic, and distinct from the failed asset", () => {
+  assert.throws(
+    () => canonicalRunIdentity({ mainnet: true, runLabel: undefined, issuerAddress: requester }),
+    /CANONICAL_RUN_LABEL/,
+  );
+  assert.throws(
+    () => canonicalRunIdentity({ mainnet: true, runLabel: "Mainnet R2", issuerAddress: requester }),
+    /lowercase letters/,
+  );
+  const identity = canonicalRunIdentity({ mainnet: true, runLabel: "mainnet-r2-20260821", issuerAddress: requester });
+  assert.equal(identity.propertyName, "Unit 4B, 118 Harbour Road [mainnet-r2-20260821]");
+  assert.notEqual(identity.assetId, FAILED_MAINNET_ASSET_ID);
+  assert.deepEqual(identity, canonicalRunIdentity({ mainnet: true, runLabel: "mainnet-r2-20260821", issuerAddress: requester }));
+});
+
+test("canonical asset preflight refuses the failed, registered, or previously claimed identity", () => {
+  const candidateAssetId = `0x${"44".repeat(32)}`;
+  assert.doesNotThrow(() => assertCanonicalAssetFresh({
+    mainnet: true,
+    candidateAssetId,
+    registeredIssuer: "0x0000000000000000000000000000000000000000",
+    existingClaimId: `0x${"00".repeat(32)}`,
+  }));
+  assert.throws(() => assertCanonicalAssetFresh({ mainnet: true, candidateAssetId: FAILED_MAINNET_ASSET_ID, registeredIssuer: "0x0000000000000000000000000000000000000000", existingClaimId: `0x${"00".repeat(32)}` }), /failed Mainnet asset/);
+  assert.throws(() => assertCanonicalAssetFresh({ mainnet: true, candidateAssetId, registeredIssuer: requester, existingClaimId: `0x${"00".repeat(32)}` }), /already exists/);
+  assert.throws(() => assertCanonicalAssetFresh({ mainnet: true, candidateAssetId, registeredIssuer: "0x0000000000000000000000000000000000000000", existingClaimId: claimId }), /already has a claim/);
+});
+
+test("final Mainnet amount is exactly 0.01 USDT and splits 60/40 without dust", () => {
+  assert.deepEqual(
+    assertCanonicalMainnetAmount({ mainnet: true, amountMinor: 10_000n }),
+    { holder60Minor: 6_000n, holder40Minor: 4_000n },
+  );
+  assert.throws(() => assertCanonicalMainnetAmount({ mainnet: true, amountMinor: 500_000n }), /CANONICAL_AMOUNT=0.01/);
+  assert.doesNotThrow(() => assertCanonicalMainnetAmount({ mainnet: false, amountMinor: 2_000_000_000n }));
 });
 
 test("canonical extraction gate accepts only complete exact terms", () => {
@@ -134,34 +185,11 @@ test("Mainnet refuses a chain-ID mismatch", () => {
 });
 
 test("Mainnet refuses missing recovery state", () => {
-  const valid = {
-    mainnet: true,
-    configuredSettlementToken: "0xaBabc7Ddc03e501d190C676BF3d92ef0e6e87a3C",
-    settlementTokenDecimals: 6,
-    missingCode: [],
-    freeStake: 600_000_000_000_000_000n,
-    requiredBond: 200_000_000_000_000_000n,
-    payerBotBalance: 150_000_000_000_000_000n,
-    minimumPayerBotBalance: mainnetPayerReserve(),
-    gasPrice: 20_000_000_000n,
-    payerUsdtBalance: 500_000n,
-    requiredUsdt: 500_000n,
-    payerAddress: requester,
-    manifestDeployer: requester,
-    verifierAddress: "0x2EDc775221FE928c252bc570FEcfd6E1a1F135AC",
-    manifestVerifier: "0x2EDc775221FE928c252bc570FEcfd6E1a1F135AC",
-    recoveryPersisted: true,
-  };
-  assert.throws(
-    () => assertMainnetPreSpendState({
-      ...valid,
-      recoveryPersisted: false,
-    }),
-    /recovery state/,
-  );
+  assert.throws(() => assertRecoveryPersisted(false), /recovery state/);
+  assert.doesNotThrow(() => assertRecoveryPersisted(true));
 });
 
-test("Mainnet pre-spend accepts the hypothetical 0.092 BOT / 0.5 USDT post-swap state and fails closed for each invariant", () => {
+test("Mainnet pre-spend accepts the planned 0.06299782 BOT / 0.010804 USDT state and fails closed for each invariant", () => {
   const valid = {
     mainnet: true,
     configuredSettlementToken: "0xaBabc7Ddc03e501d190C676BF3d92ef0e6e87a3C",
@@ -169,16 +197,15 @@ test("Mainnet pre-spend accepts the hypothetical 0.092 BOT / 0.5 USDT post-swap 
     missingCode: [] as string[],
     freeStake: 600_000_000_000_000_000n,
     requiredBond: 200_000_000_000_000_000n,
-    payerBotBalance: 92_000_000_000_000_000n,
+    payerBotBalance: 62_997_820_000_000_000n,
     minimumPayerBotBalance: mainnetPayerReserve(),
     gasPrice: 20_000_000_000n,
-    payerUsdtBalance: 500_000n,
-    requiredUsdt: 500_000n,
+    payerUsdtBalance: 10_804n,
+    requiredUsdt: 10_000n,
     payerAddress: requester,
     manifestDeployer: requester,
     verifierAddress: "0x2EDc775221FE928c252bc570FEcfd6E1a1F135AC",
     manifestVerifier: "0x2EDc775221FE928c252bc570FEcfd6E1a1F135AC",
-    recoveryPersisted: true,
   };
   assert.doesNotThrow(() => assertMainnetPreSpendState(valid));
   for (const [change, pattern] of [
@@ -188,7 +215,7 @@ test("Mainnet pre-spend accepts the hypothetical 0.092 BOT / 0.5 USDT post-swap 
     [{ freeStake: 199_999_999_999_999_999n }, /below the required bond/],
     [{ payerBotBalance: mainnetPayerReserve() - 1n }, /BOT balance/],
     [{ gasPrice: MAINNET_MAX_GAS_PRICE_WEI + 1n }, /stop and recalculate/],
-    [{ payerUsdtBalance: 499_999n }, /USDT balance/],
+    [{ payerUsdtBalance: 9_999n }, /USDT balance/],
     [{ payerAddress: "0x3A3DFC22820d1B0d6d0aD4D7438720c0D3d4dD07" }, /recorded deployer/],
     [{ verifierAddress: requester }, /verifier role/],
   ] as const) {
@@ -200,10 +227,12 @@ test("recovery persistence and Mainnet guards precede every transaction-capable 
   const source = await readFile(resolve(process.cwd(), "scripts/canonical-claim.mjs"), "utf8");
   const recovery = source.indexOf("await persistIssuerRecovery()");
   const preSpend = source.indexOf("await runPreSpendChecks()");
+  const freshness = source.lastIndexOf("assertCanonicalAssetFresh({");
   const firstSend = source.indexOf(".sendTransaction(");
   const firstWrite = source.indexOf(".writeContract(");
   assert.ok(recovery >= 0, "issuer recovery persistence call is present");
-  assert.ok(preSpend > recovery, "pre-spend checks run after recovery persistence");
+  assert.ok(preSpend > recovery, "recovery persistence is part of the pre-spend control flow");
+  assert.ok(freshness > recovery && freshness < preSpend, "asset and period freshness is checked inside pre-spend control flow");
   assert.ok(firstSend > preSpend, "sendTransaction cannot occur before recovery and pre-spend checks");
   assert.ok(firstWrite > preSpend, "writeContract cannot occur before recovery and pre-spend checks");
   assert.match(source, /Object\.entries\(manifest\.contracts\)/, "every configured deployment address is checked");
@@ -212,6 +241,8 @@ test("recovery persistence and Mainnet guards precede every transaction-capable 
   assert.match(source, /issuerFundingForNetwork\(MAINNET\)/, "issuer funding is selected explicitly by network");
   assert.match(source, /mainnetPayerReserve\(\)/, "Mainnet payer minimum is derived from named components");
   assert.doesNotMatch(source, /parseEther\("0\.14"\)/, "the old hardcoded 0.14 BOT minimum is absent");
+  assert.doesNotMatch(source, /60_000_000_000_000_000n/, "the superseded 0.060 BOT issuer funding is absent");
+  assert.doesNotMatch(source, /74_083_000_000_000_000n/, "the superseded 0.074083 BOT reserve is absent");
   const canonicalGate = source.indexOf("assertCanonicalExtractionMatches({ bundle, assetTerms })");
   const assetCreation = source.indexOf("const assetCreationReceipt");
   const approval = source.indexOf('confirm("approveEscrow"');

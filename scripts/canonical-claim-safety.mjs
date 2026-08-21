@@ -1,20 +1,23 @@
-import { getAddress } from "viem";
+import { getAddress, keccak256, stringToHex, zeroAddress, zeroHash } from "viem";
 
 export const KNOWN_TESTNET_SITE = "https://veritable-web-sigma.vercel.app";
 export const BOT_MAINNET_USDT = getAddress("0xaBabc7Ddc03e501d190C676BF3d92ef0e6e87a3C");
 
-// The disposable issuer pays createAsset, approval, claim submission,
-// settlement, and its holder withdrawal. The measured Mainnet cost for those
-// calls is 2,235,586 gas, or 0.04471172 BOT at 20 gwei. Funding it with 0.060
-// BOT preserves about 34% headroom at the current gas price.
-export const MAINNET_ISSUER_FUNDING_WEI = 60_000_000_000_000_000n;
+export const FAILED_MAINNET_ASSET_ID = "0x744a742588d6850b0c5d910b4f5f561ae46666995933700d2e333e2840c3eae3";
+export const MAINNET_ISSUER_GAS_UNITS = 2_235_586n;
+export const MAINNET_MAX_GAS_PRICE_WEI = 25_000_000_000n;
+export const MAINNET_ISSUER_RECOVERY_MARGIN_WEI = 1_500_000_000_000_000n;
+// Price the measured issuer-paid flow at the fail-closed gas ceiling and retain
+// an explicit recovery margin in the disposable wallet.
+export const MAINNET_ISSUER_FUNDING_WEI = (
+  MAINNET_ISSUER_GAS_UNITS * MAINNET_MAX_GAS_PRICE_WEI
+) + MAINNET_ISSUER_RECOVERY_MARGIN_WEI;
 export const TESTNET_ISSUER_FUNDING_WEI = 120_000_000_000_000_000n;
 
 // The deployer pays the issuer-funding transfer, USDT payment, and its holder
 // withdrawal: 21,000 + 51,266 + 91,054 measured gas units.
 export const MAINNET_DEPLOYER_GAS_UNITS = 163_320n;
-export const MAINNET_MAX_GAS_PRICE_WEI = 25_000_000_000n;
-export const MAINNET_PAYER_SAFETY_MARGIN_WEI = 10_000_000_000_000_000n;
+export const MAINNET_PAYER_SAFETY_MARGIN_WEI = 1_500_000_000_000_000n;
 
 export function issuerFundingForNetwork(mainnet) {
   return mainnet ? MAINNET_ISSUER_FUNDING_WEI : TESTNET_ISSUER_FUNDING_WEI;
@@ -23,6 +26,53 @@ export function issuerFundingForNetwork(mainnet) {
 export function mainnetPayerReserve() {
   const deployerGasAllowance = MAINNET_DEPLOYER_GAS_UNITS * MAINNET_MAX_GAS_PRICE_WEI;
   return MAINNET_ISSUER_FUNDING_WEI + deployerGasAllowance + MAINNET_PAYER_SAFETY_MARGIN_WEI;
+}
+
+export function canonicalRunIdentity({ mainnet, runLabel, issuerAddress }) {
+  if (!runLabel) {
+    if (mainnet) throw new Error("Mainnet canonical runs require an explicit CANONICAL_RUN_LABEL");
+    const propertyName = "Unit 4B, 118 Harbour Road";
+    const assetLabel = `asset:veritable-canonical-${getAddress(issuerAddress).slice(2, 10).toLowerCase()}`;
+    return { runLabel: undefined, propertyName, assetLabel, assetId: keccak256(stringToHex(assetLabel)) };
+  }
+  if (!/^[a-z0-9][a-z0-9-]{2,63}$/.test(runLabel)) {
+    throw new Error("CANONICAL_RUN_LABEL must be 3-64 lowercase letters, numbers, or hyphens");
+  }
+  const propertyName = `Unit 4B, 118 Harbour Road [${runLabel}]`;
+  return {
+    runLabel,
+    propertyName,
+    assetLabel: `property:${propertyName}`,
+    assetId: keccak256(stringToHex(propertyName)),
+  };
+}
+
+export function assertCanonicalAssetFresh({ mainnet, candidateAssetId, registeredIssuer, existingClaimId }) {
+  if (mainnet && candidateAssetId.toLowerCase() === FAILED_MAINNET_ASSET_ID) {
+    throw new Error("Replacement canonical asset ID matches the failed Mainnet asset");
+  }
+  if (getAddress(registeredIssuer) !== zeroAddress) {
+    throw new Error(`Canonical asset ${candidateAssetId} already exists; existing-state continuation is not supported`);
+  }
+  if (existingClaimId !== zeroHash) {
+    throw new Error(`Canonical asset ${candidateAssetId} already has a claim for the selected period`);
+  }
+}
+
+export function assertCanonicalMainnetAmount({ mainnet, amountMinor }) {
+  if (mainnet && amountMinor !== 10_000n) {
+    throw new Error("The final Mainnet replacement run requires CANONICAL_AMOUNT=0.01 (10000 USDT minor units)");
+  }
+  if (amountMinor % 5n !== 0n) {
+    throw new Error("Canonical amount does not split 60/40 without rounding dust");
+  }
+  return { holder60Minor: (amountMinor * 3n) / 5n, holder40Minor: (amountMinor * 2n) / 5n };
+}
+
+export function assertRecoveryPersisted(recoveryPersisted) {
+  if (!recoveryPersisted) {
+    throw new Error("Disposable issuer recovery state was not durably persisted before value movement");
+  }
 }
 
 export function assertCanonicalExtractionMatches({ bundle, assetTerms }) {
@@ -110,10 +160,8 @@ export function assertMainnetPreSpendState({
   manifestDeployer,
   verifierAddress,
   manifestVerifier,
-  recoveryPersisted,
 }) {
   if (!mainnet) return;
-  assertMainnetGasPrice({ mainnet, gasPrice });
   if (getAddress(configuredSettlementToken) !== BOT_MAINNET_USDT) {
     throw new Error(`Mainnet settlement token must be official USDT at ${BOT_MAINNET_USDT}`);
   }
@@ -123,22 +171,20 @@ export function assertMainnetPreSpendState({
   if (missingCode.length > 0) {
     throw new Error(`Missing deployed bytecode: ${missingCode.join(", ")}`);
   }
-  if (freeStake < requiredBond) {
-    throw new Error(`Verifier free stake ${freeStake} is below the required bond ${requiredBond}`);
-  }
-  if (payerBotBalance < minimumPayerBotBalance) {
-    throw new Error(`Funding wallet BOT balance ${payerBotBalance} is below the guarded minimum ${minimumPayerBotBalance}`);
-  }
-  if (payerUsdtBalance < requiredUsdt) {
-    throw new Error(`Funding wallet USDT balance ${payerUsdtBalance} is below the claim amount ${requiredUsdt}`);
-  }
   if (getAddress(payerAddress) !== getAddress(manifestDeployer)) {
     throw new Error("Funding wallet does not match the selected Mainnet deployment's recorded deployer");
   }
   if (getAddress(verifierAddress) !== getAddress(manifestVerifier)) {
     throw new Error("Verifier wallet does not match the selected Mainnet deployment's verifier role");
   }
-  if (!recoveryPersisted) {
-    throw new Error("Disposable issuer recovery state was not durably persisted before spend checks");
+  if (freeStake < requiredBond) {
+    throw new Error(`Verifier free stake ${freeStake} is below the required bond ${requiredBond}`);
+  }
+  assertMainnetGasPrice({ mainnet, gasPrice });
+  if (payerBotBalance < minimumPayerBotBalance) {
+    throw new Error(`Funding wallet BOT balance ${payerBotBalance} is below the guarded minimum ${minimumPayerBotBalance}`);
+  }
+  if (payerUsdtBalance < requiredUsdt) {
+    throw new Error(`Funding wallet USDT balance ${payerUsdtBalance} is below the claim amount ${requiredUsdt}`);
   }
 }

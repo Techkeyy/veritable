@@ -15,11 +15,15 @@ import {
 } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import {
+  assertCanonicalAssetFresh,
   assertCanonicalExtractionMatches,
+  assertCanonicalMainnetAmount,
   assertMainnetPreSpendState,
+  assertRecoveryPersisted,
   assertSafeHostedBaseUrl,
   assertSelectedDeployment,
   attestationRequestMessage,
+  canonicalRunIdentity,
   evidencePreparationMessage,
   issuerFundingForNetwork,
   mainnetPayerReserve,
@@ -54,13 +58,10 @@ const PERIOD = process.env.CANONICAL_PERIOD || "2026-08";
 // amount must be small and the payer must already hold it.
 const AMOUNT = parseUnits(process.env.CANONICAL_AMOUNT || (MAINNET ? "1" : "2000"), 6);
 const AMOUNT_MINOR = AMOUNT.toString();
+const distribution = assertCanonicalMainnetAmount({ mainnet: MAINNET, amountMinor: AMOUNT });
 // The evidence document must state the same amount the terms register, or the
 // AI_TERMS_MATCH rule fails and the claim is BLOCKED.
 const AMOUNT_DECIMAL = Number(formatUnits(AMOUNT, 6)).toFixed(2);
-// A 60/40 snapshot split must divide without dust.
-if (AMOUNT % 5n !== 0n) {
-  throw new Error(`CANONICAL_AMOUNT ${AMOUNT_DECIMAL} does not split 60/40 without rounding dust. Use a value whose minor units divide by 5.`);
-}
 
 const chain = {
   id: NET.id, name: NET.chainName,
@@ -79,6 +80,9 @@ const tokenAbi = [
   { type: "function", name: "approve", stateMutability: "nonpayable", inputs: [{ name: "spender", type: "address" }, { name: "amount", type: "uint256" }], outputs: [{ type: "bool" }] },
   { type: "function", name: "balanceOf", stateMutability: "view", inputs: [{ name: "account", type: "address" }], outputs: [{ type: "uint256" }] },
   { type: "function", name: "decimals", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },
+];
+const assetRegistryAbi = [
+  { type: "function", name: "issuerOf", stateMutability: "view", inputs: [{ name: "assetId", type: "bytes32" }], outputs: [{ type: "address" }] },
 ];
 const factoryAbi = [{
   type: "function", name: "createAsset", stateMutability: "nonpayable",
@@ -114,6 +118,8 @@ const verifier = privateKeyToAccount(
 );
 const issuerKey = generatePrivateKey();
 const issuer = privateKeyToAccount(issuerKey);
+const periodKeyHash = keccak256(stringToHex(PERIOD));
+let runIdentity;
 const payerClient = createWalletClient({ chain, transport: http(RPC), account: payer });
 const issuerClient = createWalletClient({ chain, transport: http(RPC), account: issuer });
 const transactions = {};
@@ -162,7 +168,16 @@ async function runPreSpendChecks() {
     manifestChainId: manifest.chainId,
     manifestNetwork: manifest.network,
   });
-  if (!MAINNET) return;
+  if (!MAINNET) {
+    await persistIssuerRecovery();
+    assertRecoveryPersisted(recoveryPersisted);
+    runIdentity = canonicalRunIdentity({
+      mainnet: false,
+      runLabel: process.env.CANONICAL_RUN_LABEL,
+      issuerAddress: issuer.address,
+    });
+    return;
+  }
 
   const contractEntries = Object.entries(manifest.contracts).map(([name, rawAddress]) => [name, getAddress(rawAddress)]);
   const codeResults = await Promise.all(contractEntries.map(async ([name, address]) => ({
@@ -193,7 +208,33 @@ async function runPreSpendChecks() {
     manifestDeployer: manifest.deployer,
     verifierAddress: verifier.address,
     manifestVerifier: manifest.roles.verifier,
-    recoveryPersisted,
+  });
+  await persistIssuerRecovery();
+  assertRecoveryPersisted(recoveryPersisted);
+  runIdentity = canonicalRunIdentity({
+    mainnet: true,
+    runLabel: process.env.CANONICAL_RUN_LABEL,
+    issuerAddress: issuer.address,
+  });
+  const [registeredIssuer, existingClaimId] = await Promise.all([
+    publicClient.readContract({
+      address: getAddress(manifest.contracts.assetRegistry),
+      abi: assetRegistryAbi,
+      functionName: "issuerOf",
+      args: [runIdentity.assetId],
+    }),
+    publicClient.readContract({
+      address: getAddress(manifest.contracts.yieldVault),
+      abi: vaultAbi,
+      functionName: "periodClaims",
+      args: [runIdentity.assetId, periodKeyHash],
+    }),
+  ]);
+  assertCanonicalAssetFresh({
+    mainnet: true,
+    candidateAssetId: runIdentity.assetId,
+    registeredIssuer,
+    existingClaimId,
   });
 }
 
@@ -206,12 +247,13 @@ async function confirm(name, hash) {
   return receipt;
 }
 
-await persistIssuerRecovery();
 await runPreSpendChecks();
 
 log(`Site:   ${SITE}`);
 log(`Payer:  ${payer.address}`);
-log(`Issuer: ${issuer.address} (fresh)\n`);
+log(`Issuer: ${issuer.address} (fresh)`);
+log(`Run:    ${runIdentity.runLabel || "legacy-testnet"}`);
+log(`Asset:  ${runIdentity.assetId}\n`);
 
 // 0. The bonded verifier must hold enough free stake to lock a new bond.
 log("0. Checking verifier free stake");
@@ -260,7 +302,7 @@ await persistIssuerRecoveryStage("INCOME_PAYMENT_MADE", {
 const documentText = [
   "LEASE INCOME STATEMENT",
   "",
-  "Property: Unit 4B, 118 Harbour Road",
+  `Property: ${runIdentity.propertyName}`,
   "Landlord reference: VERITABLE-DEMO-4B",
   `Billing period: ${PERIOD}`,
   "",
@@ -325,13 +367,12 @@ await persistIssuerRecoveryStage("EVIDENCE_PREPARED", {
 
 // 5. Create the asset with the exact prepared terms.
 log("4. Creating asset with the prepared terms");
-const assetLabel = `asset:veritable-canonical-${issuer.address.slice(2, 10).toLowerCase()}`;
-const assetId = keccak256(stringToHex(assetLabel));
-const periodKeyHash = keccak256(stringToHex(PERIOD));
+const assetLabel = runIdentity.assetLabel;
+const assetId = runIdentity.assetId;
 const policyHash = keccak256(stringToHex("policy-v1"));
 const assetCreationReceipt = await confirm("createAsset", await issuerClient.writeContract({
   address: manifest.contracts.assetFactory, abi: factoryAbi, functionName: "createAsset",
-  args: [assetId, "Veritable Canonical Income Asset", "vCANON", policyHash, termsHash,
+  args: [assetId, runIdentity.propertyName, "vCANON", policyHash, termsHash,
     [issuer.address, payer.address], [parseUnits("60", 18), parseUnits("40", 18)]],
 }));
 await persistIssuerRecoveryStage("ASSET_CREATED", {
@@ -410,6 +451,8 @@ const artifact = {
   site: SITE,
   evidenceRail: "LIVE_DEEPSEEK_EXTRACTION_PLUS_ONCHAIN_PAYMENT_PROOF",
   period: PERIOD,
+  runLabel: runIdentity.runLabel,
+  propertyName: runIdentity.propertyName,
   assetLabel,
   assetId,
   claimId,
@@ -421,6 +464,10 @@ const artifact = {
   paymentProof: { kind: "BOT_CHAIN_TX", txHash: paymentTxHash, payer: payer.address, paidAt },
   issuer: issuer.address,
   amountMinor: AMOUNT_MINOR,
+  distributionMinor: {
+    holder60: distribution.holder60Minor.toString(),
+    holder40: distribution.holder40Minor.toString(),
+  },
   outcome: reportResult.report?.outcome,
   ruleResults: reportResult.report?.ruleResults?.map((r) => ({ id: r.id, status: r.status })),
   distribution: { holder60: (issuerAfter - issuerBefore).toString(), holder40: (payerAfter - payerBefore).toString() },
