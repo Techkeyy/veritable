@@ -10,6 +10,7 @@ import {
   MAINNET_ISSUER_FUNDING_WEI,
   MAINNET_MAX_GAS_PRICE_WEI,
   TESTNET_ISSUER_FUNDING_WEI,
+  assertCanonicalExtractionMatches,
   assertMainnetGasPrice,
   assertMainnetPreSpendState,
   assertSafeHostedBaseUrl,
@@ -75,6 +76,29 @@ test("issuer funding remains network-aware", () => {
 test("Mainnet payer reserve is derived from funding, measured gas, and margin", () => {
   assert.equal(mainnetPayerReserve(), 74_083_000_000_000_000n);
   assert.notEqual(mainnetPayerReserve(), 140_000_000_000_000_000n);
+});
+
+test("canonical extraction gate accepts only complete exact terms", () => {
+  const assetTerms = { expectedAmountMinor: "10000", dueDate: "2026-08-21" };
+  const bundle = (extractedFacts?: { expectedAmountMinor?: string; dueDate?: string }) => ({
+    documents: [{ id: "deepseek:test:income.txt", extractedFacts }],
+  });
+  assert.deepEqual(
+    assertCanonicalExtractionMatches({ bundle: bundle(assetTerms), assetTerms }),
+    assetTerms,
+  );
+  assert.throws(
+    () => assertCanonicalExtractionMatches({ bundle: bundle({ dueDate: assetTerms.dueDate }), assetTerms }),
+    /complete extracted amount and due date/,
+  );
+  assert.throws(
+    () => assertCanonicalExtractionMatches({ bundle: bundle({ expectedAmountMinor: "9999", dueDate: assetTerms.dueDate }), assetTerms }),
+    /amount does not match/,
+  );
+  assert.throws(
+    () => assertCanonicalExtractionMatches({ bundle: bundle({ expectedAmountMinor: assetTerms.expectedAmountMinor, dueDate: "2026-08-20" }), assetTerms }),
+    /due date does not match/,
+  );
 });
 
 test("Mainnet gas-price ceiling passes at or below 25 gwei and fails closed above it", () => {
@@ -188,6 +212,24 @@ test("recovery persistence and Mainnet guards precede every transaction-capable 
   assert.match(source, /issuerFundingForNetwork\(MAINNET\)/, "issuer funding is selected explicitly by network");
   assert.match(source, /mainnetPayerReserve\(\)/, "Mainnet payer minimum is derived from named components");
   assert.doesNotMatch(source, /parseEther\("0\.14"\)/, "the old hardcoded 0.14 BOT minimum is absent");
+  const canonicalGate = source.indexOf("assertCanonicalExtractionMatches({ bundle, assetTerms })");
+  const assetCreation = source.indexOf("const assetCreationReceipt");
+  const approval = source.indexOf('confirm("approveEscrow"');
+  const claimSubmission = source.indexOf("const claimSubmissionReceipt");
+  assert.ok(canonicalGate >= 0, "canonical extraction assertion is present");
+  assert.ok(assetCreation > canonicalGate, "asset creation is unreachable until canonical extraction passes");
+  assert.ok(approval > canonicalGate, "approval is unreachable until canonical extraction passes");
+  assert.ok(claimSubmission > canonicalGate, "claim submission is unreachable until canonical extraction passes");
+  for (const stage of [
+    "ISSUER_GENERATED",
+    "ISSUER_FUNDED",
+    "INCOME_PAYMENT_MADE",
+    "EVIDENCE_PREPARED",
+    "ASSET_CREATED",
+    "CLAIM_SUBMITTED",
+  ]) {
+    assert.match(source, new RegExp(`persistIssuerRecoveryStage\\(\"${stage}\"`), `${stage} is durably tracked`);
+  }
   const ignore = await readFile(resolve(process.cwd(), ".gitignore"), "utf8");
   assert.match(ignore, /^\.verifi\/$/m, "recovery files remain inside the established gitignored boundary");
 });

@@ -25,6 +25,21 @@ export function mainnetPayerReserve() {
   return MAINNET_ISSUER_FUNDING_WEI + deployerGasAllowance + MAINNET_PAYER_SAFETY_MARGIN_WEI;
 }
 
+export function assertCanonicalExtractionMatches({ bundle, assetTerms }) {
+  const document = bundle?.documents?.find((candidate) => candidate?.id?.startsWith("deepseek:"));
+  const facts = document?.extractedFacts;
+  if (!facts?.expectedAmountMinor || !facts.dueDate) {
+    throw new Error("Canonical evidence requires complete extracted amount and due date before on-chain commitment");
+  }
+  if (facts.expectedAmountMinor !== assetTerms.expectedAmountMinor) {
+    throw new Error("Canonical extracted amount does not match the intended registered amount");
+  }
+  if (facts.dueDate !== assetTerms.dueDate) {
+    throw new Error("Canonical extracted due date does not match the intended registered due date");
+  }
+  return facts;
+}
+
 export function assertMainnetGasPrice({ mainnet, gasPrice }) {
   if (!mainnet) return;
   if (typeof gasPrice !== "bigint" || gasPrice <= 0n) {

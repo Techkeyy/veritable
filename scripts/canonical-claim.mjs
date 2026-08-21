@@ -15,6 +15,7 @@ import {
 } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
 import {
+  assertCanonicalExtractionMatches,
   assertMainnetPreSpendState,
   assertSafeHostedBaseUrl,
   assertSelectedDeployment,
@@ -119,7 +120,7 @@ const transactions = {};
 const recoveryPath = resolve(ROOT, `.verifi/canonical-recovery-${NET.dir}-${issuer.address.toLowerCase()}.json`);
 const issuerFunding = issuerFundingForNetwork(MAINNET);
 const minimumMainnetPayerBot = mainnetPayerReserve();
-const issuerRecovery = {
+let issuerRecovery = {
   schemaVersion: 1,
   network: NET.dir,
   chainId: NET.id,
@@ -130,15 +131,26 @@ const issuerRecovery = {
 };
 let recoveryPersisted = false;
 
-async function persistIssuerRecovery() {
+async function persistIssuerRecoveryStage(stage, details = {}) {
+  issuerRecovery = {
+    ...issuerRecovery,
+    ...details,
+    stage,
+    updatedAt: new Date().toISOString(),
+  };
   await mkdir(resolve(ROOT, ".verifi"), { recursive: true });
   await writeFile(recoveryPath, `${JSON.stringify(issuerRecovery, null, 2)}\n`, "utf8");
   const persisted = JSON.parse(await readFile(recoveryPath, "utf8"));
   recoveryPersisted = persisted.network === NET.dir
     && persisted.chainId === NET.id
     && persisted.issuer?.toLowerCase() === issuer.address.toLowerCase()
-    && persisted.issuerKey === issuerKey;
+    && persisted.issuerKey === issuerKey
+    && persisted.stage === stage;
   if (!recoveryPersisted) throw new Error("Disposable issuer recovery state could not be verified after persistence");
+}
+
+async function persistIssuerRecovery() {
+  await persistIssuerRecoveryStage("ISSUER_GENERATED");
 }
 
 async function runPreSpendChecks() {
@@ -216,7 +228,11 @@ if (freeStake < requiredBond) {
 
 // 1. Fund the fresh issuer with gas.
 log("1. Funding fresh issuer wallet");
-await confirm("fundIssuer", await payerClient.sendTransaction({ to: issuer.address, value: issuerFunding }));
+const issuerFundingReceipt = await confirm("fundIssuer", await payerClient.sendTransaction({ to: issuer.address, value: issuerFunding }));
+await persistIssuerRecoveryStage("ISSUER_FUNDED", {
+  issuerFundingWei: issuerFunding.toString(),
+  fundIssuerTxHash: issuerFundingReceipt.transactionHash,
+});
 
 // 2. Real TestUSDT payment from payer to issuer. This is the income event.
 log(`2. Real ${MAINNET ? "USDT" : "TestUSDT"} income payment (payer -> issuer)`);
@@ -234,6 +250,11 @@ const paymentTxHash = paymentReceipt.transactionHash;
 const paymentBlock = await publicClient.getBlock({ blockNumber: paymentReceipt.blockNumber });
 const paidAt = new Date(Number(paymentBlock.timestamp) * 1000).toISOString().slice(0, 10);
 log(`  paidAt: ${paidAt}`);
+await persistIssuerRecoveryStage("INCOME_PAYMENT_MADE", {
+  paymentTxHash,
+  paidAt,
+  amountMinor: AMOUNT_MINOR,
+});
 
 // 3. Evidence document. Terms are stated explicitly so extraction is unambiguous.
 const documentText = [
@@ -286,20 +307,21 @@ const prepResponse = await fetch(`${SITE}/v1/evidence/prepare`, { method: "POST"
 const prepResult = await prepResponse.json();
 if (prepResponse.status !== 200) throw new Error(`prepare failed ${prepResponse.status}: ${JSON.stringify(prepResult)}`);
 const bundle = prepResult.evidenceBundle;
+assertCanonicalExtractionMatches({ bundle, assetTerms });
 log(`  providerRunId: ${prepResult.providerRunId}`);
 log(`  modelRunHash:  ${bundle.modelRunHash}`);
 log(`  documents:     ${bundle.documents.map((d) => d.id).join(", ")}`);
 const evidenceRoot = hashCanonical(bundle);
 const termsHash = hashCanonical(bundle.assetTerms);
 log(`  evidenceRoot:  ${evidenceRoot}`);
-// Keep the prepared bundle locally so a later on-chain failure stays resumable.
-await writeFile(recoveryPath, `${JSON.stringify({
-  ...issuerRecovery,
-  stage: "EVIDENCE_PREPARED",
+// Keep the exact validated bundle locally so a later on-chain failure stays resumable.
+await persistIssuerRecoveryStage("EVIDENCE_PREPARED", {
   bundle,
   providerRunId: prepResult.providerRunId,
   paymentTxHash,
-}, null, 2)}\n`, "utf8");
+  evidenceRoot,
+  termsHash,
+});
 
 // 5. Create the asset with the exact prepared terms.
 log("4. Creating asset with the prepared terms");
@@ -307,18 +329,26 @@ const assetLabel = `asset:veritable-canonical-${issuer.address.slice(2, 10).toLo
 const assetId = keccak256(stringToHex(assetLabel));
 const periodKeyHash = keccak256(stringToHex(PERIOD));
 const policyHash = keccak256(stringToHex("policy-v1"));
-await confirm("createAsset", await issuerClient.writeContract({
+const assetCreationReceipt = await confirm("createAsset", await issuerClient.writeContract({
   address: manifest.contracts.assetFactory, abi: factoryAbi, functionName: "createAsset",
   args: [assetId, "Veritable Canonical Income Asset", "vCANON", policyHash, termsHash,
     [issuer.address, payer.address], [parseUnits("60", 18), parseUnits("40", 18)]],
 }));
+await persistIssuerRecoveryStage("ASSET_CREATED", {
+  assetId,
+  assetCreationTxHash: assetCreationReceipt.transactionHash,
+});
 
 // 6. Escrow the received income and commit the evidence hash.
 log("5. Escrowing income and submitting the claim");
 await confirm("approveEscrow", await issuerClient.writeContract({ address: manifest.contracts.settlementToken, abi: tokenAbi, functionName: "approve", args: [manifest.contracts.yieldVault, AMOUNT] }));
-await confirm("submitClaim", await issuerClient.writeContract({ address: manifest.contracts.yieldVault, abi: vaultAbi, functionName: "submitClaim", args: [assetId, periodKeyHash, AMOUNT, evidenceRoot] }));
+const claimSubmissionReceipt = await confirm("submitClaim", await issuerClient.writeContract({ address: manifest.contracts.yieldVault, abi: vaultAbi, functionName: "submitClaim", args: [assetId, periodKeyHash, AMOUNT, evidenceRoot] }));
 const claimId = await publicClient.readContract({ address: manifest.contracts.yieldVault, abi: vaultAbi, functionName: "periodClaims", args: [assetId, periodKeyHash] });
 if (claimId === zeroHash) throw new Error("Claim was not created");
+await persistIssuerRecoveryStage("CLAIM_SUBMITTED", {
+  claimId,
+  claimSubmissionTxHash: claimSubmissionReceipt.transactionHash,
+});
 log(`  claimId: ${claimId}`);
 
 // 7. Hosted verifier: persists the bundle durably, then attests.

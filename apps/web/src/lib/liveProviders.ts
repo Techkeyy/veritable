@@ -2,6 +2,8 @@ import { hashCanonical } from "@veritable/policy";
 import {
   assetTermsSchema,
   evidenceBundleSchema,
+  isoDateSchema,
+  minorUnitSchema,
   signedPaymentEnvelopeSchema,
   type EvidenceDocument,
 } from "@veritable/schemas";
@@ -27,6 +29,19 @@ interface DeepSeekResponse {
   choices?: Array<{ finish_reason?: string; message?: { content?: string | null } }>;
 }
 
+type LiveExtractionResult = {
+  document: EvidenceDocument;
+  modelRunHash: Hex;
+  providerRunId: string;
+};
+
+export class IncompleteLiveExtractionError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "IncompleteLiveExtractionError";
+  }
+}
+
 function deepSeekKey() {
   const value = process.env.DEEPSEEK_API_KEY;
   if (!value) throw new Error("DEEPSEEK_API_KEY is not configured");
@@ -45,11 +60,7 @@ async function extractSourceText(file: File, bytes: Uint8Array) {
   return String(extracted.text);
 }
 
-export async function extractDocumentWithDeepSeek(file: File): Promise<{
-  document: EvidenceDocument;
-  modelRunHash: Hex;
-  providerRunId: string;
-}> {
+export async function extractDocumentWithDeepSeek(file: File): Promise<LiveExtractionResult> {
   if (!ACCEPTED_MEDIA_TYPES.has(file.type)) throw new Error("Upload a text-based PDF or plain-text evidence document");
   if (file.size === 0 || file.size > MAX_DOCUMENT_BYTES) throw new Error("Evidence documents must be between 1 byte and 10 MB");
   const bytes = new Uint8Array(await file.arrayBuffer());
@@ -74,7 +85,7 @@ export async function extractDocumentWithDeepSeek(file: File): Promise<{
         },
         {
           role: "user",
-          content: `Return JSON matching exactly this shape: {"documentKind":"LEASE|RECEIPT|BANK_SCREENSHOT|OTHER","redactedExtractedText":"concise redacted summary","citedFacts":[{"field":"string","value":"string","sourceLocation":"page or section"}],"expectedAmountMinor":"USD amount as 2000, 2000.00, or six-decimal minor units, or null","dueDate":"YYYY-MM-DD or null"}. Extract only visibly supported facts. Do not invent an amount.\n\n<document>\n${sourceText}\n</document>`,
+          content: `Return JSON matching exactly this shape: {"documentKind":"LEASE|RECEIPT|BANK_SCREENSHOT|OTHER","redactedExtractedText":"concise redacted summary","citedFacts":[{"field":"string","value":"string","sourceLocation":"page or section"}],"expectedAmountMinor":"USD amount as 2000, 2000.00, or six-decimal minor units, or null","dueDate":"YYYY-MM-DD or null"}. When the source explicitly states the expected payment amount or due date, extract each stated value into its structured field. Use null only when that fact is not visibly supported. Extract only visibly supported facts; do not invent information or force agreement with external terms.\n\n<document>\n${sourceText}\n</document>`,
         },
       ],
     }),
@@ -87,9 +98,14 @@ export async function extractDocumentWithDeepSeek(file: File): Promise<{
   const extracted = JSON.parse(choice.message.content) as ModelExtraction;
   if (!(["LEASE", "RECEIPT", "BANK_SCREENSHOT", "OTHER"] as string[]).includes(extracted.documentKind)) throw new Error("DeepSeek returned an invalid document kind");
   if (typeof extracted.redactedExtractedText !== "string" || !Array.isArray(extracted.citedFacts)) throw new Error("DeepSeek returned an invalid extraction schema");
-  const expectedAmountMinor = parseExtractedAmountMinor(extracted.expectedAmountMinor);
-  if (extracted.dueDate !== null && extracted.dueDate !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(String(extracted.dueDate))) {
-    throw new Error("DeepSeek returned an invalid due date");
+  let expectedAmountMinor: string | null;
+  try {
+    expectedAmountMinor = parseExtractedAmountMinor(extracted.expectedAmountMinor);
+  } catch {
+    throw new IncompleteLiveExtractionError("DeepSeek did not return a parseable expected payment amount");
+  }
+  if (extracted.dueDate !== null && extracted.dueDate !== undefined && !isoDateSchema.safeParse(extracted.dueDate).success) {
+    throw new IncompleteLiveExtractionError("DeepSeek did not return a parseable due date");
   }
 
   const document: EvidenceDocument = {
@@ -110,6 +126,28 @@ export async function extractDocumentWithDeepSeek(file: File): Promise<{
   };
 }
 
+export async function extractCompleteDocumentWithRetry(
+  file: File,
+  extractor: (file: File) => Promise<LiveExtractionResult> = extractDocumentWithDeepSeek,
+): Promise<LiveExtractionResult> {
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      const extraction = await extractor(file);
+      const facts = extraction.document.extractedFacts;
+      if (
+        !minorUnitSchema.safeParse(facts?.expectedAmountMinor).success
+        || !isoDateSchema.safeParse(facts?.dueDate).success
+      ) {
+        throw new IncompleteLiveExtractionError("DeepSeek extraction requires both expected payment amount and due date");
+      }
+      return extraction;
+    } catch (error) {
+      if (!(error instanceof IncompleteLiveExtractionError) || attempt === 2) throw error;
+    }
+  }
+  throw new IncompleteLiveExtractionError("DeepSeek extraction remained incomplete after two attempts");
+}
+
 export async function prepareLiveEvidence(input: {
   file: File;
   periodKey: string;
@@ -118,7 +156,7 @@ export async function prepareLiveEvidence(input: {
 }) {
   const assetTerms = assetTermsSchema.parse(input.assetTerms);
   const paymentEnvelope = signedPaymentEnvelopeSchema.parse(input.paymentEnvelope);
-  const extraction = await extractDocumentWithDeepSeek(input.file);
+  const extraction = await extractCompleteDocumentWithRetry(input.file);
   const bundle = evidenceBundleSchema.parse({
     schemaVersion: "1.0",
     periodKey: input.periodKey,
