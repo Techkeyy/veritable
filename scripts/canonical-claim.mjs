@@ -1,11 +1,11 @@
 // One-off operator script: produce a genuine real-evidence canonical claim on the
 // live Vercel deployment so /v1/reports/<claimId> resolves from durable storage.
 //
-// Flow: real TestUSDT payment on chain -> hosted DeepSeek extraction (/v1/evidence/prepare)
+// Flow: real network settlement-token payment -> hosted DeepSeek extraction (/v1/evidence/prepare)
 // -> asset creation with the returned terms -> escrow + submitClaim -> hosted verifier
 // (/v1/process) which persists the bundle and attests -> settle -> holders claim.
 
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import dotenv from "dotenv";
 import { hashCanonical } from "../packages/policy/dist/index.js";
@@ -14,6 +14,13 @@ import {
   stringToHex, getAddress, zeroHash, formatUnits,
 } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import {
+  assertMainnetPreSpendState,
+  assertSafeHostedBaseUrl,
+  assertSelectedDeployment,
+  attestationRequestMessage,
+  evidencePreparationMessage,
+} from "./canonical-claim-safety.mjs";
 
 const ROOT = process.cwd();
 dotenv.config({ path: resolve(ROOT, ".env"), quiet: true });
@@ -23,19 +30,20 @@ dotenv.config({ path: resolve(ROOT, ".env"), quiet: true });
 const MAINNET = process.env.CHAIN_ENV === "bot-mainnet";
 const NET = MAINNET
   ? {
-    dir: "bot-mainnet", id: 677, label: "BOT Chain",
+    dir: "bot-mainnet", id: 677, label: "BOT Mainnet", chainName: "BOT Chain",
     rpc: process.env.BOT_MAINNET_RPC_URL || "https://rpc.botchain.ai",
     explorer: "https://scan.botchain.ai",
     symbol: "BOT", testnet: false,
   }
   : {
-    dir: "bot-testnet", id: 968, label: "BOT Chain Testnet",
+    dir: "bot-testnet", id: 968, label: "BOT Testnet", chainName: "BOT Chain Testnet",
     rpc: process.env.BOT_TESTNET_RPC_URL || "https://rpc.bohr.life",
     explorer: "https://scan.bohr.life",
     symbol: "tBOT", testnet: true,
   };
 
 const SITE = process.env.HOSTED_TEST_BASE_URL || "https://veritable-web-sigma.vercel.app";
+assertSafeHostedBaseUrl({ mainnet: MAINNET, site: SITE });
 const RPC = NET.rpc;
 const EXPLORER = NET.explorer;
 const PERIOD = process.env.CANONICAL_PERIOD || "2026-08";
@@ -52,7 +60,7 @@ if (AMOUNT % 5n !== 0n) {
 }
 
 const chain = {
-  id: NET.id, name: NET.label,
+  id: NET.id, name: NET.chainName,
   nativeCurrency: { name: NET.symbol, symbol: NET.symbol, decimals: 18 },
   rpcUrls: { default: { http: [RPC] } },
   blockExplorers: { default: { name: "BOTScan", url: EXPLORER } },
@@ -67,6 +75,7 @@ const tokenAbi = [
   { type: "function", name: "transfer", stateMutability: "nonpayable", inputs: [{ name: "to", type: "address" }, { name: "amount", type: "uint256" }], outputs: [{ type: "bool" }] },
   { type: "function", name: "approve", stateMutability: "nonpayable", inputs: [{ name: "spender", type: "address" }, { name: "amount", type: "uint256" }], outputs: [{ type: "bool" }] },
   { type: "function", name: "balanceOf", stateMutability: "view", inputs: [{ name: "account", type: "address" }], outputs: [{ type: "uint256" }] },
+  { type: "function", name: "decimals", stateMutability: "view", inputs: [], outputs: [{ type: "uint8" }] },
 ];
 const factoryAbi = [{
   type: "function", name: "createAsset", stateMutability: "nonpayable",
@@ -97,11 +106,80 @@ const publicClient = createPublicClient({ chain, transport: http(RPC) });
 const payer = privateKeyToAccount(
   MAINNET ? process.env.MAINNET_DEPLOYER_PRIVATE_KEY : process.env.DEPLOYER_PRIVATE_KEY,
 );
+const verifier = privateKeyToAccount(
+  MAINNET ? process.env.MAINNET_VERIFIER_PRIVATE_KEY : process.env.VERIFIER_PRIVATE_KEY,
+);
 const issuerKey = generatePrivateKey();
 const issuer = privateKeyToAccount(issuerKey);
 const payerClient = createWalletClient({ chain, transport: http(RPC), account: payer });
 const issuerClient = createWalletClient({ chain, transport: http(RPC), account: issuer });
 const transactions = {};
+const recoveryPath = resolve(ROOT, `.verifi/canonical-recovery-${NET.dir}-${issuer.address.toLowerCase()}.json`);
+const issuerFunding = parseEther("0.12");
+const minimumMainnetPayerBot = parseEther("0.14");
+const issuerRecovery = {
+  schemaVersion: 1,
+  network: NET.dir,
+  chainId: NET.id,
+  createdAt: new Date().toISOString(),
+  stage: "ISSUER_GENERATED",
+  issuer: issuer.address,
+  issuerKey,
+};
+let recoveryPersisted = false;
+
+async function persistIssuerRecovery() {
+  await mkdir(resolve(ROOT, ".verifi"), { recursive: true });
+  await writeFile(recoveryPath, `${JSON.stringify(issuerRecovery, null, 2)}\n`, "utf8");
+  const persisted = JSON.parse(await readFile(recoveryPath, "utf8"));
+  recoveryPersisted = persisted.network === NET.dir
+    && persisted.chainId === NET.id
+    && persisted.issuer?.toLowerCase() === issuer.address.toLowerCase()
+    && persisted.issuerKey === issuerKey;
+  if (!recoveryPersisted) throw new Error("Disposable issuer recovery state could not be verified after persistence");
+}
+
+async function runPreSpendChecks() {
+  const actualChainId = await publicClient.getChainId();
+  assertSelectedDeployment({
+    mainnet: MAINNET,
+    actualChainId,
+    expectedChainId: NET.id,
+    manifestChainId: manifest.chainId,
+    manifestNetwork: manifest.network,
+  });
+  if (!MAINNET) return;
+
+  const contractEntries = Object.entries(manifest.contracts).map(([name, rawAddress]) => [name, getAddress(rawAddress)]);
+  const codeResults = await Promise.all(contractEntries.map(async ([name, address]) => ({
+    name,
+    code: await publicClient.getCode({ address }),
+  })));
+  const missingCode = codeResults.filter(({ code }) => !code || code === "0x").map(({ name }) => name);
+  const [settlementTokenDecimals, freeStake, payerBotBalance, payerUsdtBalance] = await Promise.all([
+    publicClient.readContract({ address: getAddress(manifest.contracts.settlementToken), abi: tokenAbi, functionName: "decimals" }),
+    publicClient.readContract({ address: getAddress(manifest.contracts.verifierStaking), abi: stakingAbi, functionName: "freeStake", args: [verifier.address] }),
+    publicClient.getBalance({ address: payer.address }),
+    publicClient.readContract({ address: getAddress(manifest.contracts.settlementToken), abi: tokenAbi, functionName: "balanceOf", args: [payer.address] }),
+  ]);
+  assertMainnetPreSpendState({
+    mainnet: true,
+    configuredSettlementToken: manifest.contracts.settlementToken,
+    settlementTokenDecimals,
+    missingCode,
+    freeStake,
+    requiredBond: BigInt(manifest.parameters.verifierBondWei),
+    payerBotBalance,
+    minimumPayerBotBalance: minimumMainnetPayerBot,
+    payerUsdtBalance,
+    requiredUsdt: AMOUNT,
+    payerAddress: payer.address,
+    manifestDeployer: manifest.deployer,
+    verifierAddress: verifier.address,
+    manifestVerifier: manifest.roles.verifier,
+    recoveryPersisted,
+  });
+}
 
 const log = (m) => process.stdout.write(`${m}\n`);
 async function confirm(name, hash) {
@@ -112,20 +190,21 @@ async function confirm(name, hash) {
   return receipt;
 }
 
+await persistIssuerRecovery();
+await runPreSpendChecks();
+
 log(`Site:   ${SITE}`);
 log(`Payer:  ${payer.address}`);
 log(`Issuer: ${issuer.address} (fresh)\n`);
 
 // 0. The bonded verifier must hold enough free stake to lock a new bond.
 log("0. Checking verifier free stake");
-const verifier = privateKeyToAccount(
-  MAINNET ? process.env.MAINNET_VERIFIER_PRIVATE_KEY : process.env.VERIFIER_PRIVATE_KEY,
-);
 const verifierClient = createWalletClient({ chain, transport: http(RPC), account: verifier });
 const requiredBond = BigInt(manifest.parameters.verifierBondWei);
 const freeStake = await publicClient.readContract({ address: manifest.contracts.verifierStaking, abi: stakingAbi, functionName: "freeStake", args: [verifier.address] });
 log(`  free stake ${freeStake} wei, bond requires ${requiredBond} wei`);
 if (freeStake < requiredBond) {
+  if (MAINNET) throw new Error("Mainnet verifier free stake is insufficient; automatic Mainnet stake top-up is disabled");
   const topUp = requiredBond * 2n - freeStake;
   log(`  topping up ${topUp} wei`);
   await confirm("verifierStakeTopUp", await verifierClient.writeContract({ address: manifest.contracts.verifierStaking, abi: stakingAbi, functionName: "stake", value: topUp }));
@@ -133,7 +212,7 @@ if (freeStake < requiredBond) {
 
 // 1. Fund the fresh issuer with gas.
 log("1. Funding fresh issuer wallet");
-await confirm("fundIssuer", await payerClient.sendTransaction({ to: issuer.address, value: parseEther("0.12") }));
+await confirm("fundIssuer", await payerClient.sendTransaction({ to: issuer.address, value: issuerFunding }));
 
 // 2. Real TestUSDT payment from payer to issuer. This is the income event.
 log(`2. Real ${MAINNET ? "USDT" : "TestUSDT"} income payment (payer -> issuer)`);
@@ -162,7 +241,7 @@ const documentText = [
   "",
   `Amount due: ${AMOUNT_DECIMAL} USDT`,
   `Due date: ${paidAt}`,
-  `Payment method: ${NET.label} USDT transfer`,
+  `Payment method: ${NET.chainName} USDT transfer`,
   "",
   "This statement records the monthly rental income for the billing period",
   `shown above. The amount due is ${AMOUNT_DECIMAL} USDT.`,
@@ -182,14 +261,13 @@ const assetTerms = {
 // 4. Hosted evidence preparation: live DeepSeek extraction + private storage.
 log("3. Hosted evidence preparation (live DeepSeek + Vercel Blob)");
 const proofReference = `BOT_TRANSACTION:${paymentTxHash.toLowerCase()}`;
-const prepMessage = [
-  "Veritable evidence preparation",
-  `Requester: ${getAddress(issuer.address)}`,
-  `Period: ${PERIOD}`,
-  `Payment proof: ${proofReference}`,
-  `Document hash: ${documentHash}`,
-  `Chain ID: 968`,
-].join("\n");
+const prepMessage = evidencePreparationMessage({
+  requester: issuer.address,
+  periodKey: PERIOD,
+  proofReference,
+  documentHash,
+  chainId: NET.id,
+});
 const prepSignature = await issuer.signMessage({ message: prepMessage });
 
 const form = new FormData();
@@ -211,7 +289,13 @@ const evidenceRoot = hashCanonical(bundle);
 const termsHash = hashCanonical(bundle.assetTerms);
 log(`  evidenceRoot:  ${evidenceRoot}`);
 // Keep the prepared bundle locally so a later on-chain failure stays resumable.
-await writeFile(resolve(ROOT, ".verifi/last-prepared-bundle.json"), `${JSON.stringify({ bundle, providerRunId: prepResult.providerRunId, paymentTxHash, issuerKey }, null, 2)}\n`, "utf8");
+await writeFile(recoveryPath, `${JSON.stringify({
+  ...issuerRecovery,
+  stage: "EVIDENCE_PREPARED",
+  bundle,
+  providerRunId: prepResult.providerRunId,
+  paymentTxHash,
+}, null, 2)}\n`, "utf8");
 
 // 5. Create the asset with the exact prepared terms.
 log("4. Creating asset with the prepared terms");
@@ -235,12 +319,7 @@ log(`  claimId: ${claimId}`);
 
 // 7. Hosted verifier: persists the bundle durably, then attests.
 log("6. Hosted verifier attestation");
-const attestMessage = [
-  "Veritable BOT Testnet attestation request",
-  `Claim: ${claimId}`,
-  "Chain: 968",
-  "Purpose: authorize the bonded verifier to inspect this claim's committed evidence.",
-].join("\n");
+const attestMessage = attestationRequestMessage(claimId, NET.id, NET.label);
 const attestSignature = await issuer.signMessage({ message: attestMessage });
 const processResponse = await fetch(`${SITE}/v1/process/${claimId}`, {
   method: "POST", headers: { "content-type": "application/json" },
@@ -316,5 +395,5 @@ const artifact = {
   transactions,
 };
 await writeFile(resolve(ROOT, `deployments/${NET.dir}/canonical-claim.json`), `${JSON.stringify(artifact, null, 2)}\n`, "utf8");
-log(`\nWrote deployments/bot-testnet/canonical-claim.json`);
+log(`\nWrote deployments/${NET.dir}/canonical-claim.json`);
 log(`Report: ${SITE}/v1/reports/${claimId}`);
