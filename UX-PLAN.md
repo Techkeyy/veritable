@@ -1,6 +1,8 @@
 # Veritable UX rebuild plan
 
-Status: **executed**
+> Historical implementation plan: this document governed the Testnet UX rebuild and no longer describes release scope or current deployment status. See [README.md](README.md) and [SUBMISSION.md](SUBMISSION.md) for the live Mainnet product.
+
+Status: **executed and archived**
 Read this before editing product UI. Do not invent extra phases, Mainnet work, or new protocol features while executing this file.
 
 ## Product rule
@@ -188,7 +190,3 @@ Do not restyle the landing before the issuer path works. Do not add marketplace 
 - new: `apps/web/src/lib/format.ts`, `apps/web/src/lib/session.ts`, `apps/web/src/components/site-nav.tsx`
 
 Files not expected to change: `packages/contracts/**`, `packages/policy/**`, `apps/agent/**`, `docs/**`, `SUBMISSION.md`, Mainnet scripts.
-
-## Handoff
-
-A separate `handoff.md` from the user is the source of built-protocol truth. If it conflicts with this file on **product UX**, this file wins. If it conflicts on **what the protocol actually does**, the handoff and the code win, and this file must be followed without inventing new on-chain behavior.

@@ -110,7 +110,7 @@ Roughly ten seconds per tab. This is the longest block in the video and the only
 **On screen and what to say, in order**
 
 1. **Tab E, the challenge.**
-   > "Now the case that matters. Here a verifier approved a claim that was false. Anyone can challenge an attestation during the public window. A challenger did."
+   > "Now the case that matters. Here a verifier intentionally approved a claim that was false. Anyone can challenge an attestation during the public window. A challenger did."
 
 2. **Tab F, the overturn and slash.** Stop moving the mouse entirely.
    > "The resolver overturned it. The verifier lost two BOT of its own stake."

@@ -2,6 +2,8 @@
 
 **Proof of income before distribution.** A yield firewall for tokenized real-world assets.
 
+**LLM extracts. Deterministic rules decide.** The model never emits the protocol verdict.
+
 **[Mainnet product](https://veritable-mainnet.vercel.app)** · **[Verified Mainnet report](https://veritable-mainnet.vercel.app/v1/reports/0xfbe58b8e43f82b0ffb77a61185b592aa58b9c1686705b54842ea553ec9faebd8)** · **[Testnet slash proof](https://scan.bohr.life/tx/0x82318cab75659f149e73b575848befc7c65ff2954a3ac67f0b966d7b699afb56)** · [Mainnet evidence](deployments/bot-mainnet/canonical-claim.json)
 
 RWA platforms can prove a token exists. They still ask investors to take the issuer's word for what the asset actually earned. Veritable puts a programmable firewall between the claim and the payout: an issuer escrows a yield claim, an evidence-constrained model extracts the supporting records, a deterministic rule engine produces the verdict, and a bonded on-chain attestation gates release. Get the attestation wrong and you lose stake.
@@ -9,6 +11,19 @@ RWA platforms can prove a token exists. They still ask investors to take the iss
 > *"The dashboard says the rent came in. Did it?"*
 
 Built for the BOT Chain AI x RWA Builder Challenge. Primary track: RWA Applications, with AI as a core on-chain decision participant.
+
+```text
+income evidence + payment proof
+              |
+              v
+DeepSeek extracts typed facts
+              |
+              v
+8 deterministic policy rules
+              |
+              v
+bonded on-chain attestation -> 600s challenge window -> exact holder payout
+```
 
 ---
 
@@ -66,7 +81,7 @@ pnpm deploy:testnet       # requires chain 968, writes deployments/bot-testnet/m
 pnpm acceptance:testnet   # writes transaction-backed acceptance.json
 ```
 
-Run the app locally against the deployed contracts:
+Run the app locally against the deployed contracts, with one service per terminal:
 
 ```bash
 pnpm dev:api
@@ -110,7 +125,7 @@ The canonical claim is readable without any setup. It returns the full determini
 curl https://veritable-web-sigma.vercel.app/v1/reports/0x1b547def2d1d6be5c508e357650fdd7366bd21b1b44ceb11c4e503b6d7a69c1a
 ```
 
-That claim is not a fixture. A real Testnet USDT payment was made on chain, DeepSeek extracted the amount and due date from the uploaded statement, deterministic policy passed all eight rules, the bonded verifier attested on chain, and holders withdrew 1,200 and 800 USDT against the immutable snapshot. Reproduce the whole path with `pnpm canonical:testnet`, or follow [docs/12-real-evidence-runbook.md](docs/12-real-evidence-runbook.md) to submit your own through the UI.
+That claim is not a fixture. A real on-chain TestUSDT payment was made, DeepSeek extracted the amount and due date from the uploaded statement, deterministic policy passed all eight rules, the bonded verifier attested on chain, and holders withdrew 1,200 and 800 TestUSDT against the immutable snapshot. Reproduce the whole path with `pnpm canonical:testnet`, or follow [docs/12-real-evidence-runbook.md](docs/12-real-evidence-runbook.md) to submit your own through the UI.
 
 To submit a real claim end to end, follow [docs/12-real-evidence-runbook.md](docs/12-real-evidence-runbook.md). The evidence path accepts no preset scenarios: the model extracts from the document you supply, and payment is proven by a BOT transaction or a counterparty wallet signature.
 
@@ -212,6 +227,7 @@ Not built, and not claimed:
 - No legal title verification, no universal fraud detection.
 - Single verifier. Multi-agent consensus is design work, not shipped code.
 - Dispute resolution uses a single resolver role rather than decentralized governance.
+- Public reports expose rule outcomes and cryptographic commitments, not private source documents. Anyone can verify the payment and settlement on chain, but rerunning the model extraction requires issuer-authorized access to the original evidence.
 - Durable multi-operator storage, multisig governance, and an independent security audit are production requirements that remain open.
 
 Historical acceptance transactions used labeled fixture evidence with the deployed Testnet settlement token. Those records are valid protocol proofs and are not presented as bank-connected production data.
@@ -226,4 +242,4 @@ Any claim in this file must stay backed by a command, a test, a transaction, a d
 
 ---
 
-Original work built for the BOT Chain AI x RWA Builder Challenge. Third-party dependencies are listed in `pnpm-lock.yaml` and retain their own licenses.
+Original work built for the BOT Chain AI x RWA Builder Challenge. No project license is granted by this repository. Third-party dependencies are listed in `pnpm-lock.yaml` and retain their own licenses.
