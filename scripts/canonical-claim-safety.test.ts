@@ -7,11 +7,17 @@ import { resolve } from "node:path";
 import { attestationRequestMessage as appAttestationRequestMessage } from "../apps/web/src/lib/attestationRequest.ts";
 import { evidencePreparationMessage as appEvidencePreparationMessage } from "../apps/web/src/lib/evidenceAuthorization.ts";
 import {
+  MAINNET_ISSUER_FUNDING_WEI,
+  MAINNET_MAX_GAS_PRICE_WEI,
+  TESTNET_ISSUER_FUNDING_WEI,
+  assertMainnetGasPrice,
   assertMainnetPreSpendState,
   assertSafeHostedBaseUrl,
   assertSelectedDeployment,
   attestationRequestMessage,
   evidencePreparationMessage,
+  issuerFundingForNetwork,
+  mainnetPayerReserve,
 } from "./canonical-claim-safety.mjs";
 
 const requester = "0xCc67779F8eDb2C80DC665775C5597657C512FE1A" as const;
@@ -45,7 +51,10 @@ for (const network of [
 
 test("Mainnet refuses the protected Testnet host", () => {
   for (const site of [
+    "https://veritable-web-sigma.vercel.app",
     "https://veritable-web-sigma.vercel.app/",
+    "https://veritable-web-sigma.vercel.app/v1/evidence/prepare",
+    "https://veritable-web-sigma.vercel.app?network=mainnet",
     "https://veritable-web-sigma.vercel.app/v1/evidence/prepare?network=mainnet",
   ]) {
     assert.throws(
@@ -54,6 +63,32 @@ test("Mainnet refuses the protected Testnet host", () => {
     );
   }
   assert.doesNotThrow(() => assertSafeHostedBaseUrl({ mainnet: false, site: "https://veritable-web-sigma.vercel.app" }));
+});
+
+test("issuer funding remains network-aware", () => {
+  assert.equal(issuerFundingForNetwork(true), 60_000_000_000_000_000n);
+  assert.equal(issuerFundingForNetwork(true), MAINNET_ISSUER_FUNDING_WEI);
+  assert.equal(issuerFundingForNetwork(false), 120_000_000_000_000_000n);
+  assert.equal(issuerFundingForNetwork(false), TESTNET_ISSUER_FUNDING_WEI);
+});
+
+test("Mainnet payer reserve is derived from funding, measured gas, and margin", () => {
+  assert.equal(mainnetPayerReserve(), 74_083_000_000_000_000n);
+  assert.notEqual(mainnetPayerReserve(), 140_000_000_000_000_000n);
+});
+
+test("Mainnet gas-price ceiling passes at or below 25 gwei and fails closed above it", () => {
+  assert.doesNotThrow(() => assertMainnetGasPrice({ mainnet: true, gasPrice: 20_000_000_000n }));
+  assert.doesNotThrow(() => assertMainnetGasPrice({ mainnet: true, gasPrice: MAINNET_MAX_GAS_PRICE_WEI }));
+  assert.throws(
+    () => assertMainnetGasPrice({ mainnet: true, gasPrice: MAINNET_MAX_GAS_PRICE_WEI + 1n }),
+    /stop and recalculate the BOT budget/,
+  );
+  assert.throws(
+    () => assertMainnetGasPrice({ mainnet: true, gasPrice: undefined }),
+    /positive live Mainnet gas price/,
+  );
+  assert.doesNotThrow(() => assertMainnetGasPrice({ mainnet: false, gasPrice: MAINNET_MAX_GAS_PRICE_WEI + 1n }));
 });
 
 test("the canonical script itself exits on the protected Testnet host before reaching spend steps", () => {
@@ -83,7 +118,8 @@ test("Mainnet refuses missing recovery state", () => {
     freeStake: 600_000_000_000_000_000n,
     requiredBond: 200_000_000_000_000_000n,
     payerBotBalance: 150_000_000_000_000_000n,
-    minimumPayerBotBalance: 140_000_000_000_000_000n,
+    minimumPayerBotBalance: mainnetPayerReserve(),
+    gasPrice: 20_000_000_000n,
     payerUsdtBalance: 500_000n,
     requiredUsdt: 500_000n,
     payerAddress: requester,
@@ -101,7 +137,7 @@ test("Mainnet refuses missing recovery state", () => {
   );
 });
 
-test("Mainnet pre-spend state fails closed for each value-safety invariant", () => {
+test("Mainnet pre-spend accepts the hypothetical 0.092 BOT / 0.5 USDT post-swap state and fails closed for each invariant", () => {
   const valid = {
     mainnet: true,
     configuredSettlementToken: "0xaBabc7Ddc03e501d190C676BF3d92ef0e6e87a3C",
@@ -109,8 +145,9 @@ test("Mainnet pre-spend state fails closed for each value-safety invariant", () 
     missingCode: [] as string[],
     freeStake: 600_000_000_000_000_000n,
     requiredBond: 200_000_000_000_000_000n,
-    payerBotBalance: 150_000_000_000_000_000n,
-    minimumPayerBotBalance: 140_000_000_000_000_000n,
+    payerBotBalance: 92_000_000_000_000_000n,
+    minimumPayerBotBalance: mainnetPayerReserve(),
+    gasPrice: 20_000_000_000n,
     payerUsdtBalance: 500_000n,
     requiredUsdt: 500_000n,
     payerAddress: requester,
@@ -125,7 +162,8 @@ test("Mainnet pre-spend state fails closed for each value-safety invariant", () 
     [{ settlementTokenDecimals: 18 }, /6 decimals/],
     [{ missingCode: ["yieldVault"] }, /Missing deployed bytecode/],
     [{ freeStake: 199_999_999_999_999_999n }, /below the required bond/],
-    [{ payerBotBalance: 139_999_999_999_999_999n }, /BOT balance/],
+    [{ payerBotBalance: mainnetPayerReserve() - 1n }, /BOT balance/],
+    [{ gasPrice: MAINNET_MAX_GAS_PRICE_WEI + 1n }, /stop and recalculate/],
     [{ payerUsdtBalance: 499_999n }, /USDT balance/],
     [{ payerAddress: "0x3A3DFC22820d1B0d6d0aD4D7438720c0D3d4dD07" }, /recorded deployer/],
     [{ verifierAddress: requester }, /verifier role/],
@@ -146,6 +184,10 @@ test("recovery persistence and Mainnet guards precede every transaction-capable 
   assert.ok(firstWrite > preSpend, "writeContract cannot occur before recovery and pre-spend checks");
   assert.match(source, /Object\.entries\(manifest\.contracts\)/, "every configured deployment address is checked");
   assert.match(source, /publicClient\.getCode/, "configured deployment addresses are checked for bytecode");
+  assert.match(source, /publicClient\.getGasPrice\(\)/, "live gas price is read before value movement");
+  assert.match(source, /issuerFundingForNetwork\(MAINNET\)/, "issuer funding is selected explicitly by network");
+  assert.match(source, /mainnetPayerReserve\(\)/, "Mainnet payer minimum is derived from named components");
+  assert.doesNotMatch(source, /parseEther\("0\.14"\)/, "the old hardcoded 0.14 BOT minimum is absent");
   const ignore = await readFile(resolve(process.cwd(), ".gitignore"), "utf8");
   assert.match(ignore, /^\.verifi\/$/m, "recovery files remain inside the established gitignored boundary");
 });

@@ -10,7 +10,7 @@ import { resolve } from "node:path";
 import dotenv from "dotenv";
 import { hashCanonical } from "../packages/policy/dist/index.js";
 import {
-  createPublicClient, createWalletClient, http, keccak256, parseEther, parseUnits,
+  createPublicClient, createWalletClient, http, keccak256, parseUnits,
   stringToHex, getAddress, zeroHash, formatUnits,
 } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
@@ -20,6 +20,8 @@ import {
   assertSelectedDeployment,
   attestationRequestMessage,
   evidencePreparationMessage,
+  issuerFundingForNetwork,
+  mainnetPayerReserve,
 } from "./canonical-claim-safety.mjs";
 
 const ROOT = process.cwd();
@@ -115,8 +117,8 @@ const payerClient = createWalletClient({ chain, transport: http(RPC), account: p
 const issuerClient = createWalletClient({ chain, transport: http(RPC), account: issuer });
 const transactions = {};
 const recoveryPath = resolve(ROOT, `.verifi/canonical-recovery-${NET.dir}-${issuer.address.toLowerCase()}.json`);
-const issuerFunding = parseEther("0.12");
-const minimumMainnetPayerBot = parseEther("0.14");
+const issuerFunding = issuerFundingForNetwork(MAINNET);
+const minimumMainnetPayerBot = mainnetPayerReserve();
 const issuerRecovery = {
   schemaVersion: 1,
   network: NET.dir,
@@ -156,11 +158,12 @@ async function runPreSpendChecks() {
     code: await publicClient.getCode({ address }),
   })));
   const missingCode = codeResults.filter(({ code }) => !code || code === "0x").map(({ name }) => name);
-  const [settlementTokenDecimals, freeStake, payerBotBalance, payerUsdtBalance] = await Promise.all([
+  const [settlementTokenDecimals, freeStake, payerBotBalance, payerUsdtBalance, gasPrice] = await Promise.all([
     publicClient.readContract({ address: getAddress(manifest.contracts.settlementToken), abi: tokenAbi, functionName: "decimals" }),
     publicClient.readContract({ address: getAddress(manifest.contracts.verifierStaking), abi: stakingAbi, functionName: "freeStake", args: [verifier.address] }),
     publicClient.getBalance({ address: payer.address }),
     publicClient.readContract({ address: getAddress(manifest.contracts.settlementToken), abi: tokenAbi, functionName: "balanceOf", args: [payer.address] }),
+    publicClient.getGasPrice(),
   ]);
   assertMainnetPreSpendState({
     mainnet: true,
@@ -171,6 +174,7 @@ async function runPreSpendChecks() {
     requiredBond: BigInt(manifest.parameters.verifierBondWei),
     payerBotBalance,
     minimumPayerBotBalance: minimumMainnetPayerBot,
+    gasPrice,
     payerUsdtBalance,
     requiredUsdt: AMOUNT,
     payerAddress: payer.address,

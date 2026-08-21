@@ -3,6 +3,40 @@ import { getAddress } from "viem";
 export const KNOWN_TESTNET_SITE = "https://veritable-web-sigma.vercel.app";
 export const BOT_MAINNET_USDT = getAddress("0xaBabc7Ddc03e501d190C676BF3d92ef0e6e87a3C");
 
+// The disposable issuer pays createAsset, approval, claim submission,
+// settlement, and its holder withdrawal. The measured Mainnet cost for those
+// calls is 2,235,586 gas, or 0.04471172 BOT at 20 gwei. Funding it with 0.060
+// BOT preserves about 34% headroom at the current gas price.
+export const MAINNET_ISSUER_FUNDING_WEI = 60_000_000_000_000_000n;
+export const TESTNET_ISSUER_FUNDING_WEI = 120_000_000_000_000_000n;
+
+// The deployer pays the issuer-funding transfer, USDT payment, and its holder
+// withdrawal: 21,000 + 51,266 + 91,054 measured gas units.
+export const MAINNET_DEPLOYER_GAS_UNITS = 163_320n;
+export const MAINNET_MAX_GAS_PRICE_WEI = 25_000_000_000n;
+export const MAINNET_PAYER_SAFETY_MARGIN_WEI = 10_000_000_000_000_000n;
+
+export function issuerFundingForNetwork(mainnet) {
+  return mainnet ? MAINNET_ISSUER_FUNDING_WEI : TESTNET_ISSUER_FUNDING_WEI;
+}
+
+export function mainnetPayerReserve() {
+  const deployerGasAllowance = MAINNET_DEPLOYER_GAS_UNITS * MAINNET_MAX_GAS_PRICE_WEI;
+  return MAINNET_ISSUER_FUNDING_WEI + deployerGasAllowance + MAINNET_PAYER_SAFETY_MARGIN_WEI;
+}
+
+export function assertMainnetGasPrice({ mainnet, gasPrice }) {
+  if (!mainnet) return;
+  if (typeof gasPrice !== "bigint" || gasPrice <= 0n) {
+    throw new Error("A positive live Mainnet gas price is required before value movement");
+  }
+  if (gasPrice > MAINNET_MAX_GAS_PRICE_WEI) {
+    throw new Error(
+      `Mainnet gas price ${gasPrice} exceeds the 25 gwei issuer-funding safety ceiling; stop and recalculate the BOT budget`,
+    );
+  }
+}
+
 export function evidencePreparationMessage(input) {
   return [
     "Veritable evidence preparation",
@@ -54,6 +88,7 @@ export function assertMainnetPreSpendState({
   requiredBond,
   payerBotBalance,
   minimumPayerBotBalance,
+  gasPrice,
   payerUsdtBalance,
   requiredUsdt,
   payerAddress,
@@ -63,6 +98,7 @@ export function assertMainnetPreSpendState({
   recoveryPersisted,
 }) {
   if (!mainnet) return;
+  assertMainnetGasPrice({ mainnet, gasPrice });
   if (getAddress(configuredSettlementToken) !== BOT_MAINNET_USDT) {
     throw new Error(`Mainnet settlement token must be official USDT at ${BOT_MAINNET_USDT}`);
   }
